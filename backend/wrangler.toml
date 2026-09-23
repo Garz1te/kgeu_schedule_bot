@@ -1,0 +1,12 @@
+name = "kgeu-schedule-bot"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+[vars]
+KABINET_API = "https://kabinet.kgeu.ru/api"
+WEBAPP_URL = "https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPO_NAME/"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kgeu_schedule_db"
+database_id = "dc6805fc-8dfe-4278-933c-9c9cb5b56aae"
