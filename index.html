@@ -107,7 +107,28 @@
         input[type="text"], select { width: 100%; padding: 12px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); outline: none; font-size: 16px; box-sizing: border-box; text-transform: none; }
         input[type="text"]::placeholder { text-transform: none; color: var(--text-secondary); opacity: 0.7; }
         
-        .autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; max-height: 220px; overflow-y: auto; z-index: 1000; display: none; backdrop-filter: blur(15px); margin-top: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        /* Выпадающий список ограничен высотой примерно в 5 элементов с прокруткой */
+        .autocomplete-dropdown { 
+            position: absolute; 
+            top: 100%; 
+            left: 0; 
+            right: 0; 
+            background: var(--card-bg); 
+            border: 1px solid var(--border-color); 
+            border-radius: 10px; 
+            max-height: 220px; /* Ограничение высоты под элементы списка с возможностью скролла */
+            overflow-y: auto; 
+            z-index: 1000; 
+            display: none; 
+            backdrop-filter: blur(15px); 
+            margin-top: 4px; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4); 
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent) transparent;
+        }
+        .autocomplete-dropdown::-webkit-scrollbar { width: 6px; }
+        .autocomplete-dropdown::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+        
         .autocomplete-item { padding: 12px 14px; cursor: pointer; font-size: 15px; color: var(--text-primary); border-bottom: 1px solid rgba(150,150,150,0.1); text-transform: none; }
         .autocomplete-item:hover { background: rgba(150,150,150,0.2); }
 
@@ -640,7 +661,6 @@
                 if (dayLessonsCache[cacheKey]) { renderLessons(dayLessonsCache[cacheKey], container, dateStr); return; }
 
                 try {
-                    // Поддержка реальных эндпоинтов КГЭУ для дня
                     let queryParam = currentMode === 'Group' ? `idGroup=${encodeURIComponent(currentName)}` : currentMode === 'Teacher' ? `idTeacher=${encodeURIComponent(currentName)}` : `idAudLine=${encodeURIComponent(currentName)}`;
                     const res = await fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dateStr}`);
                     const data = await res.json();
@@ -657,7 +677,6 @@
                 if (weekCache[weekKey]) { renderWeekSchedule(weekCache[weekKey], container); return; }
 
                 try {
-                    // Цикл на 7 дней недели для запросов к /api/Rasp, так как бэкенд КГЭУ выдает поштучно по датам
                     let weekData = {};
                     for (let i = 0; i < 7; i++) {
                         let d = new Date(monday);
@@ -691,7 +710,6 @@
             renderMonthGrid(year, month, true);
 
             try {
-                // Подгружаем дни месяца циклом через /api/Rasp или оптимизированный GetRaspDates
                 let totalDays = new Date(year, month + 1, 0).getDate();
                 let monthData = {};
                 
@@ -884,7 +902,15 @@
             let inputName = document.getElementById('search-input').value.trim();
             if (!inputName) { alert('Пожалуйста, выберите нужный пункт!'); return; }
 
+            // Строгая проверка: разрешаем фиксацию только если элемент существует в официальном списке КГЭУ
             let resolvedName = resolveItemName(currentMode, inputName);
+            const list = listsData[currentMode] || [];
+            
+            if (!list.includes(resolvedName)) {
+                alert('Пожалуйста, выберите элемент из выпадающего списка подсказок! Ввод собственных названий запрещен.');
+                return;
+            }
+
             if (currentName !== resolvedName) { 
                 weekCache = {}; dayLessonsCache = {}; monthLessonsCache = {};
                 localStorage.removeItem('kgeu_week_cache'); 
