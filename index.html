@@ -233,6 +233,8 @@
     </div>
 
     <script>
+        const WORKER_URL = 'https://kgeu-schedule-bot.garzite.workers.dev';
+
         let tg = window.Telegram ? window.Telegram.WebApp : null;
         if (tg) tg.expand();
 
@@ -331,7 +333,7 @@
                     self.addEventListener('install', e => self.skipWaiting());
                     self.addEventListener('activate', e => e.waitUntil(clients.claim()));
                     self.addEventListener('fetch', e => {
-                        if (e.request.url.includes('/api/')) {
+                        if (e.request.url.includes('${WORKER_URL}')) {
                             e.respondWith(
                                 fetch(e.request).then(res => {
                                     const clone = res.clone();
@@ -349,7 +351,7 @@
 
         async function fetchLists() {
             try {
-                const res = await fetch('/api/lists');
+                const res = await fetch(`${WORKER_URL}/api/lists`);
                 const data = await res.json();
                 listsData = data;
                 localStorage.setItem('kgeu_lists', JSON.stringify(listsData));
@@ -699,7 +701,7 @@
                 }
 
                 try {
-                    const res = await fetch(`/api/schedule?type=${currentMode}&name=${encodeURIComponent(currentName)}&date=${dateStr}`);
+                    const res = await fetch(`${WORKER_URL}/api/schedule?type=${currentMode}&name=${encodeURIComponent(currentName)}&date=${dateStr}`);
                     const data = await res.json();
                     let filtered = filterLessonBySubgroup(data.lessons);
                     dayLessonsCache[cacheKey] = filtered;
@@ -714,7 +716,7 @@
                 if (weekCache[weekKey]) { renderWeekSchedule(weekCache[weekKey], container); return; }
 
                 try {
-                    const res = await fetch(`/api/schedule/week?type=${currentMode}&name=${encodeURIComponent(currentName)}&date=${formatDate(monday)}`);
+                    const res = await fetch(`${WORKER_URL}/api/schedule/week?type=${currentMode}&name=${encodeURIComponent(currentName)}&date=${formatDate(monday)}`);
                     const data = await res.json();
                     weekCache[weekKey] = data.week_schedule || {};
                     localStorage.setItem('kgeu_week_cache', JSON.stringify(weekCache));
@@ -733,7 +735,7 @@
             renderMonthGrid(year, month, true);
 
             try {
-                const res = await fetch(`/api/schedule/month?type=${currentMode}&name=${encodeURIComponent(currentName)}&year=${year}&month=${month + 1}`);
+                const res = await fetch(`${WORKER_URL}/api/schedule/month?type=${currentMode}&name=${encodeURIComponent(currentName)}&year=${year}&month=${month + 1}`);
                 const data = await res.json();
                 monthLessonsCache = data.month_schedule || {};
                 renderMonthGrid(year, month, false);
