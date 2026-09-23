@@ -75,7 +75,10 @@ async function sendTelegramMessage(token, chatId, text, replyMarkup) {
 
 async function handleApiProxy(request, env, url, ctx) {
     const subPath = url.pathname.replace(/^\/api/, '');
-    const cacheKey = url.pathname + url.search;
+    const forceFresh = url.searchParams.get('fresh') === '1';
+    const canonicalUrl = new URL(url.toString());
+    canonicalUrl.searchParams.delete('fresh');
+    const cacheKey = canonicalUrl.pathname + canonicalUrl.search;
 
     let targetUrl = '';
     const yearParam = 'year=2026-2027';
@@ -166,7 +169,25 @@ async function handleApiProxy(request, env, url, ctx) {
             return jsonResponse({ Group: [], Teacher: [], Aud: [] }, 200);
         }
     } else {
-        targetUrl = `${env.KABINET_API}${subPath}${url.search}`;
+        targetUrl = `${env.KABINET_API}${subPath}${canonicalUrl.search}`;
+    }
+
+    // Короткий server-side cache: при быстрых переключениях день/неделя/месяц
+    // не заставляем кабинет КГЭУ повторно отдавать один и тот же день.
+    if (env.DB && request.method === 'GET' && !forceFresh) {
+        const fresh = await env.DB.prepare(
+            "SELECT schedule_data FROM schedule_cache WHERE cache_key = ? AND updated_at >= datetime('now', '-90 seconds')"
+        ).bind(cacheKey).first().catch(() => null);
+        if (fresh && fresh.schedule_data) {
+            return new Response(fresh.schedule_data, {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Access-Control-Allow-Origin': '*',
+                    'Cache-Control': 'public, max-age=60'
+                }
+            });
+        }
     }
 
     try {
@@ -193,7 +214,8 @@ async function handleApiProxy(request, env, url, ctx) {
             status: apiResponse.status,
             headers: {
                 'Content-Type': apiResponse.headers.get('Content-Type') || 'application/json; charset=utf-8',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'public, max-age=60'
             }
         });
     } catch (err) {
