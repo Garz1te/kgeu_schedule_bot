@@ -4,7 +4,7 @@ compatibility_date = "2024-09-01"
 
 [vars]
 KABINET_API = "https://kabinet.kgeu.ru/api"
-WEBAPP_URL = "https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPO_NAME/"
+WEBAPP_URL = "https://garz1te.github.io/kgeu_schedule_bot"
 
 [[d1_databases]]
 binding = "DB"
