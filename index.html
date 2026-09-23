@@ -3,254 +3,755 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>КГЭУ Расписание</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <title>Расписание КГЭУ</title>
     <style>
         :root {
-            --bg-color: #0b132b; --card-bg: rgba(28, 37, 65, 0.85); --text-primary: #f8fafc;
-            --text-secondary: #94a3b8; --accent: #3a86ff; --accent-text: #ffffff; --border-color: var(--accent);
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.85);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-text: #0f172a;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --modal-bg: #1e293b;
         }
-        body.theme-light { --bg-color: #f1f5f9; --card-bg: rgba(255, 255, 255, 0.85); --text-primary: #0f172a; --text-secondary: #64748b; --accent: #2563eb; --accent-text: #ffffff; --border-color: #cbd5e1; }
-        body.theme-blue { --bg-color: #0b132b; --card-bg: rgba(28, 37, 65, 0.85); --text-primary: #f8fafc; --text-secondary: #94a3b8; --accent: #3a86ff; --accent-text: #ffffff; }
-        body.theme-black { --bg-color: #000000; --card-bg: rgba(17, 17, 17, 0.85); --text-primary: #f8fafc; --text-secondary: #a1a1aa; --accent: #ffffff; --accent-text: #000000; }
-        body.theme-pink { --bg-color: #2d132c; --card-bg: rgba(65, 27, 64, 0.85); --text-primary: #fdf2f8; --text-secondary: #f472b6; --accent: #e43f5a; --accent-text: #ffffff; }
-        body.theme-purple { --bg-color: #1a1025; --card-bg: rgba(45, 27, 66, 0.85); --text-primary: #faf5ff; --text-secondary: #d8b4fe; --accent: #9d4edd; --accent-text: #ffffff; }
-        body.theme-green { --bg-color: #064e3b; --card-bg: rgba(6, 95, 70, 0.85); --text-primary: #ecfdf5; --text-secondary: #6ee7b7; --accent: #10b981; --accent-text: #ffffff; }
-        body.theme-amber { --bg-color: #451a03; --card-bg: rgba(120, 53, 15, 0.85); --text-primary: #fffbeb; --text-secondary: #fcd34d; --accent: #f59e0b; --accent-text: #000000; }
-        body.theme-cyber { --bg-color: #09090b; --card-bg: rgba(24, 24, 27, 0.85); --text-primary: #fafafa; --text-secondary: #5eead4; --accent: #00ffcc; --accent-text: #000000; }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; max-width: 100%; }
-        body { background-color: var(--bg-color); color: var(--text-primary); padding: 16px; padding-bottom: 110px; min-height: 100vh; background-size: cover; background-position: center; background-attachment: fixed; transition: 0.3s; overflow-x: hidden; }
-        
-        .bg-pattern { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: -1; background-image: radial-gradient(rgba(150,150,150,0.15) 1px, transparent 1px); background-size: 20px 20px; }
-
-        #offline-banner { display: none; background: #e11d48; color: #fff; text-align: center; font-size: 12px; font-weight: 700; padding: 6px; border-radius: 8px; margin-bottom: 12px; }
-
-        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
-        .header-title { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; min-width: 0; }
-        .badge { background: var(--accent); color: var(--accent-text); padding: 4px 10px; border-radius: 8px; font-weight: bold; font-size: 14px; transition: 0.3s; white-space: nowrap; flex-shrink: 0; }
-        #name-display { font-size: 17px; font-weight: bold; word-break: break-word; overflow-wrap: break-word; line-height: 1.2; text-transform: uppercase; }
-        .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
-        
-        .motto { font-size: 13px; color: var(--text-secondary); font-weight: 500; font-style: italic; margin-bottom: 12px; }
-
-        .favorites-bar { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--accent) transparent; -webkit-overflow-scrolling: touch; }
-        .favorites-bar::-webkit-scrollbar { height: 4px; }
-        .favorites-bar::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
-        .favorite-chip { background: var(--card-bg); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); transition: 0.2s; flex-shrink: 0; max-width: 250px; overflow: hidden; text-overflow: ellipsis; }
-        .favorite-chip:hover { border-color: var(--accent); background: rgba(150,150,150,0.2); }
-
-        .tabs { display: flex; background: var(--card-bg); border-radius: 14px; padding: 4px; margin-bottom: 16px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); }
-        .tab-btn { flex: 1; padding: 10px; text-align: center; border: none; background: transparent; color: var(--text-secondary); font-weight: 600; font-size: 14px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
-        .tab-btn.active { background: var(--accent); color: var(--accent-text); }
-
-        .nav-date { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; position: relative; }
-        .nav-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; backdrop-filter: blur(10px); }
-        .current-date-title { font-size: 16px; font-weight: bold; text-align: center; color: var(--text-primary); flex: 1; }
-
-        .today-float-btn { position: absolute; right: 50px; top: 50%; transform: translateY(-50%); background: var(--accent); color: var(--accent-text); border: none; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer; display: none; z-index: 10; }
-
-        .global-search-container { margin-bottom: 12px; display: block; }
-        .global-search-input { width: 100%; padding: 10px 14px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 14px; outline: none; backdrop-filter: blur(10px); text-transform: none; }
-        .global-search-input::placeholder { text-transform: none; color: var(--text-secondary); opacity: 0.8; }
-
-        .day-header { font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase; margin: 16px 0 8px 0; letter-spacing: 0.5px; }
-        
-        .lesson-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; margin-bottom: 10px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
-        
-        .lesson-card.type-lecture { background: rgba(16, 185, 129, 0.22) !important; border-color: #10b981 !important; }
-        .lesson-card.type-lab { background: rgba(157, 78, 221, 0.22) !important; border-color: #9d4edd !important; }
-        .lesson-card.type-practice { background: rgba(245, 158, 11, 0.22) !important; border-color: #f59e0b !important; }
-        .lesson-card.type-window { background: rgba(58, 134, 255, 0.22) !important; border-color: #3a86ff !important; }
-        
-        .lesson-card.current-lesson { border-width: 2px; box-shadow: 0 0 15px var(--accent); }
-        .live-progress { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--accent); transition: width 1s linear; }
-
-        .lesson-title { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px; }
-        .lesson-info { font-size: 13px; color: var(--text-secondary); display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; font-weight: 500; }
-        
-        .clickable-badge { background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 4px; }
-        .clickable-badge:hover { border-color: var(--accent); background: rgba(255,255,255,0.2); color: var(--accent); }
-
-        .lesson-actions { display: flex; gap: 8px; margin-top: 8px; border-top: 1px solid rgba(150,150,150,0.15); padding-top: 8px; }
-        .action-btn { background: rgba(150,150,150,0.1); border: none; color: var(--text-secondary); padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
-        .action-btn:hover { background: var(--accent); color: var(--accent-text); }
-
-        .month-calendar { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); margin-bottom: 16px; }
-        .weekdays-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 10px; }
-        .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
-        .calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-primary); border: 1px solid transparent; background: rgba(150, 150, 150, 0.05); }
-        .calendar-day:hover { background: rgba(150, 150, 150, 0.15); }
-        .calendar-day.today { border-color: var(--accent); }
-        .calendar-day.selected { background: var(--card-bg); border-color: var(--accent) !important; box-shadow: 0 0 10px var(--accent); }
-        .calendar-day.empty { pointer-events: none; background: transparent; }
-        
-        .dots-container { display: flex; gap: 3px; margin-top: 4px; height: 6px; align-items: center; justify-content: center; }
-        .dot { width: 4px; height: 4px; border-radius: 50%; background-color: var(--accent); }
-        .dot.type-lecture { background-color: #10b981 !important; }
-        .dot.type-lab { background-color: #9d4edd !important; }
-        .dot.type-practice { background-color: #f59e0b !important; }
-        .dot.type-window { background-color: #3a86ff !important; }
-
-        .month-preview { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; min-height: 120px; backdrop-filter: blur(15px); }
-        
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 8px 0 14px 0; z-index: 1000; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -4px 20px rgba(0,0,0,0.3); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); cursor: pointer; font-size: 11px; font-weight: 700; gap: 3px; padding: 6px 16px; border-radius: 12px; }
-        .nav-item.active { color: var(--accent); background: rgba(150, 150, 150, 0.1); }
-        .nav-item-icon { font-size: 20px; }
-
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-color); z-index: 2000; padding: 20px; overflow-y: auto; }
-        .modal-header { font-size: 22px; font-weight: bold; margin-bottom: 20px; text-align: center; color: var(--text-primary); }
-        .form-group { margin-bottom: 20px; position: relative; }
-        label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary); font-weight: 600; text-transform: none; }
-        
-        input[type="text"], select { width: 100%; padding: 12px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); outline: none; font-size: 16px; box-sizing: border-box; text-transform: none; }
-        input[type="text"]::placeholder { text-transform: none; color: var(--text-secondary); opacity: 0.7; }
-        
-        /* Выпадающий список ограничен высотой примерно в 5 элементов с прокруткой */
-        .autocomplete-dropdown { 
-            position: absolute; 
-            top: 100%; 
-            left: 0; 
-            right: 0; 
-            background: var(--card-bg); 
-            border: 1px solid var(--border-color); 
-            border-radius: 10px; 
-            max-height: 220px; /* Ограничение высоты под элементы списка с возможностью скролла */
-            overflow-y: auto; 
-            z-index: 1000; 
-            display: none; 
-            backdrop-filter: blur(15px); 
-            margin-top: 4px; 
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4); 
-            scrollbar-width: thin;
-            scrollbar-color: var(--accent) transparent;
+        body.theme-light {
+            --bg-color: #f1f5f9;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --accent: #0284c7;
+            --accent-text: #ffffff;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --modal-bg: #ffffff;
         }
-        .autocomplete-dropdown::-webkit-scrollbar { width: 6px; }
-        .autocomplete-dropdown::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
-        
-        .autocomplete-item { padding: 12px 14px; cursor: pointer; font-size: 15px; color: var(--text-primary); border-bottom: 1px solid rgba(150,150,150,0.1); text-transform: none; }
-        .autocomplete-item:hover { background: rgba(150,150,150,0.2); }
 
-        .themes-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .theme-dot { height: 40px; border-radius: 10px; cursor: pointer; border: 2px solid var(--text-secondary); }
-        .theme-dot.active { border-color: var(--accent); box-shadow: 0 0 8px var(--accent); }
-        
-        .upload-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
-        .btn-upload { display: block; padding: 14px; background: #2b3240; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; text-align: center; color: #fff; font-weight: 600; font-size: 15px; cursor: pointer; box-sizing: border-box; }
-        .btn-upload input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-        
-        .delete-bg-btn { margin-top: 8px; width: 100%; padding: 12px; background: transparent; color: #ff5252; border: 1px solid rgba(255,82,82,0.3); border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 15px; box-sizing: border-box; }
-        .save-btn { width: 100%; padding: 14px; background-color: var(--accent); color: var(--accent-text); border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; box-sizing: border-box; }
-        .close-modal-btn { width: 100%; padding: 12px; background: rgba(150,150,150,0.15); color: var(--text-primary); border: none; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 10px; box-sizing: border-box; }
-        .loading { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 14px; font-weight: 500; }
+        body.theme-blue {
+            --bg-color: #0c4a6e;
+            --card-bg: rgba(7, 89, 133, 0.85);
+            --text-primary: #f0f9ff;
+            --text-secondary: #7dd3fc;
+            --accent: #38bdf8;
+            --accent-text: #0c4a6e;
+            --border-color: rgba(255, 255, 255, 0.15);
+            --modal-bg: #0284c7;
+        }
+
+        body.theme-black {
+            --bg-color: #000000;
+            --card-bg: rgba(20, 20, 20, 0.9);
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --accent: #f43f5e;
+            --accent-text: #ffffff;
+            --border-color: rgba(255, 255, 255, 0.15);
+            --modal-bg: #18181b;
+        }
+
+        body.theme-pink {
+            --bg-color: #581c87;
+            --card-bg: rgba(107, 33, 168, 0.85);
+            --text-primary: #fae8ff;
+            --text-secondary: #e879f9;
+            --accent: #f472b6;
+            --accent-text: #581c87;
+            --border-color: rgba(255, 255, 255, 0.15);
+            --modal-bg: #7e22ce;
+        }
+
+        body.theme-purple {
+            --bg-color: #3b0764;
+            --card-bg: rgba(88, 28, 135, 0.85);
+            --text-primary: #f3e8ff;
+            --text-secondary: #d8b4fe;
+            --accent: #c084fc;
+            --accent-text: #ffffff;
+            --border-color: rgba(255, 255, 255, 0.15);
+            --modal-bg: #6b21a8;
+        }
+
+        body.theme-green {
+            --bg-color: #064e3b;
+            --card-bg: rgba(6, 78, 59, 0.85);
+            --text-primary: #ecfdf5;
+            --text-secondary: #6ee7b7;
+            --accent: #34d399;
+            --accent-text: #064e3b;
+            --border-color: rgba(255, 255, 255, 0.15);
+            --modal-bg: #047857;
+        }
+
+        body.theme-amber {
+            --bg-color: #451a03;
+            --card-bg: rgba(120, 53, 15, 0.85);
+            --text-primary: #fef3c7;
+            --text-secondary: #fcd34d;
+            --accent: #fbbf24;
+            --accent-text: #451a03;
+            --border-color: rgba(255, 255, 255, 0.15);
+            --modal-bg: #92400e;
+        }
+
+        body.theme-cyber {
+            --bg-color: #050505;
+            --card-bg: rgba(10, 10, 15, 0.9);
+            --text-primary: #00ffcc;
+            --text-secondary: #ff007f;
+            --accent: #00ffcc;
+            --accent-text: #050505;
+            --border-color: #ff007f;
+        }
+
+        body.custom-bg-theme {
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding-bottom: 30px;
+            transition: background 0.3s ease;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 12px;
+        }
+
+        /* Шапка */
+        .header {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            font-size: 18px;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-type {
+            background: var(--accent);
+            color: var(--accent-text);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .icon-btn {
+            background: var(--border-color);
+            border: none;
+            color: var(--text-primary);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .icon-btn:active {
+            transform: scale(0.92);
+        }
+
+        .name-display-box {
+            background: var(--border-color);
+            padding: 10px 14px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .name-display-box span {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        /* Избранное (Чипсы) */
+        .favorites-scroll {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            margin-bottom: 10px;
+            scrollbar-width: none;
+        }
+        .favorites-scroll::-webkit-scrollbar { display: none; }
+
+        .favorite-chip {
+            background: var(--border-color);
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .favorite-chip:active { background: var(--accent); color: var(--accent-text); }
+
+        /* Выбор подгруппы */
+        .subgroup-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: var(--border-color);
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+
+        .subgroup-select {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+        .subgroup-select option { background: var(--modal-bg); color: var(--text-primary); }
+
+        /* Панель навигации по режимам */
+        .nav-modes {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .nav-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-secondary);
+            backdrop-filter: blur(8px);
+        }
+
+        .nav-item.active {
+            background: var(--accent);
+            color: var(--accent-text);
+            border-color: transparent;
+        }
+
+        /* Управление расписанием (День, Неделя, Месяц) */
+        .controls-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 10px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            backdrop-filter: blur(8px);
+        }
+
+        .tabs-row {
+            display: flex;
+            background: var(--border-color);
+            border-radius: 8px;
+            padding: 2px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .date-nav-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .date-label {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .today-btn-small {
+            background: var(--border-color);
+            border: none;
+            color: var(--accent);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .global-search-input {
+            width: 100%;
+            background: var(--border-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+            outline: none;
+        }
+        .global-search-input::placeholder { color: var(--text-secondary); }
+
+        /* Карточки занятий */
+        .lesson-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 10px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .lesson-card.type-lecture { border-left: 4px solid #38bdf8; }
+        .lesson-card.type-practice { border-left: 4px solid #34d399; }
+        .lesson-card.type-lab { border-left: 4px solid #f472b6; }
+        .lesson-card.type-window { border-left: 4px dashed var(--text-secondary); background: rgba(0,0,0,0.05); }
+
+        .lesson-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lesson-info {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .clickable-badge {
+            background: var(--border-color);
+            padding: 2px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+        }
+        .clickable-badge:active { background: var(--accent); color: var(--accent-text); }
+
+        .lesson-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 6px;
+        }
+
+        .action-btn {
+            background: var(--border-color);
+            border: none;
+            color: var(--text-primary);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .current-lesson {
+            box-shadow: 0 0 15px var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        .live-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: var(--accent);
+            transition: width 0.5s linear;
+        }
+
+        .day-header {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--accent);
+            margin: 16px 0 8px 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Месячный календарь */
+        .month-calendar {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 10px;
+            margin-bottom: 12px;
+            backdrop-filter: blur(8px);
+        }
+
+        .weekdays-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            background: var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .calendar-day.empty { background: transparent; cursor: default; }
+        .calendar-day.today { border: 1px solid var(--accent); }
+        .calendar-day.selected { background: var(--accent) !important; color: var(--accent-text) !important; }
+
+        .dots-container {
+            display: flex;
+            gap: 2px;
+            margin-top: 2px;
+        }
+
+        .dot {
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: var(--text-primary);
+        }
+        .dot.type-lecture { background: #38bdf8; }
+        .dot.type-practice { background: #34d399; }
+        .dot.type-lab { background: #f472b6; }
+
+        .month-preview {
+            margin-top: 10px;
+        }
+
+        /* Модальные окна */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            animation: fadeInModal 0.2s;
+        }
+
+        @keyframes fadeInModal {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%;
+            background: var(--modal-bg);
+            border-top: 1px solid var(--border-color);
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.4);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+            position: relative;
+        }
+
+        .form-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--border-color);
+            border: 1px solid var(--border-color);
+            padding: 10px 14px;
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%; left: 0; width: 100%;
+            max-height: 180px;
+            overflow-y: auto;
+            background: var(--modal-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0 0 10px 10px;
+            z-index: 10;
+            display: none;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .autocomplete-item {
+            padding: 10px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .autocomplete-item:active { background: var(--border-color); }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--accent);
+            color: var(--accent-text);
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
+        .themes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .theme-option {
+            background: var(--border-color);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .offline-banner {
+            background: #ef4444;
+            color: #fff;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px;
+            display: none;
+        }
     </style>
 </head>
-<body>
-    <div class="bg-pattern"></div>
-    <div id="offline-banner">⚠️ Оффлайн-режим: нет соединения с интернетом</div>
+<body class="theme-purple">
 
-    <div class="header">
-        <div class="header-title" onclick="openSearchModal()">
-            <span class="badge" id="type-badge">⚡ КГЭУ</span>
-            <div id="name-display">Не выбрана</div>
-        </div>
-        <div class="header-actions">
-            <button class="nav-btn" onclick="openSearchModal()" style="border-radius: 12px; width: 40px; height: 40px; font-size: 18px;" title="Поиск">🔍</button>
-            <button class="nav-btn" id="star-btn" onclick="toggleFavorite()" style="border-radius: 12px; width: 40px; height: 40px; font-size: 18px;" title="В избранное">☆</button>
-            <button class="nav-btn" onclick="openSettingsModal()" style="border-radius: 12px; width: 40px; height: 40px; font-size: 18px;" title="Настройки">⚙️</button>
-        </div>
-    </div>
-    
-    <div class="motto" id="motto-text">💻 «Киберпанк уже на первой паре»</div>
+    <div id="offline-banner" class="offline-banner">⚠️ Нет подключения к интернету. Используются кэшированные данные.</div>
 
-    <div class="favorites-bar" id="favorites-container" style="display: none;"></div>
+    <div class="container">
+        <!-- Шапка -->
+        <div class="header">
+            <div class="header-top">
+                <div class="brand">
+                    <span>КГЭУ</span>
+                    <span class="badge-type" id="type-badge">⚡ КГЭУ</span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button class="icon-btn" id="star-btn" onclick="toggleFavorite()" title="В избранное">☆</button>
+                    <button class="icon-btn" onclick="openSettingsModal()" title="Настройки">⚙️</button>
+                </div>
+            </div>
 
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('day')">День</button>
-        <button class="tab-btn" onclick="switchTab('week')">Неделя</button>
-        <button class="tab-btn" onclick="switchTab('month')">Месяц</button>
-    </div>
+            <div class="name-display-box" onclick="openSearchModal()">
+                <span id="name-display">ВЫБЕРИТЕ ГРУППУ</span>
+                <span style="font-size: 12px; color: var(--text-secondary);">🔍 Изменить</span>
+            </div>
 
-    <div class="global-search-container" id="global-search-box">
-        <input type="text" class="global-search-input" id="global-search-input" placeholder="Умный поиск..." oninput="debouncedGlobalFilter(this.value)">
-    </div>
+            <div class="favorites-scroll" id="favorites-container" style="display: none;"></div>
 
-    <div class="nav-date" id="nav-controls">
-        <button class="nav-btn" onclick="changeDate(-1)">&lt;</button>
-        <div class="current-date-title" id="date-label">Загрузка...</div>
-        <button class="today-float-btn" id="today-btn" onclick="jumpToToday()">Сегодня</button>
-        <button class="nav-btn" onclick="changeDate(1)">&gt;</button>
-    </div>
-
-    <div id="schedule-container">
-        <div class="loading">⌛ Загрузка...</div>
-    </div>
-
-    <div class="bottom-nav">
-        <div class="nav-item active" id="nav-Group" onclick="switchSearchMode('Group')">
-            <div class="nav-item-icon">👥</div>
-            <div>Группы</div>
-        </div>
-        <div class="nav-item" id="nav-Teacher" onclick="switchSearchMode('Teacher')">
-            <div class="nav-item-icon">👤</div>
-            <div>Преподаватели</div>
-        </div>
-        <div class="nav-item" id="nav-Aud" onclick="switchSearchMode('Aud')">
-            <div class="nav-item-icon">🚪</div>
-            <div>Аудитории</div>
-        </div>
-    </div>
-
-    <div id="search-modal" class="modal-overlay">
-        <div class="modal-header" id="search-modal-title">Поиск расписания</div>
-        <div class="form-group">
-            <label id="search-label">Поиск</label>
-            <input type="text" id="search-input" placeholder="Начните вводить..." autocomplete="off" oninput="debouncedFilter(this.value)" onfocus="debouncedFilter(this.value)" />
-            <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
-        </div>
-        <button class="save-btn" onclick="applySearchSelection()">Показать расписание</button>
-        <button class="close-modal-btn" onclick="closeModals()">Отмена</button>
-    </div>
-
-    <div id="settings-modal" class="modal-overlay">
-        <div class="modal-header">Настройки</div>
-        
-        <div class="form-group">
-            <label>Предпочитаемая подгруппа</label>
-            <select id="subgroup-select" onchange="changeSubgroup(this.value)">
-                <option value="all">Все подгруппы (по умолчанию)</option>
-                <option value="1">Только 1-я подгруппа</option>
-                <option value="2">Только 2-я подгруппа</option>
-            </select>
+            <div class="subgroup-row">
+                <span>Подгруппа:</span>
+                <select class="subgroup-select" id="subgroup-select" onchange="changeSubgroup(this.value)">
+                    <option value="all">Все</option>
+                    <option value="1">1 подгруппа</option>
+                    <option value="2">2 подгруппа</option>
+                </select>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label>Тема оформления</label>
+        <!-- Переключение режимов -->
+        <div class="nav-modes">
+            <div class="nav-item active" id="nav-Group" onclick="switchSearchMode('Group')">👥 Группа</div>
+            <div class="nav-item" id="nav-Teacher" onclick="switchSearchMode('Teacher')">👤 Преподаватель</div>
+            <div class="nav-item" id="nav-Aud" onclick="switchSearchMode('Aud')">🚪 Аудитория</div>
+        </div>
+
+        <!-- Управление отображением -->
+        <div class="controls-card" id="nav-controls">
+            <div class="tabs-row">
+                <button class="tab-btn active" onclick="switchTab('day')">День</button>
+                <button class="tab-btn" onclick="switchTab('week')">Неделя</button>
+                <button class="tab-btn" onclick="switchTab('month')">Месяц</button>
+            </div>
+            <div class="date-nav-row">
+                <button class="icon-btn" style="width:30px; height:30px; font-size:12px;" onclick="changeDate(-1)">◀</button>
+                <div class="date-label" id="date-label">Загрузка...</div>
+                <button class="today-btn-small" id="today-btn" onclick="jumpToToday()" style="display:none;">Сегодня</button>
+                <button class="icon-btn" style="width:30px; height:30px; font-size:12px;" onclick="changeDate(1)">▶</button>
+            </div>
+            <input type="text" class="global-search-input" id="global-search-input" placeholder="🔍 Быстрый поиск по странице..." oninput="debouncedGlobalFilter(this.value)">
+        </div>
+
+        <!-- Контейнер расписания -->
+        <div id="schedule-container">
+            <div class="loading">⌛ Загрузка данных...</div>
+        </div>
+    </div>
+
+    <!-- Модальное окно поиска -->
+    <div class="modal" id="search-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="search-modal-title">Выбор расписания</div>
+                <button class="icon-btn" style="width:30px; height:30px;" onclick="closeModals()">✕</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label" id="search-label">Поиск группы</label>
+                <input type="text" class="form-input" id="search-input" placeholder="Например: ИПК-1-25..." oninput="debouncedFilter(this.value)" autocomplete="off">
+                <div class="autocomplete-dropdown" id="autocomplete-dropdown"></div>
+            </div>
+            <button class="btn-primary" onclick="applySearchSelection()">Показать расписание</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно настроек -->
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Настройки и темы</div>
+                <button class="icon-btn" style="width:30px; height:30px;" onclick="closeModals()">✕</button>
+            </div>
+            <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">Цветовая тема:</div>
             <div class="themes-grid">
-                <div class="theme-dot" style="background: #f1f5f9;" onclick="setTheme('theme-light', true)"></div>
-                <div class="theme-dot" style="background: #0b132b;" onclick="setTheme('theme-blue', true)"></div>
-                <div class="theme-dot" style="background: #000000;" onclick="setTheme('theme-black', true)"></div>
-                <div class="theme-dot" style="background: #2d132c;" onclick="setTheme('theme-pink', true)"></div>
-                <div class="theme-dot" style="background: #1a1025;" onclick="setTheme('theme-purple', true)"></div>
-                <div class="theme-dot" style="background: #064e3b;" onclick="setTheme('theme-green', true)"></div>
-                <div class="theme-dot" style="background: #451a03;" onclick="setTheme('theme-amber', true)"></div>
-                <div class="theme-dot" style="background: #09090b;" onclick="setTheme('theme-cyber', true)"></div>
+                <div class="theme-option" onclick="setTheme('theme-purple', true)">🔮 Фиолетовая</div>
+                <div class="theme-option" onclick="setTheme('theme-light', true)">☀️ Светлая</div>
+                <div class="theme-option" onclick="setTheme('theme-blue', true)">📊 Синяя</div>
+                <div class="theme-option" onclick="setTheme('theme-black', true)">🌙 Темная OLED</div>
+                <div class="theme-option" onclick="setTheme('theme-pink', true)">✨ Розовая</div>
+                <div class="theme-option" onclick="setTheme('theme-green', true)">🌿 Зеленая</div>
+                <div class="theme-option" onclick="setTheme('theme-amber', true)">☕ Осенняя</div>
+                <div class="theme-option" onclick="setTheme('theme-cyber', true)">💻 Киберпанк</div>
             </div>
-        </div>
-
-        <div class="form-group">
-            <label>Кастомные обои</label>
-            <div class="upload-wrapper">
-                <label class="btn-upload">
-                    Загрузить из галереи
-                    <input type="file" id="bg-upload" accept="image/*">
-                </label>
+            <div class="form-group">
+                <label class="form-label">Свой фон (картинка):</label>
+                <input type="file" id="bg-upload" class="form-input" accept="image/*" style="padding:6px;">
             </div>
-            <button class="delete-bg-btn" onclick="clearBg()">Сбросить оформление</button>
+            <button class="btn-primary" onclick="clearBg()" style="background:var(--border-color); color:var(--text-primary); margin-bottom:6px;">Сбросить фон</button>
+            <div style="text-align:center; margin-top:10px; font-size:11px; color:var(--text-secondary);" id="motto-text">КГЭУ Расписание бота</div>
         </div>
-
-        <button class="close-modal-btn" onclick="closeModals()">Закрыть</button>
     </div>
 
     <script>
@@ -283,6 +784,8 @@
 
         let weekCache = JSON.parse(localStorage.getItem('kgeu_week_cache') || '{}');
         let dayLessonsCache = {};
+        
+        // Надежная инициализация списков из localStorage (если есть кэш)
         let listsData = JSON.parse(localStorage.getItem('kgeu_lists') || '{"Group":[], "Teacher":[], "Aud":[]}');
         let monthLessonsCache = {};
         let filterTimeout; 
@@ -305,13 +808,13 @@
         };
 
         function init() {
-            fetchLists().then(() => {
-                if (currentName) {
-                    currentName = resolveItemName(currentMode, currentName);
-                    modeNames[currentMode] = currentName;
-                    document.getElementById('name-display').innerText = currentName.toUpperCase();
-                }
-            });
+            fetchLists(); // Загружаем списки с бэкенда в фоновом режиме
+            
+            if (currentName) {
+                currentName = resolveItemName(currentMode, currentName);
+                modeNames[currentMode] = currentName;
+                document.getElementById('name-display').innerText = currentName.toUpperCase();
+            }
             updateUIForMode(currentMode);
             renderFavorites();
             document.getElementById('subgroup-select').value = userSubgroup;
@@ -350,13 +853,17 @@
             try {
                 const res = await fetch(`${WORKER_URL}/api/lists`);
                 const data = await res.json();
+                console.log("Полученные списки с сервера:", data); // Отладка в консоли браузера
+                
                 listsData = {
-                    Group: (data.Group || []).map(item => String(item)),
-                    Teacher: (data.Teacher || []).map(item => String(item)),
-                    Aud: (data.Aud || []).map(item => String(item))
+                    Group: (data.Group || data.groups || []).map(item => String(item)),
+                    Teacher: (data.Teacher || data.teachers || []).map(item => String(item)),
+                    Aud: (data.Aud || data.auditoriums || data.auds || []).map(item => String(item))
                 };
                 localStorage.setItem('kgeu_lists', JSON.stringify(listsData));
-            } catch (e) { console.error("Ошибка загрузки списков", e); }
+            } catch (e) { 
+                console.error("Ошибка загрузки списков, используются данные из кэша", e); 
+            }
         }
 
         function switchSearchMode(mode) {
@@ -409,7 +916,7 @@
 
         function debouncedFilter(query) {
             clearTimeout(filterTimeout);
-            filterTimeout = setTimeout(() => filterData(query), 150);
+            filterTimeout = setTimeout(() => filterData(query), 100);
         }
 
         function debouncedGlobalFilter(query) {
@@ -421,9 +928,23 @@
             const dropdown = document.getElementById('autocomplete-dropdown');
             const q = query.trim().toLowerCase();
             const list = listsData[currentMode] || [];
-            const filtered = list.filter(item => item.toLowerCase().includes(q)).slice(0, 50);
             
-            if (filtered.length === 0) { dropdown.style.display = 'none'; return; }
+            // Если список пустой, пробуем мгновенно подтянуть из localStorage
+            if (list.length === 0) {
+                let saved = JSON.parse(localStorage.getItem('kgeu_lists') || '{}');
+                if (saved[currentMode]) listsData[currentMode] = saved[currentMode];
+            }
+
+            const activeList = listsData[currentMode] || [];
+            // Фильтруем (если строка пустая, показываем первые 20 элементов для удобства выбора)
+            const filtered = q === '' 
+                ? activeList.slice(0, 20) 
+                : activeList.filter(item => item.toLowerCase().includes(q)).slice(0, 30);
+            
+            if (filtered.length === 0) { 
+                dropdown.style.display = 'none'; 
+                return; 
+            }
 
             dropdown.innerHTML = filtered.map(item => `<div class="autocomplete-item" onclick="selectOption('${item.replace(/'/g, "\\'")}')">${item}</div>`).join('');
             dropdown.style.display = 'block';
@@ -832,6 +1353,7 @@
         function openSearchModal() {
             document.getElementById('search-input').value = currentName;
             document.getElementById('search-modal').style.display = 'block';
+            filterData(document.getElementById('search-input').value);
         }
 
         function openSettingsModal() { document.getElementById('settings-modal').style.display = 'block'; }
@@ -902,7 +1424,6 @@
             let inputName = document.getElementById('search-input').value.trim();
             if (!inputName) { alert('Пожалуйста, выберите нужный пункт!'); return; }
 
-            // Строгая проверка: разрешаем фиксацию только если элемент существует в официальном списке КГЭУ
             let resolvedName = resolveItemName(currentMode, inputName);
             const list = listsData[currentMode] || [];
             
