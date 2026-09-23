@@ -24,14 +24,13 @@
         
         .bg-pattern { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: -1; background-image: radial-gradient(rgba(150,150,150,0.15) 1px, transparent 1px); background-size: 20px 20px; }
 
-        /* Баннер оффлайн-режима */
         #offline-banner { display: none; background: #e11d48; color: #fff; text-align: center; font-size: 12px; font-weight: 700; padding: 6px; border-radius: 8px; margin-bottom: 12px; animation: pulseBanner 2s infinite; }
         @keyframes pulseBanner { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
 
         .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
         .header-title { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; min-width: 0; }
         .badge { background: var(--accent); color: var(--accent-text); padding: 4px 10px; border-radius: 8px; font-weight: bold; font-size: 14px; transition: 0.3s; white-space: nowrap; flex-shrink: 0; }
-        #name-display { font-size: 17px; font-weight: bold; word-break: break-word; overflow-wrap: break-word; line-height: 1.2; }
+        #name-display { font-size: 17px; font-weight: bold; word-break: break-word; overflow-wrap: break-word; line-height: 1.2; text-transform: uppercase; }
         .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
         
         .motto { font-size: 13px; color: var(--text-secondary); font-weight: 500; font-style: italic; margin-bottom: 12px; transition: 0.3s; }
@@ -39,7 +38,7 @@
         .favorites-bar { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--accent) transparent; -webkit-overflow-scrolling: touch; }
         .favorites-bar::-webkit-scrollbar { height: 4px; }
         .favorites-bar::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
-        .favorite-chip { background: var(--card-bg); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); transition: 0.2s; flex-shrink: 0; max-width: 250px; overflow: hidden; text-overflow: ellipsis; }
+        .favorite-chip { background: var(--card-bg); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); transition: 0.2s; flex-shrink: 0; max-width: 250px; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; }
         .favorite-chip:hover { border-color: var(--accent); background: rgba(150,150,150,0.2); }
 
         .tabs { display: flex; background: var(--card-bg); border-radius: 14px; padding: 4px; margin-bottom: 16px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); transition: 0.3s; }
@@ -50,11 +49,11 @@
         .nav-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; backdrop-filter: blur(10px); transition: 0.3s; }
         .current-date-title { font-size: 16px; font-weight: bold; text-align: center; color: var(--text-primary); transition: 0.3s; flex: 1; }
 
-        /* Плавающая кнопка «Сегодня» */
         .today-float-btn { position: absolute; right: 50px; top: 50%; transform: translateY(-50%); background: var(--accent); color: var(--accent-text); border: none; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer; display: none; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 10; }
 
-        .day-search-container { margin-bottom: 12px; display: none; }
-        .day-search-input { width: 100%; padding: 10px 14px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 14px; outline: none; backdrop-filter: blur(10px); }
+        /* Умный поиск для всех вкладок */
+        .global-search-container { margin-bottom: 12px; display: block; }
+        .global-search-input { width: 100%; padding: 10px 14px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 14px; outline: none; backdrop-filter: blur(10px); }
 
         .day-header { font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase; margin: 16px 0 8px 0; letter-spacing: 0.5px; transition: 0.3s; }
         
@@ -105,10 +104,10 @@
         .modal-header { font-size: 22px; font-weight: bold; margin-bottom: 20px; text-align: center; color: var(--text-primary); }
         .form-group { margin-bottom: 20px; position: relative; }
         label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary); font-weight: 600; }
-        input[type="text"], select { width: 100%; padding: 12px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); outline: none; font-size: 16px; box-sizing: border-box; }
+        input[type="text"], select { width: 100%; padding: 12px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); outline: none; font-size: 16px; box-sizing: border-box; text-transform: uppercase; }
         
         .autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; max-height: 220px; overflow-y: auto; z-index: 1000; display: none; backdrop-filter: blur(15px); margin-top: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-        .autocomplete-item { padding: 12px 14px; cursor: pointer; font-size: 15px; color: var(--text-primary); border-bottom: 1px solid rgba(150,150,150,0.1); }
+        .autocomplete-item { padding: 12px 14px; cursor: pointer; font-size: 15px; color: var(--text-primary); border-bottom: 1px solid rgba(150,150,150,0.1); text-transform: uppercase; }
         .autocomplete-item:hover { background: rgba(150,150,150,0.2); }
 
         .themes-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -151,8 +150,9 @@
         <button class="tab-btn" onclick="switchTab('month')">Месяц</button>
     </div>
 
-    <div class="day-search-container" id="day-search-box">
-        <input type="text" class="day-search-input" id="day-search-input" placeholder="🔍 Найти предмет, препода или аудиторию в этот день..." oninput="debouncedDayFilter(this.value)">
+    <!-- Умный поиск теперь доступен на всех вкладках -->
+    <div class="global-search-container" id="global-search-box">
+        <input type="text" class="global-search-input" id="global-search-input" placeholder="🔍 Найти предмет, препода или аудиторию..." oninput="debouncedGlobalFilter(this.value)">
     </div>
 
     <div class="nav-date" id="nav-controls">
@@ -261,11 +261,11 @@
         let currentTheme = localStorage.getItem('kgeu_theme') || defaultTheme;
 
         let weekCache = JSON.parse(localStorage.getItem('kgeu_week_cache') || '{}');
-        let dayLessonsCache = {}; // Улучшение 1: Кэш дней в памяти
+        let dayLessonsCache = {};
         let listsData = JSON.parse(localStorage.getItem('kgeu_lists') || '{"Group":[], "Teacher":[], "Aud":[]}');
         let monthLessonsCache = {};
         let filterTimeout; 
-        let dayFilterTimeout;
+        let globalFilterTimeout;
 
         const DAY_NAMES = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
         const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
@@ -288,6 +288,7 @@
                 if (currentName) {
                     currentName = resolveItemName(currentMode, currentName);
                     modeNames[currentMode] = currentName;
+                    document.getElementById('name-display').innerText = currentName.toUpperCase();
                 }
             });
             updateUIForMode(currentMode);
@@ -297,7 +298,7 @@
             if (!currentName) { 
                 openSearchModal(); 
             } else { 
-                document.getElementById('name-display').innerText = currentName; 
+                document.getElementById('name-display').innerText = currentName.toUpperCase(); 
             }
 
             if (customBg) applyCustomBackground(customBg, false, cachedBgColors);
@@ -305,7 +306,7 @@
 
             if (currentTab === 'month') loadMonthView(); else loadSchedule();
             registerServiceWorker();
-            setupOnlineListeners(); // Улучшение 4: Мониторинг сети
+            setupOnlineListeners();
 
             document.addEventListener('click', e => {
                 if (!e.target.closest('.form-group')) {
@@ -314,7 +315,6 @@
             });
         }
 
-        // Улучшение 4: Индикатор оффлайн-режима
         function setupOnlineListeners() {
             const banner = document.getElementById('offline-banner');
             const updateStatus = () => {
@@ -353,7 +353,14 @@
             try {
                 const res = await fetch(`${WORKER_URL}/api/lists`);
                 const data = await res.json();
-                listsData = data;
+                
+                // Приводим все элементы списков к заглавным буквам (включая группы, преподов и аудитории)
+                listsData = {
+                    Group: (data.Group || []).map(item => String(item).toUpperCase()),
+                    Teacher: (data.Teacher || []).map(item => String(item).toUpperCase()),
+                    Aud: (data.Aud || []).map(item => String(item).toUpperCase())
+                };
+                
                 localStorage.setItem('kgeu_lists', JSON.stringify(listsData));
             } catch (e) { console.error("Ошибка загрузки списков", e); }
         }
@@ -363,7 +370,7 @@
             localStorage.setItem('kgeu_mode', currentMode);
             currentName = modeNames[currentMode] || '';
             updateUIForMode(mode);
-            document.getElementById('name-display').innerText = currentName || 'Не выбрано';
+            document.getElementById('name-display').innerText = currentName ? currentName.toUpperCase() : 'НЕ ВЫБРАНО';
             
             weekCache = {};
             dayLessonsCache = {};
@@ -383,7 +390,7 @@
             updateStarButton();
             
             let label = 'Поиск группы', placeholder = 'Например: ИПК-1-25...';
-            if (mode === 'Teacher') { label = 'Поиск преподавателя'; placeholder = 'Например: Саниева А.Д....'; }
+            if (mode === 'Teacher') { label = 'Поиск преподавателя'; placeholder = 'Например: САНИЕВА А.Д....'; }
             if (mode === 'Aud') { label = 'Поиск аудитории'; placeholder = 'Например: Г-302...'; }
             
             document.getElementById('search-label').innerText = label;
@@ -393,11 +400,10 @@
         function changeSubgroup(val) {
             userSubgroup = val;
             localStorage.setItem('kgeu_subgroup', val);
-            dayLessonsCache = {}; // сброс кэша для применения фильтра подгрупп
+            dayLessonsCache = {}; 
             if (currentTab === 'month') loadMonthView(); else loadSchedule();
         }
 
-        // Улучшение 3: Фильтрация подгрупп в карточках
         function filterLessonBySubgroup(lessons) {
             if (userSubgroup === 'all') return lessons;
             return lessons.filter(l => {
@@ -414,9 +420,9 @@
             filterTimeout = setTimeout(() => filterData(query), 150);
         }
 
-        function debouncedDayFilter(query) {
-            clearTimeout(dayFilterTimeout);
-            dayFilterTimeout = setTimeout(() => filterDayLessons(query), 120);
+        function debouncedGlobalFilter(query) {
+            clearTimeout(globalFilterTimeout);
+            globalFilterTimeout = setTimeout(() => filterGlobalLessons(query), 120);
         }
 
         function filterData(query) {
@@ -432,28 +438,28 @@
         }
 
         function selectOption(name) {
-            document.getElementById('search-input').value = name;
+            document.getElementById('search-input').value = name.toUpperCase();
             document.getElementById('autocomplete-dropdown').style.display = 'none';
         }
 
         function resolveItemName(mode, rawName) {
-            let clean = rawName.trim();
-            if (mode === 'Aud') clean = clean.replace('Ауд.', '').trim();
+            let clean = rawName.trim().toUpperCase();
+            if (mode === 'Aud') clean = clean.replace('АУД.', '').trim();
             const list = listsData[mode] || [];
             if (list.length === 0) return clean;
             
-            let found = list.find(item => item.toLowerCase() === clean.toLowerCase());
+            let found = list.find(item => item.toUpperCase() === clean);
             if (found) return found;
             
-            const normalize = s => s.replace(/[\.\s]/g, '').toLowerCase();
+            const normalize = s => s.replace(/[\.\s\-]/g, '').toUpperCase();
             let targetNorm = normalize(clean);
             found = list.find(item => normalize(item) === targetNorm);
             if (found) return found;
             
-            let parts = clean.split(/[\s\.]+/).filter(Boolean);
+            let parts = clean.split(/[\s\.\-]+/).filter(Boolean);
             if (parts.length > 0) {
-                let keyPart = parts[0].toLowerCase();
-                found = list.find(item => item.toLowerCase().includes(keyPart));
+                let keyPart = parts[0];
+                found = list.find(item => item.toUpperCase().includes(keyPart));
                 if (found) return found;
             }
             return clean;
@@ -469,7 +475,7 @@
             localStorage.setItem(`kgeu_name_${currentMode}`, currentName);
             
             updateUIForMode(mode);
-            document.getElementById('name-display').innerText = currentName;
+            document.getElementById('name-display').innerText = currentName.toUpperCase();
             
             weekCache = {}; 
             dayLessonsCache = {};
@@ -487,7 +493,7 @@
             container.innerHTML = favorites.map(fav => `
                 <div class="favorite-chip" onclick="jumpTo('${fav.type}', '${fav.name.replace(/'/g, "\\'")}')">
                     <span>${fav.type === 'Group' ? '👥' : fav.type === 'Teacher' ? '👤' : '🚪'}</span>
-                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fav.name}</span>
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fav.name.toUpperCase()}</span>
                     <span onclick="event.stopPropagation(); removeFavorite('${fav.type}', '${fav.name}')" style="opacity:0.6; margin-left:4px; font-size:14px; flex-shrink:0;">×</span>
                 </div>
             `).join('');
@@ -527,7 +533,6 @@
             return new Date(dt.setDate(diff));
         }
 
-        // Улучшение 2: Проверка для отображения кнопки «Сегодня»
         function updateTodayButtonVisibility() {
             const todayBtn = document.getElementById('today-btn');
             const todayStr = formatDate(new Date());
@@ -551,11 +556,8 @@
             event.target.classList.add('active');
             
             const navControls = document.getElementById('nav-controls');
-            const daySearchBox = document.getElementById('day-search-box');
-            
             navControls.style.display = 'flex';
-            daySearchBox.style.display = (tab === 'day') ? 'block' : 'none';
-            if (tab !== 'day') document.getElementById('day-search-input').value = '';
+            document.getElementById('global-search-input').value = '';
 
             updateTodayButtonVisibility();
             if (currentTab === 'month') loadMonthView(); else loadSchedule();
@@ -638,7 +640,8 @@
             return null;
         }
 
-        function filterDayLessons(query) {
+        // Универсальный фильтр (умный поиск) для всех вкладок
+        function filterGlobalLessons(query) {
             const q = query.trim().toLowerCase();
             const cards = document.querySelectorAll('#schedule-container .lesson-card');
             cards.forEach(card => {
@@ -647,7 +650,6 @@
             });
         }
 
-        // Улучшение 5: Экспорт отдельной пары в календарь телефона (.ics)
         function exportToCalendar(title, timeStr, dateStr, room, teacher) {
             let times = parseTimeRange(timeStr);
             if (!times) { alert('Не удалось распознать время пары'); return; }
@@ -677,13 +679,12 @@
             const dateLabel = document.getElementById('date-label');
             const dateStr = formatDate(currentDate);
 
-            document.getElementById('day-search-input').value = '';
+            document.getElementById('global-search-input').value = '';
             updateTodayButtonVisibility();
 
             if (currentTab === 'day') {
                 dateLabel.innerText = formatDisplayDate(currentDate);
                 
-                // Улучшение 1: Проверка локального кэша памяти
                 let cacheKey = `${currentMode}_${currentName}_${userSubgroup}_${dateStr}`;
                 if (dayLessonsCache[cacheKey]) {
                     renderLessons(dayLessonsCache[cacheKey], container, dateStr); 
@@ -730,6 +731,7 @@
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
             document.getElementById('date-label').innerText = `${MONTH_NAMES[month]} ${year} г.`;
+            document.getElementById('global-search-input').value = '';
             updateTodayButtonVisibility();
             
             renderMonthGrid(year, month, true);
@@ -797,7 +799,6 @@
             let progressBar = progress !== null ? `<div class="live-progress" style="width: ${progress}%;"></div>` : '';
             let liveBadge = progress !== null ? `<span style="background:var(--accent); color:var(--accent-text); padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold; margin-left:auto;">ИДЕТ ПАРА</span>` : '';
 
-            // Безопасная передача данных для экспорта в `.ics`
             let safeTitle = (l.title || '').replace(/'/g, "\\'");
             let safeTeacher = (l.teacher || '').replace(/'/g, "\\'");
             let safeRoom = (l.room || '').replace(/'/g, "\\'");
@@ -854,7 +855,7 @@
         }
 
         function openSearchModal() {
-            document.getElementById('search-input').value = currentName;
+            document.getElementById('search-input').value = currentName.toUpperCase();
             document.getElementById('search-modal').style.display = 'block';
         }
 
@@ -957,7 +958,7 @@
             localStorage.setItem('kgeu_mode', currentMode);
             localStorage.setItem(`kgeu_name_${currentMode}`, currentName);
             
-            document.getElementById('name-display').innerText = currentName;
+            document.getElementById('name-display').innerText = currentName.toUpperCase();
             closeModals();
             updateStarButton();
 
