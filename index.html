@@ -85,14 +85,35 @@
             display: flex; align-items: center; justify-content: space-between; font-size: 13px;
             color: var(--text-secondary); background: var(--border-color); padding: 6px 12px; border-radius: 8px;
         }
-        .subgroup-select { background: transparent; border: none; color: var(--text-primary); font-weight: 600; font-size: 13px; outline: none; cursor: pointer; }
-        .subgroup-select option { background: var(--modal-bg); color: var(--text-primary); }
+        
+        /* Исправлено стильное выпадающее окно подгрупп (Фото 1) */
+        .subgroup-select { 
+            background: var(--card-bg); 
+            border: 1px solid var(--border-color); 
+            color: var(--text-primary); 
+            font-weight: 600; 
+            font-size: 13px; 
+            outline: none; 
+            cursor: pointer;
+            padding: 6px 28px 6px 12px;
+            border-radius: 8px;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .subgroup-select:focus { border-color: var(--accent); }
+        .subgroup-select option { background: var(--modal-bg); color: var(--text-primary); padding: 8px; }
 
+        /* Исправлено выравнивание элементов навигации (Фото 3) для избежания переносов и сжатия текста */
         .nav-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
         .nav-item {
-            background: var(--card-bg); border: 1px solid var(--border-color); padding: 8px; border-radius: 12px;
-            text-align: center; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text-secondary);
-            backdrop-filter: blur(8px); transition: all 0.3s ease;
+            background: var(--card-bg); border: 1px solid var(--border-color); padding: 8px 4px; border-radius: 12px;
+            text-align: center; font-size: 11px; font-weight: 600; cursor: pointer; color: var(--text-secondary);
+            backdrop-filter: blur(8px); transition: all 0.3s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .nav-item.active { background: var(--accent); color: var(--accent-text); border-color: transparent; transform: translateY(-2px); }
 
@@ -102,7 +123,6 @@
         }
         .tabs-row { display: flex; background: var(--border-color); border-radius: 8px; padding: 2px; }
         
-        /* Плавные переходы для кнопок вкладок */
         .tab-btn {
             flex: 1; background: transparent; border: none; color: var(--text-secondary); padding: 6px; 
             font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; 
@@ -120,7 +140,6 @@
         .global-search-input:focus { border-color: var(--accent); }
         .global-search-input::placeholder { color: var(--text-secondary); }
 
-        /* Плавная анимация смены контента расписания */
         #schedule-container, #month-preview-content {
             transition: opacity 0.15s ease, transform 0.15s ease;
         }
@@ -196,7 +215,6 @@
         .form-input { width: 100%; background: var(--border-color); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 10px; color: var(--text-primary); font-size: 14px; outline: none; transition: border-color 0.3s; }
         .form-input:focus { border-color: var(--accent); }
 
-        /* Плавное появление подсказок (Autocomplete) */
         .autocomplete-dropdown { 
             position: absolute; top: 100%; left: 0; width: 100%; max-height: 180px; overflow-y: auto; 
             background: var(--modal-bg); border: 1px solid var(--border-color); border-radius: 0 0 10px 10px; 
@@ -317,9 +335,15 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Свой фон (картинка):</label>
-                <input type="file" id="bg-upload" class="form-input" accept="image/*" style="padding:6px;">
+                <!-- Исправлено красивое оформление выбора кастомного файла (Фото 2) -->
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="file" id="bg-upload" accept="image/*" style="display: none;">
+                    <label for="bg-upload" class="btn-primary" style="text-align: center; cursor: pointer; margin-top: 0; display: block; flex: 1;">📁 Выбрать изображение</label>
+                    <button class="btn-primary" onclick="clearBg()" style="background:var(--border-color); color:var(--text-primary); margin-top: 0; width: auto; padding: 12px 16px;" title="Сбросить фон">✕</button>
+                </div>
+                <div id="file-chosen-name" style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Файл не выбран</div>
             </div>
-            <button class="btn-primary" onclick="clearBg()" style="background:var(--border-color); color:var(--text-primary); margin-bottom:6px;">Сбросить фон</button>
+            <button class="btn-primary" onclick="clearBg()" style="background:var(--border-color); color:var(--text-primary); margin-bottom:6px; display: none;">Сбросить фон</button>
             <div style="text-align:center; margin-top:10px; font-size:11px; color:var(--text-secondary);" id="motto-text">КГЭУ Расписание бота</div>
         </div>
     </div>
@@ -328,7 +352,9 @@
         const WORKER_URL = 'https://kgeu-schedule-bot.garzite.workers.dev';
 
         let tg = window.Telegram ? window.Telegram.WebApp : null;
-        if (tg) tg.expand();
+        if (tg) {
+            try { tg.expand(); } catch (e) { console.error(e); }
+        }
 
         let currentTab = 'day';
         let currentDate = new Date();
@@ -376,7 +402,6 @@
             'custom-bg-theme': '🖼 «Твой уникальный стиль»'
         };
 
-        // Обертка для плавных переходов
         function animateContainerUpdate(updateCallback) {
             const container = document.getElementById('schedule-container');
             if (!container) { updateCallback(); return; }
@@ -393,7 +418,7 @@
         }
 
         function init() {
-            fetchLists(); 
+            fetchLists().catch(err => console.error("Init fetchLists error:", err));
             
             if (currentName) {
                 currentName = resolveItemName(currentMode, currentName);
@@ -413,13 +438,13 @@
             if (customBg) applyCustomBackground(customBg, false, cachedBgColors);
             else setTheme(currentTheme, false);
 
-            if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
             setupOnlineListeners();
 
-            // Скрытие выпадающего списка при клике вне его области
             document.addEventListener('click', e => {
                 if (!e.target.closest('.form-group')) {
-                    document.getElementById('autocomplete-dropdown').classList.remove('active');
+                    const dropdown = document.getElementById('autocomplete-dropdown');
+                    if (dropdown) dropdown.classList.remove('active');
                 }
             });
         }
@@ -438,6 +463,7 @@
         async function fetchLists() {
             try {
                 const res = await fetch(`${WORKER_URL}/api/lists`);
+                if (!res.ok) throw new Error('Network response was not ok');
                 const data = await res.json();
                 listsData = {
                     Group: (data.Group || data.groups || []).map(item => String(item)),
@@ -463,7 +489,7 @@
             if (!currentName) openSearchModal(); 
             else {
                 animateContainerUpdate(() => {
-                    if (currentTab === 'month') loadMonthView(); else loadSchedule();
+                    if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
                 });
             }
         }
@@ -489,17 +515,15 @@
             localStorage.setItem('kgeu_subgroup', val);
             dayLessonsCache = {}; 
             animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView(); else loadSchedule();
+                if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
             });
         }
 
-        // ИСПРАВЛЕНО: Безопасная фильтрация (учитывает пары без подгруппы)
         function filterLessonBySubgroup(lessons) {
             if (userSubgroup === '0') return lessons;
             return lessons.filter(l => {
                 if (l.isWindow) return true;
                 const sub = l.номерПодгруппы;
-                // Показываем, если подгруппа не указана (общая пара) или совпадает с выбранной
                 return sub === undefined || sub === null || sub == 0 || sub == parseInt(userSubgroup);
             });
         }
@@ -574,7 +598,7 @@
             
             window.scrollTo({ top: 0, behavior: 'smooth' });
             animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView(); else loadSchedule();
+                if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
             });
         }
 
@@ -632,21 +656,21 @@
         function jumpToToday() { 
             currentDate = new Date(); 
             animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView(); else loadSchedule();
+                if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
             });
         }
 
         function switchTab(tab) {
             currentTab = tab;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            if (event && event.target) event.target.classList.add('active');
             
             document.getElementById('nav-controls').style.display = 'flex';
             document.getElementById('global-search-input').value = '';
 
             updateTodayButtonVisibility();
             animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView(); else loadSchedule();
+                if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
             });
         }
 
@@ -657,7 +681,7 @@
             
             updateTodayButtonVisibility();
             animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView(); else loadSchedule();
+                if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
             });
         }
 
@@ -742,7 +766,6 @@
             });
         }
 
-        // ИСПРАВЛЕНО: Генерация ссылки Google Календаря вместо скачивания Blob (не блокируется в Telegram)
         function exportToCalendar(title, timeStr, dateStr, room, teacher) {
             let times = parseTimeRange(timeStr);
             if (!times) return;
@@ -791,6 +814,7 @@
                 try {
                     let queryParam = currentMode === 'Group' ? `idGroup=${encodeURIComponent(currentName)}` : currentMode === 'Teacher' ? `idTeacher=${encodeURIComponent(currentName)}` : `idAudLine=${encodeURIComponent(currentName)}`;
                     const res = await fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dateStr}`);
+                    if (!res.ok) throw new Error('Network error');
                     const data = await res.json();
                     let rawLessons = extractLessonsFromAPIResponse(data);
                     let filtered = filterLessonBySubgroup(rawLessons);
@@ -813,6 +837,7 @@
                         let queryParam = currentMode === 'Group' ? `idGroup=${encodeURIComponent(currentName)}` : currentMode === 'Teacher' ? `idTeacher=${encodeURIComponent(currentName)}` : `idAudLine=${encodeURIComponent(currentName)}`;
                         try {
                             const res = await fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dStr}`);
+                            if (!res.ok) throw new Error();
                             const data = await res.json();
                             weekData[dStr] = extractLessonsFromAPIResponse(data);
                         } catch(err) { weekData[dStr] = []; }
@@ -824,7 +849,6 @@
             }
         }
 
-        // ИСПРАВЛЕНО: Параллельная загрузка дней месяца с использованием Promise.all
         async function loadMonthView() {
             if (!currentName) return;
             const year = currentDate.getFullYear(); 
@@ -847,7 +871,10 @@
                         : `idAudLine=${encodeURIComponent(currentName)}`;
                     
                     return fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dtStr}`)
-                        .then(res => res.json())
+                        .then(res => {
+                            if (!res.ok) throw new Error();
+                            return res.json();
+                        })
                         .then(data => ({ dtStr, lessons: extractLessonsFromAPIResponse(data) }))
                         .catch(() => ({ dtStr, lessons: [] }));
                 });
@@ -858,7 +885,8 @@
                 monthLessonsCache = monthData;
                 renderMonthGrid(year, month, false);
             } catch (e) { 
-                document.getElementById('schedule-container').innerHTML = '<div class="loading">❌ Ошибка загрузки месяца.</div>'; 
+                const container = document.getElementById('schedule-container');
+                if (container) container.innerHTML = '<div class="loading">❌ Ошибка загрузки месяца.</div>'; 
             }
         }
 
@@ -928,11 +956,11 @@
                 </div>`;
         }
 
-        // Плавная смена расписания при клике на день месяца
         function selectMonthDay(dtStr, element) {
             document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
             element.classList.add('selected');
             const preview = document.getElementById('month-preview-content');
+            if (!preview) return;
             
             preview.classList.add('page-exit');
             setTimeout(() => {
@@ -992,7 +1020,8 @@
                 modal.classList.remove('show');
                 setTimeout(() => { modal.style.display = 'none'; }, 300);
             });
-            document.getElementById('autocomplete-dropdown').classList.remove('active');
+            const dropdown = document.getElementById('autocomplete-dropdown');
+            if (dropdown) dropdown.classList.remove('active');
         }
 
         function setTheme(theme, save = false) {
@@ -1028,15 +1057,21 @@
             else {
                 const img = new Image(); img.crossOrigin = "Anonymous";
                 img.onload = function() {
-                    const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-                    canvas.width = 50; canvas.height = 50; ctx.drawImage(img, 0, 0, 50, 50);
-                    const data = ctx.getImageData(0, 0, 50, 50).data;
-                    let r = 0, g = 0, b = 0, count = 0;
-                    for (let i = 0; i < data.length; i += 16) { r += data[i]; g += data[i+1]; b += data[i+2]; count++; }
-                    cachedBgColors = { r: Math.floor(r/count), g: Math.floor(g/count), b: Math.floor(b/count) };
-                    applyColors(cachedBgColors.r, cachedBgColors.g, cachedBgColors.b);
-                    if (save) localStorage.setItem('kgeu_bg_colors', JSON.stringify(cachedBgColors));
-                }; img.src = dataUrl;
+                    try {
+                        const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+                        canvas.width = 50; canvas.height = 50; ctx.drawImage(img, 0, 0, 50, 50);
+                        const data = ctx.getImageData(0, 0, 50, 50).data;
+                        let r = 0, g = 0, b = 0, count = 0;
+                        for (let i = 0; i < data.length; i += 16) { r += data[i]; g += data[i+1]; b += data[i+2]; count++; }
+                        cachedBgColors = { r: Math.floor(r/count), g: Math.floor(g/count), b: Math.floor(b/count) };
+                        applyColors(cachedBgColors.r, cachedBgColors.g, cachedBgColors.b);
+                        if (save) localStorage.setItem('kgeu_bg_colors', JSON.stringify(cachedBgColors));
+                    } catch (err) {
+                        console.error("Canvas background processing error:", err);
+                    }
+                }; 
+                img.onerror = () => console.error("Failed to load background image");
+                img.src = dataUrl;
             }
             if (save) localStorage.setItem('kgeu_bg', customBg);
         }
@@ -1044,13 +1079,23 @@
         document.getElementById('bg-upload').addEventListener('change', e => {
             const file = e.target.files[0]; 
             if (file) {
+                const nameDisplay = document.getElementById('file-chosen-name');
+                if (nameDisplay) nameDisplay.innerText = file.name;
                 const reader = new FileReader();
                 reader.onloadend = () => applyCustomBackground(reader.result, true, null);
+                reader.onerror = () => alert('Ошибка чтения файла');
                 reader.readAsDataURL(file);
             }
         });
 
-        function clearBg() { customBg = ''; cachedBgColors = null; localStorage.removeItem('kgeu_bg'); localStorage.removeItem('kgeu_bg_colors'); document.body.style.backgroundImage = 'none'; setTheme('theme-purple', true); }
+        function clearBg() { 
+            customBg = ''; cachedBgColors = null; 
+            localStorage.removeItem('kgeu_bg'); localStorage.removeItem('kgeu_bg_colors'); 
+            document.body.style.backgroundImage = 'none'; 
+            const nameDisplay = document.getElementById('file-chosen-name');
+            if (nameDisplay) nameDisplay.innerText = 'Файл не выбран';
+            setTheme('theme-purple', true); 
+        }
 
         function applySearchSelection() {
             let inputName = document.getElementById('search-input').value.trim();
@@ -1079,7 +1124,7 @@
             updateStarButton();
 
             animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView(); else loadSchedule();
+                if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
             });
         }
 
