@@ -1,729 +1,968 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>КГЭУ Расписание & Планировщик</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    :root {
-      /* Базовые переменные (переопределяются через JS в настройках) */
-      --bg-dark: #0f172a;
-      --card-bg: rgba(15, 23, 42, 0.65);
-      --card-border: rgba(255, 255, 255, 0.1);
-      --accent-main: #3b82f6; 
-      --accent-glow: rgba(59, 130, 246, 0.4);
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --btn-bg: rgba(30, 41, 59, 0.8);
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Расписание КГЭУ</title>
+    <style>
+        :root {
+            --bg-color: #0b132b; --card-bg: rgba(28, 37, 65, 0.85); --text-primary: #f8fafc;
+            --text-secondary: #94a3b8; --accent: #3a86ff; --accent-text: #ffffff; --border-color: var(--accent);
+        }
+        body.theme-light { --bg-color: #f1f5f9; --card-bg: rgba(255, 255, 255, 0.85); --text-primary: #0f172a; --text-secondary: #64748b; --accent: #2563eb; --accent-text: #ffffff; --border-color: #cbd5e1; }
+        body.theme-blue { --bg-color: #0b132b; --card-bg: rgba(28, 37, 65, 0.85); --text-primary: #f8fafc; --text-secondary: #94a3b8; --accent: #3a86ff; --accent-text: #ffffff; }
+        body.theme-black { --bg-color: #000000; --card-bg: rgba(17, 17, 17, 0.85); --text-primary: #f8fafc; --text-secondary: #a1a1aa; --accent: #ffffff; --accent-text: #000000; }
+        body.theme-pink { --bg-color: #2d132c; --card-bg: rgba(65, 27, 64, 0.85); --text-primary: #fdf2f8; --text-secondary: #f472b6; --accent: #e43f5a; --accent-text: #ffffff; }
+        body.theme-purple { --bg-color: #1a1025; --card-bg: rgba(45, 27, 66, 0.85); --text-primary: #faf5ff; --text-secondary: #d8b4fe; --accent: #9d4edd; --accent-text: #ffffff; }
+        body.theme-green { --bg-color: #064e3b; --card-bg: rgba(6, 95, 70, 0.85); --text-primary: #ecfdf5; --text-secondary: #6ee7b7; --accent: #10b981; --accent-text: #ffffff; }
+        body.theme-amber { --bg-color: #451a03; --card-bg: rgba(120, 53, 15, 0.85); --text-primary: #fffbeb; --text-secondary: #fcd34d; --accent: #f59e0b; --accent-text: #000000; }
+        body.theme-cyber { --bg-color: #09090b; --card-bg: rgba(24, 24, 27, 0.85); --text-primary: #fafafa; --text-secondary: #5eead4; --accent: #00ffcc; --accent-text: #000000; }
 
-      /* Строгие цвета типов занятий */
-      --color-lecture: #10b981;  
-      --color-practice: #facc15; 
-      --color-lab: #a855f7;      
-      --color-event: #ef4444;
-      --color-deadline: #f97316;
-    }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; max-width: 100%; }
+        body { background-color: var(--bg-color); color: var(--text-primary); padding: 16px; padding-bottom: 110px; min-height: 100vh; background-size: cover; background-position: center; background-attachment: fixed; transition: 0.3s; overflow-x: hidden; }
+        
+        .bg-pattern { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: -1; background-image: radial-gradient(rgba(150,150,150,0.15) 1px, transparent 1px); background-size: 20px 20px; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        /* Баннер оффлайн-режима */
+        #offline-banner { display: none; background: #e11d48; color: #fff; text-align: center; font-size: 12px; font-weight: 700; padding: 6px; border-radius: 8px; margin-bottom: 12px; animation: pulseBanner 2s infinite; }
+        @keyframes pulseBanner { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
 
-    body {
-      background-color: var(--bg-dark);
-      background-size: cover;
-      background-position: center;
-      background-attachment: fixed;
-      color: var(--text-main);
-      min-height: 100vh;
-      padding: 12px;
-      padding-bottom: 90px;
-      transition: background 0.3s ease;
-    }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
+        .header-title { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; min-width: 0; }
+        .badge { background: var(--accent); color: var(--accent-text); padding: 4px 10px; border-radius: 8px; font-weight: bold; font-size: 14px; transition: 0.3s; white-space: nowrap; flex-shrink: 0; }
+        #name-display { font-size: 17px; font-weight: bold; word-break: break-word; overflow-wrap: break-word; line-height: 1.2; }
+        .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        
+        .motto { font-size: 13px; color: var(--text-secondary); font-weight: 500; font-style: italic; margin-bottom: 12px; transition: 0.3s; }
 
-    /* Навигация */
-    .top-nav {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      padding: 8px;
-      border-radius: 16px;
-      border: 1px solid var(--card-border);
-      margin-bottom: 16px;
-      scrollbar-width: none;
-      position: sticky;
-      top: 12px;
-      z-index: 50;
-    }
-    .top-nav::-webkit-scrollbar { display: none; }
+        .favorites-bar { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--accent) transparent; -webkit-overflow-scrolling: touch; }
+        .favorites-bar::-webkit-scrollbar { height: 4px; }
+        .favorites-bar::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+        .favorite-chip { background: var(--card-bg); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); transition: 0.2s; flex-shrink: 0; max-width: 250px; overflow: hidden; text-overflow: ellipsis; }
+        .favorite-chip:hover { border-color: var(--accent); background: rgba(150,150,150,0.2); }
 
-    .nav-tab {
-      flex: 0 0 auto;
-      padding: 8px 16px;
-      font-size: 14px;
-      font-weight: 600;
-      border-radius: 12px;
-      color: var(--text-muted);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .nav-tab.active {
-      background: var(--accent-main);
-      color: #fff;
-      box-shadow: 0 4px 12px var(--accent-glow);
-    }
+        .tabs { display: flex; background: var(--card-bg); border-radius: 14px; padding: 4px; margin-bottom: 16px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); transition: 0.3s; }
+        .tab-btn { flex: 1; padding: 10px; text-align: center; border: none; background: transparent; color: var(--text-secondary); font-weight: 600; font-size: 14px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+        .tab-btn.active { background: var(--accent); color: var(--accent-text); }
 
-    .tab-content { display: none; animation: fadeIn 0.3s ease; }
-    .tab-content.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-date { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; position: relative; }
+        .nav-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; backdrop-filter: blur(10px); transition: 0.3s; }
+        .current-date-title { font-size: 16px; font-weight: bold; text-align: center; color: var(--text-primary); transition: 0.3s; flex: 1; }
 
-    /* Карточки (Glassmorphism) */
-    .glass-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-radius: 20px;
-      padding: 18px;
-      margin-bottom: 16px;
-      border: 1px solid var(--card-border);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    }
+        /* Плавающая кнопка «Сегодня» */
+        .today-float-btn { position: absolute; right: 50px; top: 50%; transform: translateY(-50%); background: var(--accent); color: var(--accent-text); border: none; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer; display: none; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 10; }
 
-    .section-title { font-size: 18px; font-weight: 800; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-    .section-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+        .day-search-container { margin-bottom: 12px; display: none; }
+        .day-search-input { width: 100%; padding: 10px 14px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 14px; outline: none; backdrop-filter: blur(10px); }
 
-    /* Кнопки */
-    .btn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
-    .btn {
-      padding: 12px;
-      border-radius: 14px;
-      font-size: 13px;
-      font-weight: 700;
-      border: 1px solid var(--card-border);
-      color: var(--text-main);
-      background: var(--btn-bg);
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-    }
-    .btn:active { transform: scale(0.95); }
-    .btn.primary { background: var(--accent-main); color: #fff; border: none; box-shadow: 0 4px 15px var(--accent-glow); }
+        .day-header { font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase; margin: 16px 0 8px 0; letter-spacing: 0.5px; transition: 0.3s; }
+        
+        .lesson-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; margin-bottom: 10px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.2s; position: relative; overflow: hidden; }
+        
+        .lesson-card.type-lecture { background: rgba(16, 185, 129, 0.22) !important; border-color: #10b981 !important; }
+        .lesson-card.type-lab { background: rgba(157, 78, 221, 0.22) !important; border-color: #9d4edd !important; }
+        .lesson-card.type-practice { background: rgba(245, 158, 11, 0.22) !important; border-color: #f59e0b !important; }
+        .lesson-card.type-window { background: rgba(58, 134, 255, 0.22) !important; border-color: #3a86ff !important; }
+        
+        .lesson-card.current-lesson { border-width: 2px; box-shadow: 0 0 15px var(--accent); }
+        .live-progress { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--accent); transition: width 1s linear; }
 
-    /* Расписание (Карточки пар) */
-    .date-header { font-size: 16px; font-weight: 800; margin: 20px 0 10px 4px; color: var(--accent-main); }
-    .lesson-card {
-      background: rgba(15, 23, 42, 0.8);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 12px;
-      border: 1px solid var(--card-border);
-      border-left: 6px solid #64748b;
-      position: relative;
-      overflow: hidden;
-    }
-    .lesson-card.lecture { border-left-color: var(--color-lecture); }
-    .lesson-card.practice { border-left-color: var(--color-practice); }
-    .lesson-card.lab { border-left-color: var(--color-lab); }
+        .lesson-title { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px; }
+        .lesson-info { font-size: 13px; color: var(--text-secondary); display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; font-weight: 500; }
+        
+        .clickable-badge { background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; transition: 0.2s; display: inline-flex; align-items: center; gap: 4px;}
+        .clickable-badge:hover { border-color: var(--accent); background: rgba(255,255,255,0.2); color: var(--accent); }
 
-    .lesson-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .lesson-time { font-size: 15px; font-weight: 800; letter-spacing: 0.5px; }
-    .lesson-badge { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; }
-    
-    .lecture .lesson-badge { background: rgba(16, 185, 129, 0.15); color: var(--color-lecture); }
-    .practice .lesson-badge { background: rgba(250, 204, 21, 0.15); color: var(--color-practice); }
-    .lab .lesson-badge { background: rgba(168, 85, 247, 0.15); color: var(--color-lab); }
+        .lesson-actions { display: flex; gap: 8px; margin-top: 8px; border-top: 1px solid rgba(150,150,150,0.15); padding-top: 8px; }
+        .action-btn { background: rgba(150,150,150,0.1); border: none; color: var(--text-secondary); padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: 0.2s; }
+        .action-btn:hover { background: var(--accent); color: var(--accent-text); }
 
-    .lesson-name { font-size: 16px; font-weight: 700; margin-bottom: 8px; line-height: 1.3; }
-    .lesson-details { font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; }
-    .lesson-details span { display: flex; align-items: center; gap: 6px; }
+        .month-calendar { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); margin-bottom: 16px; }
+        .weekdays-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 10px; }
+        .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+        .calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-primary); border: 1px solid transparent; transition: 0.2s; background: rgba(150, 150, 150, 0.05); }
+        .calendar-day:hover { background: rgba(150, 150, 150, 0.15); }
+        .calendar-day.today { border-color: var(--accent); }
+        .calendar-day.selected { background: var(--card-bg); border-color: var(--accent) !important; box-shadow: 0 0 10px var(--accent); }
+        .calendar-day.empty { pointer-events: none; background: transparent; }
+        
+        .dots-container { display: flex; gap: 3px; margin-top: 4px; height: 6px; align-items: center; justify-content: center; }
+        .dot { width: 4px; height: 4px; border-radius: 50%; background-color: var(--accent); }
+        .dot.type-lecture { background-color: #10b981 !important; }
+        .dot.type-lab { background-color: #9d4edd !important; }
+        .dot.type-practice { background-color: #f59e0b !important; }
+        .dot.type-window { background-color: #3a86ff !important; }
 
-    /* Календарь (Месяц) */
-    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-weight: bold; font-size: 18px; }
-    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
-    .calendar-day-name { font-size: 12px; color: var(--text-muted); font-weight: 700; padding-bottom: 8px; }
-    .calendar-cell {
-      aspect-ratio: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255,255,255,0.05);
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid transparent;
-      position: relative;
-    }
-    .calendar-cell.today { border-color: var(--accent-main); background: rgba(59, 130, 246, 0.15); }
-    .calendar-cell.has-task::after { content: ''; position: absolute; bottom: 4px; width: 6px; height: 6px; background: var(--color-deadline); border-radius: 50%; }
+        .month-preview { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; min-height: 120px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); transition: 0.3s; }
+        
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 8px 0 14px 0; z-index: 1000; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -4px 20px rgba(0,0,0,0.3); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); cursor: pointer; font-size: 11px; font-weight: 700; transition: 0.2s; gap: 3px; padding: 6px 16px; border-radius: 12px; }
+        .nav-item.active { color: var(--accent); background: rgba(150, 150, 150, 0.1); }
+        .nav-item-icon { font-size: 20px; }
 
-    /* Списки задач */
-    .task-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px;
-      background: rgba(255,255,255,0.03);
-      border-radius: 12px;
-      margin-bottom: 8px;
-      border: 1px solid var(--card-border);
-    }
-    .task-info { display: flex; flex-direction: column; gap: 4px; }
-    .task-title { font-size: 14px; font-weight: 600; }
-    .task-meta { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
-    .delete-btn { color: #ef4444; font-weight: bold; cursor: pointer; padding: 4px 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-color); z-index: 2000; padding: 20px; overflow-y: auto; }
+        .modal-header { font-size: 22px; font-weight: bold; margin-bottom: 20px; text-align: center; color: var(--text-primary); }
+        .form-group { margin-bottom: 20px; position: relative; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary); font-weight: 600; }
+        input[type="text"], select { width: 100%; padding: 12px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); outline: none; font-size: 16px; box-sizing: border-box; }
+        
+        .autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; max-height: 220px; overflow-y: auto; z-index: 1000; display: none; backdrop-filter: blur(15px); margin-top: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        .autocomplete-item { padding: 12px 14px; cursor: pointer; font-size: 15px; color: var(--text-primary); border-bottom: 1px solid rgba(150,150,150,0.1); }
+        .autocomplete-item:hover { background: rgba(150,150,150,0.2); }
 
-    /* Настройки (Темы) */
-    .color-picker-grid { display: flex; gap: 12px; margin-bottom: 16px; }
-    .color-swatch { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
-    .color-swatch.active { border-color: #fff; transform: scale(1.1); }
-    .setting-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); color: #fff; padding: 12px; border-radius: 12px; margin-bottom: 12px; outline: none; }
-
-    /* Поиск */
-    .search-row { display: flex; gap: 8px; margin-bottom: 16px; }
-    .search-row select, .search-row input { background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); color: #fff; padding: 12px; border-radius: 12px; outline: none; font-size: 14px; }
-    .search-row input { flex: 1; }
-
-    /* Модальное окно */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
-    .modal-overlay.active { display: flex; }
-    .modal-content { background: var(--bg-dark); width: 100%; max-width: 400px; border-radius: 24px; padding: 24px; border: 1px solid var(--card-border); }
-  </style>
+        .themes-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .theme-dot { height: 40px; border-radius: 10px; cursor: pointer; border: 2px solid var(--text-secondary); }
+        .theme-dot.active { border-color: var(--accent); box-shadow: 0 0 8px var(--accent); }
+        
+        .upload-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+        .btn-upload { display: block; padding: 14px; background: #2b3240; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; text-align: center; color: #fff; font-weight: 600; font-size: 15px; cursor: pointer; transition: background 0.2s; box-sizing: border-box; }
+        .btn-upload input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+        
+        .delete-bg-btn { margin-top: 8px; width: 100%; padding: 12px; background: transparent; color: #ff5252; border: 1px solid rgba(255,82,82,0.3); border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 15px; box-sizing: border-box; }
+        .save-btn { width: 100%; padding: 14px; background-color: var(--accent); color: var(--accent-text); border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; box-sizing: border-box; }
+        .close-modal-btn { width: 100%; padding: 12px; background: rgba(150,150,150,0.15); color: var(--text-primary); border: none; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 10px; box-sizing: border-box; }
+        .loading { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 14px; font-weight: 500; }
+    </style>
 </head>
 <body>
+    <div class="bg-pattern"></div>
+    <div id="offline-banner">⚠️ Оффлайн-режим: нет соединения с интернетом, показаны сохраненные данные</div>
 
-  <!-- Навигация -->
-  <nav class="top-nav">
-    <button class="nav-tab active" onclick="switchTab('service')">Главная</button>
-    <button class="nav-tab" onclick="switchTab('today')">День</button>
-    <button class="nav-tab" onclick="switchTab('week')">Неделя</button>
-    <button class="nav-tab" onclick="switchTab('month')">Месяц</button>
-    <button class="nav-tab" onclick="switchTab('search')">Поиск</button>
-    <button class="nav-tab" onclick="switchTab('settings')">Настройки</button>
-  </nav>
-
-  <!-- Вкладка: ГЛАВНАЯ (Мой сервис) -->
-  <div id="tab-service" class="tab-content active">
-    <div class="glass-card">
-      <div class="section-title">
-        Мой профиль
-        <span id="profile-entity" style="font-size:14px; color:var(--accent-main); font-weight:700; background:rgba(59,130,246,0.15); padding:4px 10px; border-radius:8px;">ИПК-1-25</span>
-      </div>
-      <div class="section-subtitle">Создавайте задачи, дедлайны и мероприятия</div>
-      
-      <div class="btn-grid">
-        <button class="btn primary" onclick="openTaskModal('Задача')">📋 + Задача</button>
-        <button class="btn" style="color: var(--color-deadline);" onclick="openTaskModal('Дедлайн')">⏱ + Дедлайн</button>
-        <button class="btn" style="color: var(--color-event);" onclick="openTaskModal('Мероприятие')">🎉 + Событие</button>
-        <button class="btn" onclick="syncData()">☁️ Синхронизация</button>
-      </div>
+    <div class="header">
+        <div class="header-title" onclick="openSearchModal()">
+            <span class="badge" id="type-badge">⚡ КГЭУ</span>
+            <div id="name-display">Не выбрана</div>
+        </div>
+        <div class="header-actions">
+            <button class="nav-btn" onclick="openSearchModal()" style="border-radius: 12px; width: 40px; height: 40px; font-size: 18px;" title="Поиск">🔍</button>
+            <button class="nav-btn" id="star-btn" onclick="toggleFavorite()" style="border-radius: 12px; width: 40px; height: 40px; font-size: 18px;" title="В избранное">☆</button>
+            <button class="nav-btn" onclick="openSettingsModal()" style="border-radius: 12px; width: 40px; height: 40px; font-size: 18px;" title="Настройки">⚙️</button>
+        </div>
     </div>
-
-    <div class="glass-card">
-      <div class="section-title">Следующая пара</div>
-      <div id="next-lesson-widget" style="color: var(--text-muted); font-size: 14px;">Загрузка данных...</div>
-    </div>
-
-    <div class="glass-card">
-      <div class="section-title">Ближайшие дедлайны и задачи</div>
-      <div id="tasks-list-container">
-        <div style="text-align:center; color:var(--text-muted); font-size:13px;">Список пуст.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Вкладка: ДЕНЬ -->
-  <div id="tab-today" class="tab-content">
-    <div class="glass-card">
-      <div class="section-title">Расписание на день</div>
-      <div class="search-row" style="margin-bottom: 0;">
-        <input type="date" id="day-picker" class="setting-input" style="margin-bottom:0;" onchange="loadSpecificDay()">
-      </div>
-    </div>
-    <div id="day-container"></div>
-  </div>
-
-  <!-- Вкладка: НЕДЕЛЯ -->
-  <div id="tab-week" class="tab-content">
-    <div id="week-container"></div>
-  </div>
-
-  <!-- Вкладка: МЕСЯЦ (Календарь) -->
-  <div id="tab-month" class="tab-content">
-    <div class="glass-card">
-      <div class="calendar-header">
-        <button class="btn" style="padding: 6px 12px;" onclick="changeMonth(-1)">◀</button>
-        <span id="calendar-month-label">Сентябрь 2026</span>
-        <button class="btn" style="padding: 6px 12px;" onclick="changeMonth(1)">▶</button>
-      </div>
-      <div class="calendar-grid" id="calendar-grid">
-        <!-- JS генерирует календарь -->
-      </div>
-    </div>
-    <div class="glass-card">
-      <div class="section-title" id="selected-date-title">События за день</div>
-      <div id="selected-date-content" style="font-size:14px; color:var(--text-muted);">Выберите день в календаре.</div>
-    </div>
-  </div>
-
-  <!-- Вкладка: ПОИСК -->
-  <div id="tab-search" class="tab-content">
-    <div class="glass-card">
-      <div class="section-title">Поиск по расписанию</div>
-      <div class="search-row">
-        <select id="search-type">
-          <option value="group">Группа</option>
-          <option value="teacher">Преподаватель</option>
-          <option value="room">Аудитория</option>
-        </select>
-        <input type="text" id="search-input" placeholder="Введите название..." oninput="debounceSearch()">
-      </div>
-      <div id="search-results"></div>
-    </div>
-  </div>
-
-  <!-- Вкладка: НАСТРОЙКИ (Темы и Обои) -->
-  <div id="tab-settings" class="tab-content">
-    <div class="glass-card">
-      <div class="section-title">Оформление приложения</div>
-      
-      <div class="section-subtitle">Акцентный цвет</div>
-      <div class="color-picker-grid" id="color-picker">
-        <div class="color-swatch" style="background: #3b82f6;" onclick="setThemeColor('#3b82f6', this)"></div>
-        <div class="color-swatch" style="background: #10b981;" onclick="setThemeColor('#10b981', this)"></div>
-        <div class="color-swatch" style="background: #f43f5e;" onclick="setThemeColor('#f43f5e', this)"></div>
-        <div class="color-swatch" style="background: #8b5cf6;" onclick="setThemeColor('#8b5cf6', this)"></div>
-        <div class="color-swatch" style="background: #f97316;" onclick="setThemeColor('#f97316', this)"></div>
-      </div>
-
-      <div class="section-subtitle" style="margin-top:20px;">Кастомные обои (URL или Файл)</div>
-      <input type="text" id="bg-url-input" class="setting-input" placeholder="https://ссылка-на-картинку.jpg">
-      <button class="btn primary" style="width: 100%; margin-bottom: 12px;" onclick="applyBgUrl()">Применить URL обоев</button>
-      
-      <div style="text-align:center; margin: 10px 0; color:var(--text-muted);">ИЛИ</div>
-      
-      <input type="file" id="bg-file-input" class="setting-input" accept="image/*" style="padding: 8px;">
-      <button class="btn" style="width: 100%;" onclick="applyBgFile()">Загрузить из галереи</button>
-      
-      <button class="btn" style="width: 100%; margin-top: 16px; color: #ef4444;" onclick="resetTheme()">Сбросить оформление</button>
-    </div>
-  </div>
-
-  <!-- Модальное окно создания задачи -->
-  <div id="task-modal" class="modal-overlay">
-    <div class="modal-content">
-      <div class="section-title" id="modal-title">Новая запись</div>
-      <input type="text" id="task-title-input" class="setting-input" placeholder="Название (например: Сдать курсач)">
-      <input type="date" id="task-date-input" class="setting-input">
-      <div style="display:flex; gap:10px; margin-top: 16px;">
-        <button class="btn" style="flex:1;" onclick="closeModal()">Отмена</button>
-        <button class="btn primary" style="flex:1;" onclick="saveTask()">Сохранить</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    // КОНСТАНТЫ И СОСТОЯНИЕ
-    const WORKER_URL = 'https://kgeu-schedule-bot.garzite.workers.dev';
     
-    let appState = {
-      id: localStorage.getItem('kgeu_id') || '14456',
-      name: localStorage.getItem('kgeu_name') || 'ИПК-1-25',
-      type: localStorage.getItem('kgeu_type') || 'group',
-      tasks: JSON.parse(localStorage.getItem('kgeu_tasks') || '[]'),
-      themeColor: localStorage.getItem('kgeu_color') || '#3b82f6',
-      bgImage: localStorage.getItem('kgeu_bg') || ''
-    };
+    <div class="motto" id="motto-text">💻 «Киберпанк уже на первой паре»</div>
 
-    let currentCalendarDate = new Date();
-    let currentModalType = '';
-    let searchTimeout = null;
+    <div class="favorites-bar" id="favorites-container" style="display: none;"></div>
 
-    // ИНИЦИАЛИЗАЦИЯ
-    window.onload = () => {
-      document.getElementById('profile-entity').innerText = appState.name;
-      document.getElementById('day-picker').value = new Date().toISOString().split('T')[0];
-      
-      applyStoredTheme();
-      renderTasks();
-      switchTab('service');
-    };
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('day')">День</button>
+        <button class="tab-btn" onclick="switchTab('week')">Неделя</button>
+        <button class="tab-btn" onclick="switchTab('month')">Месяц</button>
+    </div>
 
-    // НАВИГАЦИЯ
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
-      
-      document.getElementById(`tab-${tabId}`).classList.add('active');
-      const activeBtn = Array.from(document.querySelectorAll('.nav-tab')).find(b => b.getAttribute('onclick')?.includes(tabId));
-      if (activeBtn) activeBtn.classList.add('active');
+    <div class="day-search-container" id="day-search-box">
+        <input type="text" class="day-search-input" id="day-search-input" placeholder="🔍 Найти предмет, препода или аудиторию в этот день..." oninput="debouncedDayFilter(this.value)">
+    </div>
 
-      if (tabId === 'today') loadSpecificDay();
-      if (tabId === 'week') loadWeek();
-      if (tabId === 'month') renderCalendar();
-      if (tabId === 'service') checkNextLesson();
-    }
+    <div class="nav-date" id="nav-controls">
+        <button class="nav-btn" onclick="changeDate(-1)">&lt;</button>
+        <div class="current-date-title" id="date-label">Загрузка...</div>
+        <button class="today-float-btn" id="today-btn" onclick="jumpToToday()">Сегодня</button>
+        <button class="nav-btn" onclick="changeDate(1)">&gt;</button>
+    </div>
 
-    // РАСПИСАНИЕ И АПИ
-    async function fetchScheduleData(sdate) {
-      const cacheKey = `cache_${appState.type}_${appState.id}_${sdate}`;
-      try {
-        const res = await fetch(`${WORKER_URL}/api/schedule?id=${appState.id}&type=${appState.type}&sdate=${sdate}`);
-        if (res.ok) {
-          const data = await res.json();
-          localStorage.setItem(cacheKey, JSON.stringify(data));
-          return data;
-        }
-      } catch (e) {
-        console.warn('API fetch failed, falling back to cache');
-      }
-      return JSON.parse(localStorage.getItem(cacheKey) || '[]');
-    }
+    <div id="schedule-container">
+        <div class="loading">⌛ Загрузка...</div>
+    </div>
 
-    async function loadSpecificDay() {
-      const dateStr = document.getElementById('day-picker').value;
-      const container = document.getElementById('day-container');
-      container.innerHTML = '<div style="text-align:center; padding:20px;">Загрузка...</div>';
-      
-      const data = await fetchScheduleData(dateStr);
-      container.innerHTML = renderLessonsHTML(data, dateStr);
-    }
+    <div class="bottom-nav">
+        <div class="nav-item active" id="nav-Group" onclick="switchSearchMode('Group')">
+            <div class="nav-item-icon">👥</div>
+            <div>Группы</div>
+        </div>
+        <div class="nav-item" id="nav-Teacher" onclick="switchSearchMode('Teacher')">
+            <div class="nav-item-icon">👤</div>
+            <div>Преподаватели</div>
+        </div>
+        <div class="nav-item" id="nav-Aud" onclick="switchSearchMode('Aud')">
+            <div class="nav-item-icon">🚪</div>
+            <div>Аудитории</div>
+        </div>
+    </div>
 
-    async function loadWeek() {
-      const container = document.getElementById('week-container');
-      container.innerHTML = '<div style="text-align:center; padding:20px;">Сборка недели...</div>';
-      
-      let html = '';
-      const startOfWeek = new Date();
-      // Корректировка на понедельник
-      const day = startOfWeek.getDay();
-      const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
-      startOfWeek.setDate(diff);
+    <div id="search-modal" class="modal-overlay">
+        <div class="modal-header" id="search-modal-title">Поиск расписания</div>
+        <div class="form-group">
+            <label id="search-label">Поиск</label>
+            <input type="text" id="search-input" placeholder="Начните вводить..." autocomplete="off" oninput="debouncedFilter(this.value)" onfocus="debouncedFilter(this.value)" />
+            <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
+        </div>
+        <button class="save-btn" onclick="applySearchSelection()">Показать расписание</button>
+        <button class="close-modal-btn" onclick="closeModals()">Отмена</button>
+    </div>
 
-      for (let i = 0; i < 6; i++) {
-        const d = new Date(startOfWeek);
-        d.setDate(d.getDate() + i);
-        const dateStr = d.toISOString().split('T')[0];
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-header">Настройки</div>
         
-        const data = await fetchScheduleData(dateStr);
-        if (data.length > 0) {
-          html += `<div class="date-header">${d.toLocaleDateString('ru-RU', {weekday:'long', day:'numeric', month:'long'})}</div>`;
-          html += renderLessonsHTML(data);
-        }
-      }
-      container.innerHTML = html || '<div style="text-align:center; padding:20px;">На этой неделе пар нет.</div>';
-    }
+        <div class="form-group">
+            <label>Предпочитаемая подгруппа</label>
+            <select id="subgroup-select" onchange="changeSubgroup(this.value)">
+                <option value="all">Все подгруппы (по умолчанию)</option>
+                <option value="1">Только 1-я подгруппа</option>
+                <option value="2">Только 2-я подгруппа</option>
+            </select>
+        </div>
 
-    function renderLessonsHTML(lessons, dateStr = null) {
-      if (!lessons || lessons.length === 0) return `<div class="glass-card" style="text-align:center; color:var(--text-muted);">Занятий нет.</div>`;
-      
-      return lessons.map(l => {
-        const typeStr = (l.disciplineType || l.type || '').toLowerCase();
-        let classType = 'lecture';
-        let badgeText = l.disciplineType || 'Пара';
-
-        if (typeStr.includes('практ')) classType = 'practice';
-        if (typeStr.includes('лаб')) classType = 'lab';
-
-        return `
-          <div class="lesson-card ${classType}">
-            <div class="lesson-header">
-              <span class="lesson-time">${l.timeStart || l.start || '00:00'} - ${l.timeEnd || l.end || '00:00'}</span>
-              <span class="lesson-badge">${badgeText}</span>
+        <div class="form-group">
+            <label>Тема оформления</label>
+            <div class="themes-grid">
+                <div class="theme-dot" style="background: #f1f5f9;" onclick="setTheme('theme-light', true)"></div>
+                <div class="theme-dot" style="background: #0b132b;" onclick="setTheme('theme-blue', true)"></div>
+                <div class="theme-dot" style="background: #000000;" onclick="setTheme('theme-black', true)"></div>
+                <div class="theme-dot" style="background: #2d132c;" onclick="setTheme('theme-pink', true)"></div>
+                <div class="theme-dot" style="background: #1a1025;" onclick="setTheme('theme-purple', true)"></div>
+                <div class="theme-dot" style="background: #064e3b;" onclick="setTheme('theme-green', true)"></div>
+                <div class="theme-dot" style="background: #451a03;" onclick="setTheme('theme-amber', true)"></div>
+                <div class="theme-dot" style="background: #09090b;" onclick="setTheme('theme-cyber', true)"></div>
             </div>
-            <div class="lesson-name">${l.disciplineName || l.name || 'Дисциплина'}</div>
-            <div class="lesson-details">
-              <span>📍 ${l.auditorium || l.room || 'Ауд. не указана'}</span>
-              <span>👨‍🏫 ${l.teacherName || l.teacher || 'Не указан'}</span>
+        </div>
+
+        <div class="form-group">
+            <label>Кастомные обои</label>
+            <div class="upload-wrapper">
+                <label class="btn-upload">
+                    Загрузить из галереи
+                    <input type="file" id="bg-upload" accept="image/*">
+                </label>
             </div>
-          </div>
-        `;
-      }).join('');
-    }
+            <button class="delete-bg-btn" onclick="clearBg()">Сбросить оформление</button>
+        </div>
 
-    async function checkNextLesson() {
-      const today = new Date().toISOString().split('T')[0];
-      const lessons = await fetchScheduleData(today);
-      const widget = document.getElementById('next-lesson-widget');
-      
-      const now = new Date().toTimeString().substring(0, 5);
-      const upcoming = lessons.find(l => (l.timeStart || l.start) > now);
+        <button class="close-modal-btn" onclick="closeModals()">Закрыть</button>
+    </div>
 
-      if (upcoming) {
-        widget.innerHTML = `
-          <div style="font-weight:700; color:#fff; margin-bottom:4px;">${upcoming.disciplineName || upcoming.name}</div>
-          <div>Начало в <b>${upcoming.timeStart || upcoming.start}</b> · Ауд: ${upcoming.auditorium || upcoming.room}</div>
-        `;
-      } else {
-        widget.innerHTML = 'На сегодня пары завершены.';
-      }
-    }
+    <script>
+        let tg = window.Telegram ? window.Telegram.WebApp : null;
+        if (tg) tg.expand();
 
-    // КАЛЕНДАРЬ (МЕСЯЦ)
-    function changeMonth(delta) {
-      currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
-      renderCalendar();
-    }
-
-    function renderCalendar() {
-      const grid = document.getElementById('calendar-grid');
-      const label = document.getElementById('calendar-month-label');
-      
-      const year = currentCalendarDate.getFullYear();
-      const month = currentCalendarDate.getMonth();
-      label.textContent = currentCalendarDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
-
-      grid.innerHTML = '';
-      const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-      dayNames.forEach(d => grid.innerHTML += `<div class="calendar-day-name">${d}</div>`);
-
-      const firstDay = new Date(year, month, 1);
-      const lastDay = new Date(year, month + 1, 0);
-      let startDayOfWeek = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
-
-      for (let i = 0; i < startDayOfWeek; i++) {
-        grid.innerHTML += `<div></div>`;
-      }
-
-      const todayStr = new Date().toISOString().split('T')[0];
-
-      for (let d = 1; d <= lastDay.getDate(); d++) {
-        const iterDate = new Date(year, month, d);
-        // Корректировка часового пояса для ISO
-        const iterDateStr = new Date(iterDate.getTime() - (iterDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        let currentTab = 'day';
+        let currentDate = new Date();
         
-        let cellClass = 'calendar-cell';
-        if (iterDateStr === todayStr) cellClass += ' today';
-        
-        // Проверка наличия задач
-        if (appState.tasks.some(t => t.date === iterDateStr)) {
-          cellClass += ' has-task';
-        }
-
-        grid.innerHTML += `<div class="${cellClass}" onclick="selectCalendarDay('${iterDateStr}')">${d}</div>`;
-      }
-    }
-
-    async function selectCalendarDay(dateStr) {
-      const title = document.getElementById('selected-date-title');
-      const content = document.getElementById('selected-date-content');
-      title.textContent = `События: ${dateStr}`;
-      
-      const dayTasks = appState.tasks.filter(t => t.date === dateStr);
-      let html = '';
-      
-      if (dayTasks.length > 0) {
-        html += '<div style="margin-bottom:12px;"><b>Ваши записи:</b><ul>';
-        dayTasks.forEach(t => { html += `<li>[${t.type}] ${t.title}</li>`; });
-        html += '</ul></div>';
-      }
-
-      const lessons = await fetchScheduleData(dateStr);
-      if (lessons.length > 0) {
-        html += '<b>Пары:</b><br>' + lessons.map(l => `• ${l.timeStart || l.start} - ${l.disciplineName || l.name}`).join('<br>');
-      }
-
-      content.innerHTML = html || 'В этот день ничего не запланировано.';
-    }
-
-    // МЕНЕДЖЕР ЗАДАЧ
-    function openTaskModal(type) {
-      currentModalType = type;
-      document.getElementById('modal-title').textContent = `Добавить: ${type}`;
-      document.getElementById('task-date-input').value = new Date().toISOString().split('T')[0];
-      document.getElementById('task-modal').classList.add('active');
-    }
-
-    function closeModal() {
-      document.getElementById('task-modal').classList.remove('active');
-      document.getElementById('task-title-input').value = '';
-    }
-
-    function saveTask() {
-      const title = document.getElementById('task-title-input').value.trim();
-      const date = document.getElementById('task-date-input').value;
-      if (title && date) {
-        appState.tasks.push({ id: Date.now(), type: currentModalType, title, date });
-        localStorage.setItem('kgeu_tasks', JSON.stringify(appState.tasks));
-        renderTasks();
-        closeModal();
-        if (document.getElementById('tab-month').classList.contains('active')) renderCalendar();
-      }
-    }
-
-    function renderTasks() {
-      const container = document.getElementById('tasks-list-container');
-      
-      // Сортировка по дате (сначала ближайшие)
-      const sortedTasks = [...appState.tasks].sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      if (sortedTasks.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px;">Список пуст.</div>';
-        return;
-      }
-
-      container.innerHTML = sortedTasks.map(t => {
-        let color = 'var(--accent-main)';
-        if (t.type === 'Дедлайн') color = 'var(--color-deadline)';
-        if (t.type === 'Мероприятие') color = 'var(--color-event)';
-
-        return `
-          <div class="task-item">
-            <div class="task-info">
-              <span class="task-meta" style="color:${color}">${t.type} • ${t.date}</span>
-              <span class="task-title">${t.title}</span>
-            </div>
-            <div class="delete-btn" onclick="deleteTask(${t.id})">Удалить</div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function deleteTask(id) {
-      appState.tasks = appState.tasks.filter(t => t.id !== id);
-      localStorage.setItem('kgeu_tasks', JSON.stringify(appState.tasks));
-      renderTasks();
-      if (document.getElementById('tab-month').classList.contains('active')) renderCalendar();
-    }
-
-    // СИСТЕМА ТЕМ И ОБОЕВ
-    function applyStoredTheme() {
-      document.documentElement.style.setProperty('--accent-main', appState.themeColor);
-      document.documentElement.style.setProperty('--accent-glow', appState.themeColor + '66'); // добавляем прозрачность
-      
-      if (appState.bgImage) {
-        document.body.style.backgroundImage = `url(${appState.bgImage})`;
-        document.documentElement.style.setProperty('--card-bg', 'rgba(15, 23, 42, 0.4)'); // Делаем прозрачнее для обоев
-      } else {
-        document.body.style.backgroundImage = 'none';
-        document.documentElement.style.setProperty('--card-bg', 'rgba(15, 23, 42, 0.65)');
-      }
-
-      // Подсветка выбранного цвета в настройках
-      document.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('active'));
-      const activeSwatch = Array.from(document.querySelectorAll('.color-swatch')).find(el => el.style.backgroundColor === rgbToHex(appState.themeColor));
-      if (activeSwatch) activeSwatch.classList.add('active');
-    }
-
-    function setThemeColor(color, element) {
-      appState.themeColor = color;
-      localStorage.setItem('kgeu_color', color);
-      applyStoredTheme();
-    }
-
-    function applyBgUrl() {
-      const url = document.getElementById('bg-url-input').value.trim();
-      if (url) {
-        appState.bgImage = url;
-        localStorage.setItem('kgeu_bg', url);
-        applyStoredTheme();
-      }
-    }
-
-    function applyBgFile() {
-      const fileInput = document.getElementById('bg-file-input');
-      const file = fileInput.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          appState.bgImage = e.target.result;
-          localStorage.setItem('kgeu_bg', appState.bgImage);
-          applyStoredTheme();
+        let currentMode = localStorage.getItem('kgeu_mode') || 'Group'; 
+        let modeNames = {
+            'Group': localStorage.getItem('kgeu_name_Group') || '',
+            'Teacher': localStorage.getItem('kgeu_name_Teacher') || '',
+            'Aud': localStorage.getItem('kgeu_name_Aud') || ''
         };
-        reader.readAsDataURL(file);
-      }
-    }
+        let currentName = modeNames[currentMode] || '';
+        let userSubgroup = localStorage.getItem('kgeu_subgroup') || 'all';
+        
+        let customBg = localStorage.getItem('kgeu_bg') || '';
+        let cachedBgColors = localStorage.getItem('kgeu_bg_colors') ? JSON.parse(localStorage.getItem('kgeu_bg_colors')) : null;
+        let favorites = JSON.parse(localStorage.getItem('kgeu_favorites') || '[]');
 
-    function resetTheme() {
-      appState.themeColor = '#3b82f6';
-      appState.bgImage = '';
-      localStorage.removeItem('kgeu_color');
-      localStorage.removeItem('kgeu_bg');
-      document.getElementById('bg-url-input').value = '';
-      applyStoredTheme();
-    }
-
-    // ПОИСК ГРУПП/ПРЕПОДАВАТЕЛЕЙ
-    function debounceSearch() {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(executeSearch, 500);
-    }
-
-    async function executeSearch() {
-      const q = document.getElementById('search-input').value.trim();
-      const type = document.getElementById('search-type').value;
-      const resContainer = document.getElementById('search-results');
-
-      if (q.length < 2) { resContainer.innerHTML = ''; return; }
-      resContainer.innerHTML = 'Поиск...';
-
-      try {
-        const res = await fetch(`${WORKER_URL}/api/search?type=${type}&q=${encodeURIComponent(q)}`);
-        if (res.ok) {
-          const items = await res.json();
-          resContainer.innerHTML = items.map(item => `
-            <div class="task-item" style="cursor:pointer;" onclick="selectEntity('${item.id}', '${item.name || item.fio}', '${type}')">
-              <span style="font-weight:700;">${item.name || item.fio}</span>
-              <span style="font-size:12px; color:var(--accent-main);">Выбрать</span>
-            </div>
-          `).join('');
+        let defaultTheme = 'theme-purple';
+        if (tg && tg.colorScheme) {
+            defaultTheme = tg.colorScheme === 'dark' ? 'theme-purple' : 'theme-light';
         }
-      } catch (e) {
-        resContainer.innerHTML = 'Ошибка поиска.';
-      }
-    }
+        let currentTheme = localStorage.getItem('kgeu_theme') || defaultTheme;
 
-    function selectEntity(id, name, type) {
-      appState.id = id;
-      appState.name = name;
-      appState.type = type;
+        let weekCache = JSON.parse(localStorage.getItem('kgeu_week_cache') || '{}');
+        let dayLessonsCache = {}; // Улучшение 1: Кэш дней в памяти
+        let listsData = JSON.parse(localStorage.getItem('kgeu_lists') || '{"Group":[], "Teacher":[], "Aud":[]}');
+        let monthLessonsCache = {};
+        let filterTimeout; 
+        let dayFilterTimeout;
 
-      localStorage.setItem('kgeu_id', id);
-      localStorage.setItem('kgeu_name', name);
-      localStorage.setItem('kgeu_type', type);
+        const DAY_NAMES = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+        const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        const MONTH_NAMES_GENITIVE = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
-      document.getElementById('profile-entity').innerText = name;
-      switchTab('service');
-    }
+        const THEME_MOTTOS = {
+            'theme-light': '☀️ «Утро начинается не с кофе»',
+            'theme-blue': '📊 «Фактически — это факт»',
+            'theme-black': '🌙 «Главное — не уснуть»',
+            'theme-pink': '✨ «Учёба на чилле»',
+            'theme-purple': '🔮 «Магия вне Хогвартса»',
+            'theme-green': '🌿 «Сохраняй спокойствие и закрывай сессию»',
+            'theme-amber': '☕ «Уютный вайб на лекциях»',
+            'theme-cyber': '💻 «Киберпанк уже на первой паре»',
+            'custom-bg-theme': '🖼 «Твой уникальный стиль»'
+        };
 
-    // УТИЛИТЫ
-    async function syncData() {
-      try {
-        await fetch(`${WORKER_URL}/api/user`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            telegram_id: tg.initDataUnsafe?.user?.id || 0,
-            selected_id: appState.id,
-            selected_name: appState.name,
-            selected_type: appState.type,
-            tasks: appState.tasks
-          })
+        function init() {
+            fetchLists().then(() => {
+                if (currentName) {
+                    currentName = resolveItemName(currentMode, currentName);
+                    modeNames[currentMode] = currentName;
+                }
+            });
+            updateUIForMode(currentMode);
+            renderFavorites();
+            document.getElementById('subgroup-select').value = userSubgroup;
+
+            if (!currentName) { 
+                openSearchModal(); 
+            } else { 
+                document.getElementById('name-display').innerText = currentName; 
+            }
+
+            if (customBg) applyCustomBackground(customBg, false, cachedBgColors);
+            else setTheme(currentTheme, false);
+
+            if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            registerServiceWorker();
+            setupOnlineListeners(); // Улучшение 4: Мониторинг сети
+
+            document.addEventListener('click', e => {
+                if (!e.target.closest('.form-group')) {
+                    document.getElementById('autocomplete-dropdown').style.display = 'none';
+                }
+            });
+        }
+
+        // Улучшение 4: Индикатор оффлайн-режима
+        function setupOnlineListeners() {
+            const banner = document.getElementById('offline-banner');
+            const updateStatus = () => {
+                if (!navigator.onLine) banner.style.display = 'block';
+                else banner.style.display = 'none';
+            };
+            window.addEventListener('online', updateStatus);
+            window.addEventListener('offline', updateStatus);
+            updateStatus();
+        }
+
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    const CACHE_NAME = 'kgeu-offline-v1';
+                    self.addEventListener('install', e => self.skipWaiting());
+                    self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+                    self.addEventListener('fetch', e => {
+                        if (e.request.url.includes('/api/')) {
+                            e.respondWith(
+                                fetch(e.request).then(res => {
+                                    const clone = res.clone();
+                                    caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+                                    return res;
+                                }).catch(() => caches.match(e.request))
+                            );
+                        }
+                    });
+                `;
+                const blob = new Blob([swCode], { type: 'text/javascript' });
+                navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+            }
+        }
+
+        async function fetchLists() {
+            try {
+                const res = await fetch('/api/lists');
+                const data = await res.json();
+                listsData = data;
+                localStorage.setItem('kgeu_lists', JSON.stringify(listsData));
+            } catch (e) { console.error("Ошибка загрузки списков", e); }
+        }
+
+        function switchSearchMode(mode) {
+            currentMode = mode;
+            localStorage.setItem('kgeu_mode', currentMode);
+            currentName = modeNames[currentMode] || '';
+            updateUIForMode(mode);
+            document.getElementById('name-display').innerText = currentName || 'Не выбрано';
+            
+            weekCache = {};
+            dayLessonsCache = {};
+            monthLessonsCache = {};
+            localStorage.removeItem('kgeu_week_cache');
+            
+            if (!currentName) openSearchModal(); 
+            else if (currentTab === 'month') loadMonthView(); else loadSchedule();
+        }
+
+        function updateUIForMode(mode) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const activeEl = document.getElementById('nav-' + mode);
+            if (activeEl) activeEl.classList.add('active');
+            
+            document.getElementById('type-badge').innerText = '⚡ КГЭУ';
+            updateStarButton();
+            
+            let label = 'Поиск группы', placeholder = 'Например: ИПК-1-25...';
+            if (mode === 'Teacher') { label = 'Поиск преподавателя'; placeholder = 'Например: Саниева А.Д....'; }
+            if (mode === 'Aud') { label = 'Поиск аудитории'; placeholder = 'Например: Г-302...'; }
+            
+            document.getElementById('search-label').innerText = label;
+            document.getElementById('search-input').placeholder = placeholder;
+        }
+
+        function changeSubgroup(val) {
+            userSubgroup = val;
+            localStorage.setItem('kgeu_subgroup', val);
+            dayLessonsCache = {}; // сброс кэша для применения фильтра подгрупп
+            if (currentTab === 'month') loadMonthView(); else loadSchedule();
+        }
+
+        // Улучшение 3: Фильтрация подгрупп в карточках
+        function filterLessonBySubgroup(lessons) {
+            if (userSubgroup === 'all') return lessons;
+            return lessons.filter(l => {
+                if (l.isWindow) return true;
+                const t = (l.title || '').toLowerCase();
+                if (t.includes('1 подг') || t.includes('подгруппа 1')) return userSubgroup === '1';
+                if (t.includes('2 подг') || t.includes('подгруппа 2')) return userSubgroup === '2';
+                return true;
+            });
+        }
+
+        function debouncedFilter(query) {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => filterData(query), 150);
+        }
+
+        function debouncedDayFilter(query) {
+            clearTimeout(dayFilterTimeout);
+            dayFilterTimeout = setTimeout(() => filterDayLessons(query), 120);
+        }
+
+        function filterData(query) {
+            const dropdown = document.getElementById('autocomplete-dropdown');
+            const q = query.trim().toUpperCase();
+            const list = listsData[currentMode] || [];
+            const filtered = list.filter(item => item.toUpperCase().includes(q)).slice(0, 50);
+            
+            if (filtered.length === 0) { dropdown.style.display = 'none'; return; }
+
+            dropdown.innerHTML = filtered.map(item => `<div class="autocomplete-item" onclick="selectOption('${item.replace(/'/g, "\\'")}')">${item}</div>`).join('');
+            dropdown.style.display = 'block';
+        }
+
+        function selectOption(name) {
+            document.getElementById('search-input').value = name;
+            document.getElementById('autocomplete-dropdown').style.display = 'none';
+        }
+
+        function resolveItemName(mode, rawName) {
+            let clean = rawName.trim();
+            if (mode === 'Aud') clean = clean.replace('Ауд.', '').trim();
+            const list = listsData[mode] || [];
+            if (list.length === 0) return clean;
+            
+            let found = list.find(item => item.toLowerCase() === clean.toLowerCase());
+            if (found) return found;
+            
+            const normalize = s => s.replace(/[\.\s]/g, '').toLowerCase();
+            let targetNorm = normalize(clean);
+            found = list.find(item => normalize(item) === targetNorm);
+            if (found) return found;
+            
+            let parts = clean.split(/[\s\.]+/).filter(Boolean);
+            if (parts.length > 0) {
+                let keyPart = parts[0].toLowerCase();
+                found = list.find(item => item.toLowerCase().includes(keyPart));
+                if (found) return found;
+            }
+            return clean;
+        }
+
+        function jumpTo(mode, nameToJump) {
+            let resolvedName = resolveItemName(mode, nameToJump);
+            currentMode = mode;
+            currentName = resolvedName;
+            modeNames[currentMode] = currentName;
+            
+            localStorage.setItem('kgeu_mode', currentMode);
+            localStorage.setItem(`kgeu_name_${currentMode}`, currentName);
+            
+            updateUIForMode(mode);
+            document.getElementById('name-display').innerText = currentName;
+            
+            weekCache = {}; 
+            dayLessonsCache = {};
+            monthLessonsCache = {};
+            localStorage.removeItem('kgeu_week_cache');
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (currentTab === 'month') loadMonthView(); else loadSchedule();
+        }
+
+        function renderFavorites() {
+            const container = document.getElementById('favorites-container');
+            if (!favorites.length) { container.style.display = 'none'; return; }
+            container.style.display = 'flex';
+            container.innerHTML = favorites.map(fav => `
+                <div class="favorite-chip" onclick="jumpTo('${fav.type}', '${fav.name.replace(/'/g, "\\'")}')">
+                    <span>${fav.type === 'Group' ? '👥' : fav.type === 'Teacher' ? '👤' : '🚪'}</span>
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fav.name}</span>
+                    <span onclick="event.stopPropagation(); removeFavorite('${fav.type}', '${fav.name}')" style="opacity:0.6; margin-left:4px; font-size:14px; flex-shrink:0;">×</span>
+                </div>
+            `).join('');
+            updateStarButton();
+        }
+
+        function toggleFavorite() {
+            if (!currentName) return;
+            const index = favorites.findIndex(f => f.type === currentMode && f.name === currentName);
+            if (index > -1) favorites.splice(index, 1);
+            else favorites.push({ type: currentMode, name: currentName });
+            localStorage.setItem('kgeu_favorites', JSON.stringify(favorites));
+            renderFavorites();
+        }
+
+        function removeFavorite(type, name) {
+            favorites = favorites.filter(f => !(f.type === type && f.name === name));
+            localStorage.setItem('kgeu_favorites', JSON.stringify(favorites));
+            renderFavorites();
+        }
+
+        function updateStarButton() {
+            const btn = document.getElementById('star-btn');
+            if (!btn) return;
+            const isFav = favorites.some(f => f.type === currentMode && f.name === currentName);
+            btn.innerText = isFav ? '⭐' : '☆';
+        }
+
+        function formatDate(dt) { return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'); }
+        function formatDisplayDate(dt) { return `${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}`; }
+        
+        function getMonday(d) {
+            let dt = new Date(d);
+            dt.setHours(0,0,0,0);
+            let day = dt.getDay();
+            let diff = dt.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(dt.setDate(diff));
+        }
+
+        // Улучшение 2: Проверка для отображения кнопки «Сегодня»
+        function updateTodayButtonVisibility() {
+            const todayBtn = document.getElementById('today-btn');
+            const todayStr = formatDate(new Date());
+            const currentStr = formatDate(currentDate);
+            
+            if (currentTab === 'day') {
+                todayBtn.style.display = (currentStr !== todayStr) ? 'block' : 'none';
+            } else {
+                todayBtn.style.display = 'none';
+            }
+        }
+
+        function jumpToToday() {
+            currentDate = new Date();
+            if (currentTab === 'month') loadMonthView(); else loadSchedule();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const navControls = document.getElementById('nav-controls');
+            const daySearchBox = document.getElementById('day-search-box');
+            
+            navControls.style.display = 'flex';
+            daySearchBox.style.display = (tab === 'day') ? 'block' : 'none';
+            if (tab !== 'day') document.getElementById('day-search-input').value = '';
+
+            updateTodayButtonVisibility();
+            if (currentTab === 'month') loadMonthView(); else loadSchedule();
+        }
+
+        function changeDate(delta) {
+            if (currentTab === 'day') currentDate.setDate(currentDate.getDate() + delta);
+            else if (currentTab === 'week') currentDate.setDate(currentDate.getDate() + (delta * 7));
+            else if (currentTab === 'month') currentDate.setMonth(currentDate.getMonth() + delta);
+            
+            updateTodayButtonVisibility();
+            if (currentTab === 'month') loadMonthView(); else loadSchedule();
+        }
+
+        function parseTimeRange(timeStr) {
+            if (!timeStr) return null;
+            let parts = timeStr.split('-');
+            if (parts.length !== 2) return null;
+            let [startH, startM] = parts[0].trim().split(':').map(Number);
+            let [endH, endM] = parts[1].trim().split(':').map(Number);
+            return { start: startH * 60 + startM, end: endH * 60 + endM, endStr: parts[1].trim(), startStr: parts[0].trim() };
+        }
+
+        function addWindowsToLessons(lessons) {
+            if (!lessons || lessons.length <= 1) return lessons;
+            let newLessons = [];
+            let sorted = [...lessons].sort((a,b) => {
+                let ta = parseTimeRange(a.time), tb = parseTimeRange(b.time);
+                return (ta && tb) ? ta.start - tb.start : 0;
+            });
+
+            newLessons.push(sorted[0]);
+            for (let i = 1; i < sorted.length; i++) {
+                let prev = parseTimeRange(sorted[i-1].time);
+                let curr = parseTimeRange(sorted[i].time);
+                if (prev && curr) {
+                    let diff = curr.start - prev.end;
+                    if (diff > 35) {
+                        let h = Math.floor(diff / 60); let m = diff % 60;
+                        let durStr = h > 0 ? `${h} ч ${m} мин` : `${m} мин`;
+                        newLessons.push({ isWindow: true, title: '☕ Свободное время', time: `${prev.endStr} - ${curr.startStr}`, duration: durStr });
+                    }
+                }
+                newLessons.push(sorted[i]);
+            }
+            return newLessons;
+        }
+
+        function getLessonTypeClass(l) {
+            if (l.isWindow) return 'type-window';
+            if (!l.title) return 'default';
+            const t = l.title.toLowerCase().trim();
+            if (t.startsWith('лек') || t.includes(' лек')) return 'type-lecture';
+            if (t.startsWith('пр') || t.includes(' пр')) return 'type-practice';
+            if (t.startsWith('лаб') || t.includes(' лаб')) return 'type-lab';
+            return 'default';
+        }
+
+        function checkIsCurrentLesson(timeStr, lessonDateStr) {
+            const todayStr = formatDate(new Date());
+            if (lessonDateStr !== todayStr) return null;
+            
+            const parts = timeStr.split('-');
+            if (parts.length !== 2) return null;
+            
+            const now = new Date();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            
+            const [startH, startM] = parts[0].trim().split(':').map(Number);
+            const [endH, endM] = parts[1].trim().split(':').map(Number);
+            
+            const startMinutes = startH * 60 + startM;
+            const endMinutes = endH * 60 + endM;
+            
+            if (currentMinutes >= startMinutes && currentMinutes <= endMinutes) {
+                const total = endMinutes - startMinutes;
+                const elapsed = currentMinutes - startMinutes;
+                return Math.min(Math.max((elapsed / total) * 100, 0), 100);
+            }
+            return null;
+        }
+
+        function filterDayLessons(query) {
+            const q = query.trim().toLowerCase();
+            const cards = document.querySelectorAll('#schedule-container .lesson-card');
+            cards.forEach(card => {
+                const text = card.innerText.toLowerCase();
+                card.style.display = text.includes(q) ? 'block' : 'none';
+            });
+        }
+
+        // Улучшение 5: Экспорт отдельной пары в календарь телефона (.ics)
+        function exportToCalendar(title, timeStr, dateStr, room, teacher) {
+            let times = parseTimeRange(timeStr);
+            if (!times) { alert('Не удалось распознать время пары'); return; }
+            
+            let [y, m, d] = dateStr.split('-').map(Number);
+            let startH = Math.floor(times.start / 60), startM = times.start % 60;
+            let endH = Math.floor(times.end / 60), endM = times.end % 60;
+
+            let pad = n => String(n).padStart(2, '0');
+            let dtStart = `${y}${pad(m)}${pad(d)}T${pad(startH)}${pad(startM)}00`;
+            let dtEnd = `${y}${pad(m)}${pad(d)}T${pad(endH)}${pad(endM)}00`;
+
+            let icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${title}\nDESCRIPTION:Преподаватель: ${teacher || 'Не указан'}\\nАудитория: ${room || 'Не указана'}\nLOCATION:${room || ''}\nDTSTART:${dtStart}\nDTEND:${dtEnd}\nEND:VEVENT\nEND:VCALENDAR`;
+
+            let blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            let link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.setAttribute('download', `lesson_${dateStr}.ics`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function loadSchedule() {
+            if (!currentName) return;
+            const container = document.getElementById('schedule-container');
+            const dateLabel = document.getElementById('date-label');
+            const dateStr = formatDate(currentDate);
+
+            document.getElementById('day-search-input').value = '';
+            updateTodayButtonVisibility();
+
+            if (currentTab === 'day') {
+                dateLabel.innerText = formatDisplayDate(currentDate);
+                
+                // Улучшение 1: Проверка локального кэша памяти
+                let cacheKey = `${currentMode}_${currentName}_${userSubgroup}_${dateStr}`;
+                if (dayLessonsCache[cacheKey]) {
+                    renderLessons(dayLessonsCache[cacheKey], container, dateStr); 
+                    return;
+                }
+
+                let monday = getMonday(currentDate);
+                let weekKey = `${currentMode}_${currentName}_${formatDate(monday)}`;
+                
+                if (weekCache[weekKey] && weekCache[weekKey][dateStr]) {
+                    let filtered = filterLessonBySubgroup(weekCache[weekKey][dateStr]);
+                    dayLessonsCache[cacheKey] = filtered;
+                    renderLessons(filtered, container, dateStr); 
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`/api/schedule?type=${currentMode}&name=${encodeURIComponent(currentName)}&date=${dateStr}`);
+                    const data = await res.json();
+                    let filtered = filterLessonBySubgroup(data.lessons);
+                    dayLessonsCache[cacheKey] = filtered;
+                    renderLessons(filtered, container, dateStr);
+                } catch (e) { container.innerHTML = '<div class="loading">❌ Нет сети, проверьте подключение.</div>'; }
+
+            } else if (currentTab === 'week') {
+                let monday = getMonday(currentDate);
+                dateLabel.innerText = `Неделя от ${monday.getDate()} ${MONTH_NAMES_GENITIVE[monday.getMonth()]}`;
+
+                let weekKey = `${currentMode}_${currentName}_${formatDate(monday)}`;
+                if (weekCache[weekKey]) { renderWeekSchedule(weekCache[weekKey], container); return; }
+
+                try {
+                    const res = await fetch(`/api/schedule/week?type=${currentMode}&name=${encodeURIComponent(currentName)}&date=${formatDate(monday)}`);
+                    const data = await res.json();
+                    weekCache[weekKey] = data.week_schedule || {};
+                    localStorage.setItem('kgeu_week_cache', JSON.stringify(weekCache));
+                    renderWeekSchedule(weekCache[weekKey], container);
+                } catch (e) { container.innerHTML = '<div class="loading">❌ Ошибка загрузки.</div>'; }
+            }
+        }
+
+        async function loadMonthView() {
+            if (!currentName) return;
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            document.getElementById('date-label').innerText = `${MONTH_NAMES[month]} ${year} г.`;
+            updateTodayButtonVisibility();
+            
+            renderMonthGrid(year, month, true);
+
+            try {
+                const res = await fetch(`/api/schedule/month?type=${currentMode}&name=${encodeURIComponent(currentName)}&year=${year}&month=${month + 1}`);
+                const data = await res.json();
+                monthLessonsCache = data.month_schedule || {};
+                renderMonthGrid(year, month, false);
+            } catch (e) { 
+                document.getElementById('schedule-container').innerHTML = '<div class="loading">❌ Ошибка загрузки месяца.</div>'; 
+            }
+        }
+
+        function renderMonthGrid(year, month, isLoading = false) {
+            const container = document.getElementById('schedule-container');
+            container.innerHTML = `
+                <div class="month-calendar"><div class="weekdays-grid"><div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div></div><div class="days-grid" id="calendar-days-container"></div></div>
+                <div class="month-preview" id="month-preview-content"><div class="loading">${isLoading ? '⌛ Загрузка месяца...' : 'Нажмите на день, чтобы посмотреть пары'}</div></div>`;
+
+            const daysGrid = document.getElementById('calendar-days-container');
+            let firstDayIndex = new Date(year, month, 1).getDay(); firstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+            const totalDays = new Date(year, month + 1, 0).getDate();
+            const todayStr = formatDate(new Date());
+
+            let gridHtml = '';
+            for (let i = 0; i < firstDayIndex; i++) gridHtml += `<div class="calendar-day empty"></div>`;
+            for (let day = 1; day <= totalDays; day++) {
+                let dtStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                let rawLessons = monthLessonsCache[dtStr] || [];
+                let filtered = filterLessonBySubgroup(rawLessons);
+                let lessons = addWindowsToLessons(filtered);
+                
+                let dotsCount = Math.min(lessons.length, 5); 
+                let dotsHtml = '';
+                for (let d = 0; d < dotsCount; d++) { dotsHtml += `<div class="dot ${getLessonTypeClass(lessons[d])}"></div>`; }
+                let todayClass = (todayStr === dtStr) ? 'today' : '';
+                gridHtml += `<div class="calendar-day ${todayClass}" data-date="${dtStr}" onclick="selectMonthDay('${dtStr}', this)"><span>${day}</span><div class="dots-container">${dotsHtml}</div></div>`;
+            }
+            daysGrid.innerHTML = gridHtml;
+        }
+
+        function renderLessonHtml(l, lessonDateStr = '') {
+            const typeClass = getLessonTypeClass(l);
+            const progress = checkIsCurrentLesson(l.time, lessonDateStr);
+            const isCurrentClass = progress !== null ? 'current-lesson' : '';
+
+            if (l.isWindow) {
+                let liveBadge = progress !== null ? `<span style="background:#3a86ff; color:#fff; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold; margin-left:8px; vertical-align: middle;">СЕЙЧАС ПЕРЕРЫВ</span>` : '';
+                let progressBar = progress !== null ? `<div class="live-progress" style="width: ${progress}%; background: #3a86ff;"></div>` : '';
+
+                return `
+                    <div class="lesson-card ${typeClass} ${isCurrentClass}" style="margin-bottom:8px; text-align:center; padding:12px; border-style: dashed;">
+                        <div style="font-size: 14px; font-weight: 700; color: #3a86ff; margin-bottom: 4px; display:flex; align-items:center; justify-content:center;">
+                            ${l.title} ${liveBadge}
+                        </div>
+                        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">🕒 ${l.time} (${l.duration})</div>
+                        ${progressBar}
+                    </div>`;
+            }
+
+            let teacherBlock = l.teacher ? `<div class="clickable-badge" onclick="jumpTo('Teacher', '${l.teacher.replace(/'/g, "\\'")}')">👤 ${l.teacher}</div>` : '';
+            let roomBlock = l.room && l.room !== 'Ауд. не указана' ? `<div class="clickable-badge" onclick="jumpTo('Aud', '${l.room.replace(/'/g, "\\'")}')">📍 ${l.room}</div>` : `<div style="color:var(--text-secondary); display:flex; align-items:center;">📍 ${l.room}</div>`;
+            
+            let progressBar = progress !== null ? `<div class="live-progress" style="width: ${progress}%;"></div>` : '';
+            let liveBadge = progress !== null ? `<span style="background:var(--accent); color:var(--accent-text); padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold; margin-left:auto;">ИДЕТ ПАРА</span>` : '';
+
+            // Безопасная передача данных для экспорта в `.ics`
+            let safeTitle = (l.title || '').replace(/'/g, "\\'");
+            let safeTeacher = (l.teacher || '').replace(/'/g, "\\'");
+            let safeRoom = (l.room || '').replace(/'/g, "\\'");
+
+            return `
+                <div class="lesson-card ${typeClass} ${isCurrentClass}" style="margin-bottom:8px;">
+                    <div class="lesson-title">📖 ${l.title} ${liveBadge}</div>
+                    <div class="lesson-info">
+                        <span style="display:flex; align-items:center;">🕒 ${l.time}</span>
+                        ${roomBlock}
+                    </div>
+                    ${teacherBlock ? `<div style="margin-top:6px;">${teacherBlock}</div>` : ''}
+                    <div class="lesson-actions">
+                        <button class="action-btn" onclick="exportToCalendar('${safeTitle}', '${l.time}', '${lessonDateStr}', '${safeRoom}', '${safeTeacher}')">📅 В календарь</button>
+                    </div>
+                    ${progressBar}
+                </div>`;
+        }
+
+        function selectMonthDay(dtStr, element) {
+            document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            const preview = document.getElementById('month-preview-content');
+            let rawLessons = monthLessonsCache[dtStr] || [];
+            let filtered = filterLessonBySubgroup(rawLessons);
+            let lessons = addWindowsToLessons(filtered);
+            
+            let dtObj = new Date(dtStr);
+            let html = `<div class="day-header" style="margin-top:0;">${DAY_NAMES[dtObj.getDay()]}, ${dtObj.getDate()} ${MONTH_NAMES_GENITIVE[dtObj.getMonth()]}</div>`;
+            if (lessons.length === 0) html += '<div style="text-align:center; padding:15px; font-weight:500;">🎉 На этот день пар нет!</div>';
+            else lessons.forEach(l => { html += renderLessonHtml(l, dtStr); });
+            preview.innerHTML = html;
+        }
+
+        function renderLessons(rawLessons, container, dateStr) {
+            if (!rawLessons || rawLessons.length === 0) { container.innerHTML = '<div class="loading">🎉 На этот день пар нет!</div>'; return; }
+            let lessons = addWindowsToLessons(rawLessons);
+            let html = ''; lessons.forEach(l => { html += renderLessonHtml(l, dateStr); });
+            container.innerHTML = html;
+        }
+
+        function renderWeekSchedule(weekData, container) {
+            if (!weekData || Object.keys(weekData).length === 0) { container.innerHTML = '<div class="loading">🎉 На этой неделе пар нет!</div>'; return; }
+            let html = '';
+            for (const [dateKey, rawLessons] of Object.entries(weekData)) {
+                let filtered = filterLessonBySubgroup(rawLessons);
+                if (!filtered || filtered.length === 0) continue;
+                const dt = new Date(dateKey);
+                html += `<div class="day-header">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div>`;
+                let lessons = addWindowsToLessons(filtered);
+                lessons.forEach(l => { html += renderLessonHtml(l, dateKey); });
+            }
+            container.innerHTML = html || '<div class="loading">🎉 На этой неделе пар нет!</div>';
+        }
+
+        function openSearchModal() {
+            document.getElementById('search-input').value = currentName;
+            document.getElementById('search-modal').style.display = 'block';
+        }
+
+        function openSettingsModal() {
+            document.getElementById('settings-modal').style.display = 'block';
+        }
+
+        function closeModals() {
+            document.getElementById('search-modal').style.display = 'none';
+            document.getElementById('settings-modal').style.display = 'none';
+            document.getElementById('autocomplete-dropdown').style.display = 'none';
+        }
+
+        function setTheme(theme, save = false) {
+            currentTheme = theme; customBg = ''; cachedBgColors = null;
+            document.documentElement.style.cssText = ''; 
+            document.body.style.backgroundImage = 'none';
+            document.body.className = theme;
+            
+            document.getElementById('motto-text').innerText = THEME_MOTTOS[theme] || THEME_MOTTOS['theme-purple'];
+            
+            const bgUploadInput = document.getElementById('bg-upload');
+            if (bgUploadInput) bgUploadInput.value = '';
+
+            if (save) { localStorage.removeItem('kgeu_bg'); localStorage.removeItem('kgeu_bg_colors'); localStorage.setItem('kgeu_theme', currentTheme); }
+        }
+
+        function applyCustomBackground(dataUrl, save = false, precomputedColors = null) {
+            customBg = dataUrl; 
+            document.body.style.backgroundImage = `url(${customBg})`; 
+            document.body.className = 'custom-bg-theme';
+            document.getElementById('motto-text').innerText = THEME_MOTTOS['custom-bg-theme'];
+            
+            const applyColors = (r, g, b) => {
+                let brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                let isLight = brightness > 140;
+                let max = Math.max(r, g, b), min = Math.min(r, g, b);
+                let accentColor;
+
+                if (isLight) {
+                    accentColor = `rgb(${Math.max(0, r - 90)}, ${Math.max(0, g - 90)}, ${Math.max(0, b - 90)})`;
+                } else {
+                    if (max - min < 25) accentColor = '#00ffcc';
+                    else accentColor = `rgb(${Math.min(255, r + 110)}, ${Math.min(255, g + 110)}, ${Math.min(255, b + 110)})`;
+                }
+
+                document.documentElement.style.setProperty('--bg-color', `rgb(${r}, ${g}, ${b})`);
+                document.documentElement.style.setProperty('--card-bg', isLight ? `rgba(255, 255, 255, 0.82)` : `rgba(15, 23, 42, 0.82)`);
+                document.documentElement.style.setProperty('--text-primary', isLight ? '#0f172a' : '#f8fafc');
+                document.documentElement.style.setProperty('--text-secondary', isLight ? '#475569' : '#cbd5e1');
+                document.documentElement.style.setProperty('--accent', accentColor);
+                document.documentElement.style.setProperty('--accent-text', isLight ? '#ffffff' : '#000000');
+                document.documentElement.style.setProperty('--border-color', isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)');
+            };
+
+            if (precomputedColors) applyColors(precomputedColors.r, precomputedColors.g, precomputedColors.b);
+            else {
+                const img = new Image(); img.crossOrigin = "Anonymous";
+                img.onload = function() {
+                    const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+                    canvas.width = 50; canvas.height = 50; ctx.drawImage(img, 0, 0, 50, 50);
+                    const data = ctx.getImageData(0, 0, 50, 50).data;
+                    let r = 0, g = 0, b = 0, count = 0;
+                    for (let i = 0; i < data.length; i += 16) { r += data[i]; g += data[i+1]; b += data[i+2]; count++; }
+                    cachedBgColors = { r: Math.floor(r/count), g: Math.floor(g/count), b: Math.floor(b/count) };
+                    applyColors(cachedBgColors.r, cachedBgColors.g, cachedBgColors.b);
+                    if (save) localStorage.setItem('kgeu_bg_colors', JSON.stringify(cachedBgColors));
+                }; img.src = dataUrl;
+            }
+            if (save) localStorage.setItem('kgeu_bg', customBg);
+        }
+
+        document.getElementById('bg-upload').addEventListener('change', e => {
+            const file = e.target.files[0]; 
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => applyCustomBackground(reader.result, true, null);
+                reader.readAsDataURL(file);
+            }
         });
-        tg.showAlert('Синхронизация выполнена!');
-      } catch (e) {
-        tg.showAlert('Ошибка сети при синхронизации.');
-      }
-    }
 
-    function rgbToHex(rgb) {
-      if (rgb.startsWith('#')) return rgb;
-      let rgbArr = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
-      if (!rgbArr) return rgb;
-      function hex(x) { return ("0" + parseInt(x).toString(16)).slice(-2); }
-      return "#" + hex(rgbArr[1]) + hex(rgbArr[2]) + hex(rgbArr[3]);
-    }
-  </script>
+        function clearBg() { customBg = ''; cachedBgColors = null; localStorage.removeItem('kgeu_bg'); localStorage.removeItem('kgeu_bg_colors'); document.body.style.backgroundImage = 'none'; document.getElementById('bg-upload').value = ''; setTheme('theme-purple', true); }
+
+        function applySearchSelection() {
+            let inputName = document.getElementById('search-input').value.trim();
+            if (!inputName) { alert('Пожалуйста, выберите нужный пункт!'); return; }
+
+            let resolvedName = resolveItemName(currentMode, inputName);
+
+            if (currentName !== resolvedName) { 
+                weekCache = {}; 
+                dayLessonsCache = {};
+                monthLessonsCache = {};
+                localStorage.removeItem('kgeu_week_cache'); 
+            }
+
+            currentName = resolvedName;
+            modeNames[currentMode] = currentName;
+
+            localStorage.setItem('kgeu_mode', currentMode);
+            localStorage.setItem(`kgeu_name_${currentMode}`, currentName);
+            
+            document.getElementById('name-display').innerText = currentName;
+            closeModals();
+            updateStarButton();
+
+            if (currentTab === 'month') loadMonthView(); else loadSchedule();
+        }
+
+        init();
+    </script>
 </body>
 </html>
