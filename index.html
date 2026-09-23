@@ -50,7 +50,6 @@
 
         .today-float-btn { position: absolute; right: 50px; top: 50%; transform: translateY(-50%); background: var(--accent); color: var(--accent-text); border: none; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer; display: none; z-index: 10; }
 
-        /* Умный поиск (без капса) */
         .global-search-container { margin-bottom: 12px; display: block; }
         .global-search-input { width: 100%; padding: 10px 14px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 14px; outline: none; backdrop-filter: blur(10px); text-transform: none; }
         .global-search-input::placeholder { text-transform: none; color: var(--text-secondary); opacity: 0.8; }
@@ -105,7 +104,6 @@
         .form-group { margin-bottom: 20px; position: relative; }
         label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary); font-weight: 600; text-transform: none; }
         
-        /* Убран text-transform: uppercase для полей поиска и выпадающих списков */
         input[type="text"], select { width: 100%; padding: 12px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); outline: none; font-size: 16px; box-sizing: border-box; text-transform: none; }
         input[type="text"]::placeholder { text-transform: none; color: var(--text-secondary); opacity: 0.7; }
         
@@ -153,7 +151,6 @@
         <button class="tab-btn" onclick="switchTab('month')">Месяц</button>
     </div>
 
-    <!-- Заменено на «Умный поиск» без капса -->
     <div class="global-search-container" id="global-search-box">
         <input type="text" class="global-search-input" id="global-search-input" placeholder="Умный поиск..." oninput="debouncedGlobalFilter(this.value)">
     </div>
@@ -642,18 +639,13 @@
                 let cacheKey = `${currentMode}_${currentName}_${userSubgroup}_${dateStr}`;
                 if (dayLessonsCache[cacheKey]) { renderLessons(dayLessonsCache[cacheKey], container, dateStr); return; }
 
-                let monday = getMonday(currentDate);
-                let weekKey = `${currentMode}_${currentName}_${formatDate(monday)}`;
-                if (weekCache[weekKey] && weekCache[weekKey][dateStr]) {
-                    let filtered = filterLessonBySubgroup(weekCache[weekKey][dateStr]);
-                    dayLessonsCache[cacheKey] = filtered;
-                    renderLessons(filtered, container, dateStr); return;
-                }
-
                 try {
-                    const res = await fetch(`${WORKER_URL}/api/schedule?type=${currentMode}&name=${encodeURIComponent(currentName)}&date=${dateStr}`);
+                    // Поддержка реальных эндпоинтов КГЭУ для дня
+                    let queryParam = currentMode === 'Group' ? `idGroup=${encodeURIComponent(currentName)}` : currentMode === 'Teacher' ? `idTeacher=${encodeURIComponent(currentName)}` : `idAudLine=${encodeURIComponent(currentName)}`;
+                    const res = await fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dateStr}`);
                     const data = await res.json();
-                    let filtered = filterLessonBySubgroup(data.lessons || []);
+                    let rawLessons = Array.isArray(data) ? data : (data.lessons || data.schedule || []);
+                    let filtered = filterLessonBySubgroup(rawLessons);
                     dayLessonsCache[cacheKey] = filtered;
                     renderLessons(filtered, container, dateStr);
                 } catch (e) { container.innerHTML = '<div class="loading">❌ Нет сети, проверьте подключение.</div>'; }
@@ -665,12 +657,26 @@
                 if (weekCache[weekKey]) { renderWeekSchedule(weekCache[weekKey], container); return; }
 
                 try {
-                    const res = await fetch(`${WORKER_URL}/api/schedule/week?type=${currentMode}&name=${encodeURIComponent(currentName)}&date=${formatDate(monday)}`);
-                    const data = await res.json();
-                    weekCache[weekKey] = data.week_schedule || {};
+                    // Цикл на 7 дней недели для запросов к /api/Rasp, так как бэкенд КГЭУ выдает поштучно по датам
+                    let weekData = {};
+                    for (let i = 0; i < 7; i++) {
+                        let d = new Date(monday);
+                        d.setDate(d.getDate() + i);
+                        let dStr = formatDate(d);
+                        let queryParam = currentMode === 'Group' ? `idGroup=${encodeURIComponent(currentName)}` : currentMode === 'Teacher' ? `idTeacher=${encodeURIComponent(currentName)}` : `idAudLine=${encodeURIComponent(currentName)}`;
+                        
+                        try {
+                            const res = await fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dStr}`);
+                            const data = await res.json();
+                            weekData[dStr] = Array.isArray(data) ? data : (data.lessons || data.schedule || []);
+                        } catch(err) {
+                            weekData[dStr] = [];
+                        }
+                    }
+                    weekCache[weekKey] = weekData;
                     localStorage.setItem('kgeu_week_cache', JSON.stringify(weekCache));
                     renderWeekSchedule(weekCache[weekKey], container);
-                } catch (e) { container.innerHTML = '<div class="loading">❌ Ошибка загрузки.</div>'; }
+                } catch (e) { container.innerHTML = '<div class="loading">❌ Ошибка загрузки недели.</div>'; }
             }
         }
 
@@ -685,9 +691,24 @@
             renderMonthGrid(year, month, true);
 
             try {
-                const res = await fetch(`${WORKER_URL}/api/schedule/month?type=${currentMode}&name=${encodeURIComponent(currentName)}&year=${year}&month=${month + 1}`);
-                const data = await res.json();
-                monthLessonsCache = data.month_schedule || {};
+                // Подгружаем дни месяца циклом через /api/Rasp или оптимизированный GetRaspDates
+                let totalDays = new Date(year, month + 1, 0).getDate();
+                let monthData = {};
+                
+                for (let day = 1; day <= totalDays; day++) {
+                    let dtStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    let queryParam = currentMode === 'Group' ? `idGroup=${encodeURIComponent(currentName)}` : currentMode === 'Teacher' ? `idTeacher=${encodeURIComponent(currentName)}` : `idAudLine=${encodeURIComponent(currentName)}`;
+                    
+                    try {
+                        const res = await fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dtStr}`);
+                        const data = await res.json();
+                        monthData[dtStr] = Array.isArray(data) ? data : (data.lessons || data.schedule || []);
+                    } catch(e) {
+                        monthData[dtStr] = [];
+                    }
+                }
+                
+                monthLessonsCache = monthData;
                 renderMonthGrid(year, month, false);
             } catch (e) { 
                 document.getElementById('schedule-container').innerHTML = '<div class="loading">❌ Ошибка загрузки месяца.</div>'; 
@@ -745,11 +766,11 @@
 
             return `
                 <div class="lesson-card ${typeClass} ${isCurrentClass}" style="margin-bottom:8px;">
-                    <div class="lesson-title">📖 ${l.title} ${liveBadge}</div>
-                    <div class="lesson-info"><span style="display:flex; align-items:center;">🕒 ${l.time}</span>${roomBlock}</div>
+                    <div class="lesson-title">📖 ${l.title || l.discipline || 'Занятие'} ${liveBadge}</div>
+                    <div class="lesson-info"><span style="display:flex; align-items:center;">🕒 ${l.time || l.timeRange || ''}</span>${roomBlock}</div>
                     ${teacherBlock ? `<div style="margin-top:6px;">${teacherBlock}</div>` : ''}
                     <div class="lesson-actions">
-                        <button class="action-btn" onclick="exportToCalendar('${(l.title||'').replace(/'/g, "\\'")}', '${l.time}', '${lessonDateStr}', '${(l.room||'').replace(/'/g, "\\'")}', '${(l.teacher||'').replace(/'/g, "\\'")}')">📅 В календарь</button>
+                        <button class="action-btn" onclick="exportToCalendar('${(l.title||l.discipline||'').replace(/'/g, "\\'")}', '${l.time||''}', '${lessonDateStr}', '${(l.room||'').replace(/'/g, "\\'")}', '${(l.teacher||'').replace(/'/g, "\\'")}')">📅 В календарь</button>
                     </div>
                     ${progressBar}
                 </div>`;
