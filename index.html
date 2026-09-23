@@ -101,8 +101,15 @@
             margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; backdrop-filter: blur(8px);
         }
         .tabs-row { display: flex; background: var(--border-color); border-radius: 8px; padding: 2px; }
-        .tab-btn { flex: 1; background: transparent; border: none; color: var(--text-secondary); padding: 6px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: 0.3s; }
+        
+        /* Плавные переходы для кнопок вкладок */
+        .tab-btn {
+            flex: 1; background: transparent; border: none; color: var(--text-secondary); padding: 6px; 
+            font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; 
+            transition: background-color 0.25s ease, color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
+        }
         .tab-btn.active { background: var(--card-bg); color: var(--text-primary); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .tab-btn:active { transform: scale(0.96); }
 
         .date-nav-row { display: flex; justify-content: space-between; align-items: center; }
         .date-label { font-weight: 700; font-size: 14px; }
@@ -113,11 +120,24 @@
         .global-search-input:focus { border-color: var(--accent); }
         .global-search-input::placeholder { color: var(--text-secondary); }
 
+        /* Плавная анимация смены контента расписания */
+        #schedule-container, #month-preview-content {
+            transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+        .page-exit { opacity: 0 !important; transform: translateY(6px) !important; }
+        .page-enter { animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .lesson-card {
             background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px;
             margin-bottom: 10px; position: relative; overflow: hidden; backdrop-filter: blur(8px);
             box-shadow: 0 4px 20px rgba(0,0,0,0.1); animation: fadeIn 0.4s ease forwards;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            will-change: transform, opacity;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
         }
         .lesson-card:hover { transform: translateY(-2px); }
 
@@ -146,7 +166,12 @@
         .month-calendar { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 10px; margin-bottom: 12px; backdrop-filter: blur(8px); }
         .weekdays-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .calendar-day { aspect-ratio: 1; background: var(--border-color); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; cursor: pointer; position: relative; transition: 0.2s; }
+        
+        .calendar-day { 
+            aspect-ratio: 1; background: var(--border-color); border-radius: 8px; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; font-size: 12px; font-weight: 600; cursor: pointer; position: relative; 
+            transition: background-color 0.2s ease, transform 0.15s ease, border-color 0.2s ease, color 0.2s ease; 
+        }
         .calendar-day:active { transform: scale(0.9); }
         .calendar-day.empty { background: transparent; cursor: default; pointer-events: none; }
         .calendar-day.today { border: 1px solid var(--accent); }
@@ -171,7 +196,18 @@
         .form-input { width: 100%; background: var(--border-color); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 10px; color: var(--text-primary); font-size: 14px; outline: none; transition: border-color 0.3s; }
         .form-input:focus { border-color: var(--accent); }
 
-        .autocomplete-dropdown { position: absolute; top: 100%; left: 0; width: 100%; max-height: 180px; overflow-y: auto; background: var(--modal-bg); border: 1px solid var(--border-color); border-radius: 0 0 10px 10px; z-index: 10; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        /* Плавное появление подсказок (Autocomplete) */
+        .autocomplete-dropdown { 
+            position: absolute; top: 100%; left: 0; width: 100%; max-height: 180px; overflow-y: auto; 
+            background: var(--modal-bg); border: 1px solid var(--border-color); border-radius: 0 0 10px 10px; 
+            z-index: 10; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            opacity: 0; transform: translateY(-8px); pointer-events: none; visibility: hidden; display: block;
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s; 
+        }
+        .autocomplete-dropdown.active {
+            opacity: 1; transform: translateY(0); pointer-events: auto; visibility: visible;
+        }
+
         .autocomplete-item { padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border-color); transition: background 0.2s; }
         .autocomplete-item:active { background: var(--accent); color: var(--accent-text); }
 
@@ -340,6 +376,22 @@
             'custom-bg-theme': '🖼 «Твой уникальный стиль»'
         };
 
+        // Обертка для плавных переходов
+        function animateContainerUpdate(updateCallback) {
+            const container = document.getElementById('schedule-container');
+            if (!container) { updateCallback(); return; }
+            container.classList.add('page-exit');
+            
+            setTimeout(() => {
+                updateCallback();
+                container.classList.remove('page-exit');
+                container.classList.add('page-enter');
+                setTimeout(() => {
+                    container.classList.remove('page-enter');
+                }, 300);
+            }, 150);
+        }
+
         function init() {
             fetchLists(); 
             
@@ -364,9 +416,10 @@
             if (currentTab === 'month') loadMonthView(); else loadSchedule();
             setupOnlineListeners();
 
+            // Скрытие выпадающего списка при клике вне его области
             document.addEventListener('click', e => {
                 if (!e.target.closest('.form-group')) {
-                    document.getElementById('autocomplete-dropdown').style.display = 'none';
+                    document.getElementById('autocomplete-dropdown').classList.remove('active');
                 }
             });
         }
@@ -408,7 +461,11 @@
             localStorage.removeItem('kgeu_week_cache');
             
             if (!currentName) openSearchModal(); 
-            else if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            else {
+                animateContainerUpdate(() => {
+                    if (currentTab === 'month') loadMonthView(); else loadSchedule();
+                });
+            }
         }
 
         function updateUIForMode(mode) {
@@ -431,15 +488,19 @@
             userSubgroup = val;
             localStorage.setItem('kgeu_subgroup', val);
             dayLessonsCache = {}; 
-            if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            animateContainerUpdate(() => {
+                if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            });
         }
 
+        // ИСПРАВЛЕНО: Безопасная фильтрация (учитывает пары без подгруппы)
         function filterLessonBySubgroup(lessons) {
             if (userSubgroup === '0') return lessons;
             return lessons.filter(l => {
                 if (l.isWindow) return true;
-                // ИСПРАВЛЕНО: API возвращает поле "номерПодгруппы": 0, 1 или 2
-                return l.номерПодгруппы == 0 || l.номерПодгруппы == parseInt(userSubgroup);
+                const sub = l.номерПодгруппы;
+                // Показываем, если подгруппа не указана (общая пара) или совпадает с выбранной
+                return sub === undefined || sub === null || sub == 0 || sub == parseInt(userSubgroup);
             });
         }
 
@@ -468,14 +529,17 @@
                 ? activeList.slice(0, 20) 
                 : activeList.filter(item => item.toLowerCase().includes(q)).slice(0, 30);
             
-            if (filtered.length === 0) { dropdown.style.display = 'none'; return; }
+            if (filtered.length === 0) { 
+                dropdown.classList.remove('active'); 
+                return; 
+            }
             dropdown.innerHTML = filtered.map(item => `<div class="autocomplete-item" onclick="selectOption('${item.replace(/'/g, "\\'")}')">${item}</div>`).join('');
-            dropdown.style.display = 'block';
+            dropdown.classList.add('active');
         }
 
         function selectOption(name) {
             document.getElementById('search-input').value = name;
-            document.getElementById('autocomplete-dropdown').style.display = 'none';
+            document.getElementById('autocomplete-dropdown').classList.remove('active');
         }
 
         function resolveItemName(mode, rawName) {
@@ -509,7 +573,9 @@
             localStorage.removeItem('kgeu_week_cache');
             
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            animateContainerUpdate(() => {
+                if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            });
         }
 
         function renderFavorites() {
@@ -563,7 +629,12 @@
             todayBtn.style.display = (currentTab === 'day' && currentStr !== todayStr) ? 'block' : 'none';
         }
 
-        function jumpToToday() { currentDate = new Date(); if (currentTab === 'month') loadMonthView(); else loadSchedule(); }
+        function jumpToToday() { 
+            currentDate = new Date(); 
+            animateContainerUpdate(() => {
+                if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            });
+        }
 
         function switchTab(tab) {
             currentTab = tab;
@@ -574,7 +645,9 @@
             document.getElementById('global-search-input').value = '';
 
             updateTodayButtonVisibility();
-            if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            animateContainerUpdate(() => {
+                if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            });
         }
 
         function changeDate(delta) {
@@ -583,7 +656,9 @@
             else if (currentTab === 'month') currentDate.setMonth(currentDate.getMonth() + delta);
             
             updateTodayButtonVisibility();
-            if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            animateContainerUpdate(() => {
+                if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            });
         }
 
         function parseTimeRange(timeStr) {
@@ -667,24 +742,30 @@
             });
         }
 
+        // ИСПРАВЛЕНО: Генерация ссылки Google Календаря вместо скачивания Blob (не блокируется в Telegram)
         function exportToCalendar(title, timeStr, dateStr, room, teacher) {
             let times = parseTimeRange(timeStr);
             if (!times) return;
-            let [y, m, d] = dateStr.split('-').map(Number);
+            
             let pad = n => String(n).padStart(2, '0');
+            let [y, m, d] = dateStr.split('-').map(Number);
             let dtStart = `${y}${pad(m)}${pad(d)}T${pad(Math.floor(times.start/60))}${pad(times.start%60)}00`;
             let dtEnd = `${y}${pad(m)}${pad(d)}T${pad(Math.floor(times.end/60))}${pad(times.end%60)}00`;
 
-            let icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${title}\nDESCRIPTION:Преподаватель: ${teacher || ''}\\nАудитория: ${room || ''}\nLOCATION:${room || ''}\nDTSTART:${dtStart}\nDTEND:${dtEnd}\nEND:VEVENT\nEND:VCALENDAR`;
-            let blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-            let link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
-            link.setAttribute('download', `lesson_${dateStr}.ics`);
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            let details = encodeURIComponent(`Преподаватель: ${teacher}\nАудитория: ${room}`);
+            let location = encodeURIComponent(room);
+            let text = encodeURIComponent(title);
+
+            let gCalUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dtStart}/${dtEnd}&details=${details}&location=${location}`;
+            
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
+                window.Telegram.WebApp.openLink(gCalUrl);
+            } else {
+                window.open(gCalUrl, '_blank');
+            }
         }
 
         function extractLessonsFromAPIResponse(data) {
-            // ИСПРАВЛЕНО: Парсинг структуры API {"data":{"rasp":[]}}
             if (data && data.data && data.data.rasp) return data.data.rasp;
             if (data && data.rasp) return data.rasp;
             if (Array.isArray(data)) return data;
@@ -743,9 +824,11 @@
             }
         }
 
+        // ИСПРАВЛЕНО: Параллельная загрузка дней месяца с использованием Promise.all
         async function loadMonthView() {
             if (!currentName) return;
-            const year = currentDate.getFullYear(); const month = currentDate.getMonth();
+            const year = currentDate.getFullYear(); 
+            const month = currentDate.getMonth();
             document.getElementById('date-label').innerText = `${MONTH_NAMES[month]} ${year} г.`;
             document.getElementById('global-search-input').value = '';
             updateTodayButtonVisibility();
@@ -753,20 +836,30 @@
             renderMonthGrid(year, month, true);
 
             try {
-                let totalDays = new Date(year, month + 1, 0).getDate();
-                let monthData = {};
-                for (let day = 1; day <= totalDays; day++) {
-                    let dtStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    let queryParam = currentMode === 'Group' ? `idGroup=${encodeURIComponent(currentName)}` : currentMode === 'Teacher' ? `idTeacher=${encodeURIComponent(currentName)}` : `idAudLine=${encodeURIComponent(currentName)}`;
-                    try {
-                        const res = await fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dtStr}`);
-                        const data = await res.json();
-                        monthData[dtStr] = extractLessonsFromAPIResponse(data);
-                    } catch(e) { monthData[dtStr] = []; }
-                }
+                const totalDays = new Date(year, month + 1, 0).getDate();
+                const monthData = {};
+                
+                const requests = Array.from({ length: totalDays }, (_, i) => {
+                    const day = i + 1;
+                    const dtStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const queryParam = currentMode === 'Group' ? `idGroup=${encodeURIComponent(currentName)}` 
+                        : currentMode === 'Teacher' ? `idTeacher=${encodeURIComponent(currentName)}` 
+                        : `idAudLine=${encodeURIComponent(currentName)}`;
+                    
+                    return fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dtStr}`)
+                        .then(res => res.json())
+                        .then(data => ({ dtStr, lessons: extractLessonsFromAPIResponse(data) }))
+                        .catch(() => ({ dtStr, lessons: [] }));
+                });
+
+                const results = await Promise.all(requests);
+                results.forEach(item => { monthData[item.dtStr] = item.lessons; });
+
                 monthLessonsCache = monthData;
                 renderMonthGrid(year, month, false);
-            } catch (e) { document.getElementById('schedule-container').innerHTML = '<div class="loading">❌ Ошибка загрузки месяца.</div>'; }
+            } catch (e) { 
+                document.getElementById('schedule-container').innerHTML = '<div class="loading">❌ Ошибка загрузки месяца.</div>'; 
+            }
         }
 
         function renderMonthGrid(year, month, isLoading = false) {
@@ -835,18 +928,28 @@
                 </div>`;
         }
 
+        // Плавная смена расписания при клике на день месяца
         function selectMonthDay(dtStr, element) {
             document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
             element.classList.add('selected');
             const preview = document.getElementById('month-preview-content');
-            let rawLessons = monthLessonsCache[dtStr] || [];
-            let filtered = filterLessonBySubgroup(rawLessons);
-            let lessons = addWindowsToLessons(filtered);
-            let dtObj = new Date(dtStr);
-            let html = `<div class="day-header" style="margin-top:0;">${DAY_NAMES[dtObj.getDay()]}, ${dtObj.getDate()} ${MONTH_NAMES_GENITIVE[dtObj.getMonth()]}</div>`;
-            if (lessons.length === 0) html += '<div style="text-align:center; padding:15px; font-weight:500;">🎉 На этот день пар нет!</div>';
-            else lessons.forEach(l => { html += renderLessonHtml(l, dtStr); });
-            preview.innerHTML = html;
+            
+            preview.classList.add('page-exit');
+            setTimeout(() => {
+                let rawLessons = monthLessonsCache[dtStr] || [];
+                let filtered = filterLessonBySubgroup(rawLessons);
+                let lessons = addWindowsToLessons(filtered);
+                let dtObj = new Date(dtStr);
+                let html = `<div class="day-header" style="margin-top:0;">${DAY_NAMES[dtObj.getDay()]}, ${dtObj.getDate()} ${MONTH_NAMES_GENITIVE[dtObj.getMonth()]}</div>`;
+                
+                if (lessons.length === 0) html += '<div style="text-align:center; padding:15px; font-weight:500;">🎉 На этот день пар нет!</div>';
+                else lessons.forEach(l => { html += renderLessonHtml(l, dtStr); });
+                
+                preview.innerHTML = html;
+                preview.classList.remove('page-exit');
+                preview.classList.add('page-enter');
+                setTimeout(() => preview.classList.remove('page-enter'), 300);
+            }, 150);
         }
 
         function renderLessons(rawLessons, container, dateStr) {
@@ -889,7 +992,7 @@
                 modal.classList.remove('show');
                 setTimeout(() => { modal.style.display = 'none'; }, 300);
             });
-            document.getElementById('autocomplete-dropdown').style.display = 'none';
+            document.getElementById('autocomplete-dropdown').classList.remove('active');
         }
 
         function setTheme(theme, save = false) {
@@ -975,7 +1078,9 @@
             closeModals();
             updateStarButton();
 
-            if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            animateContainerUpdate(() => {
+                if (currentTab === 'month') loadMonthView(); else loadSchedule();
+            });
         }
 
         init();
