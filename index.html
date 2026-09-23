@@ -20,7 +20,7 @@
         body.theme-light { --bg-color: #f1f5f9; --card-bg: rgba(255, 255, 255, 0.9); --text-primary: #0f172a; --text-secondary: #64748b; --accent: #0284c7; --accent-text: #ffffff; --border-color: rgba(0, 0, 0, 0.1); --modal-bg: #ffffff; }
         body.theme-blue { --bg-color: #0c4a6e; --card-bg: rgba(7, 89, 133, 0.85); --text-primary: #f0f9ff; --text-secondary: #7dd3fc; --accent: #38bdf8; --accent-text: #0c4a6e; --border-color: rgba(255, 255, 255, 0.15); --modal-bg: #0284c7; }
         body.theme-black { --bg-color: #000000; --card-bg: rgba(20, 20, 20, 0.9); --text-primary: #ffffff; --text-secondary: #a1a1aa; --accent: #f43f5e; --accent-text: #ffffff; --border-color: rgba(255, 255, 255, 0.15); --modal-bg: #18181b; }
-        body.theme-pink { --bg-color: #831843; --card-bg: rgba(157, 23, 77, 0.88); --text-primary: #fff1f7; --text-secondary: #f9a8d4; --accent: #fb7185; --accent-text: #4c0519; --border-color: rgba(255, 255, 255, 0.16); --modal-bg: #9d174d; }
+        body.theme-pink { --bg-color: #9d174d; --card-bg: rgba(190, 24, 93, 0.92); --text-primary: #fff7fb; --text-secondary: #fbcfe8; --accent: #f472b6; --accent-text: #500724; --border-color: rgba(255, 255, 255, 0.2); --modal-bg: #be185d; }
         body.theme-purple { --bg-color: #3b0764; --card-bg: rgba(88, 28, 135, 0.85); --text-primary: #f3e8ff; --text-secondary: #d8b4fe; --accent: #c084fc; --accent-text: #ffffff; --border-color: rgba(255, 255, 255, 0.15); --modal-bg: #6b21a8; }
         body.theme-green { --bg-color: #064e3b; --card-bg: rgba(6, 78, 59, 0.85); --text-primary: #ecfdf5; --text-secondary: #6ee7b7; --accent: #34d399; --accent-text: #064e3b; --border-color: rgba(255, 255, 255, 0.15); --modal-bg: #047857; }
         body.theme-amber { --bg-color: #451a03; --card-bg: rgba(120, 53, 15, 0.85); --text-primary: #fef3c7; --text-secondary: #fcd34d; --accent: #fbbf24; --accent-text: #451a03; --border-color: rgba(255, 255, 255, 0.15); --modal-bg: #92400e; }
@@ -92,8 +92,9 @@
 
         .subgroup-row {
             display: flex; align-items: center; justify-content: space-between; font-size: 13px;
-            color: var(--text-secondary); background: var(--border-color); padding: 6px 12px; border-radius: 8px;
+            color: var(--text-secondary); background: var(--border-color); padding: 8px 12px; border-radius: 8px;
         }
+        .settings-subgroup { margin-top: 4px; margin-bottom: 14px; }
         
         /* Исправлено стильное выпадающее окно подгрупп (Фото 1) */
         .subgroup-select { 
@@ -193,6 +194,7 @@
         .lesson-card.type-window { border-left: 4px dashed var(--text-secondary); background: rgba(0,0,0,0.05); }
 
         .lesson-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+        .lesson-subgroup-badge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 999px; background: var(--border-color); color: var(--text-secondary); font-size: 10px; font-weight: 700; white-space: nowrap; flex: 0 0 auto; }
         .lesson-info { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
 
         .clickable-badge { background: var(--border-color); padding: 2px 8px; border-radius: 6px; cursor: pointer; font-weight: 600; color: var(--text-primary); display: inline-flex; align-items: center; gap: 4px; font-size: 12px; transition: 0.2s; }
@@ -253,7 +255,7 @@
         .form-input:focus { border-color: var(--accent); }
 
         .autocomplete-dropdown { 
-            position: absolute; top: 100%; left: 0; width: 100%; max-height: 180px; overflow-y: auto; 
+            position: absolute; top: 100%; left: 0; width: 100%; max-height: 252px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; 
             background: var(--modal-bg); border: 1px solid var(--border-color); border-radius: 0 0 10px 10px; 
             z-index: 10; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
             opacity: 0; transform: translateY(-8px); pointer-events: none; visibility: hidden; display: block;
@@ -279,6 +281,24 @@
         .theme-option { background: var(--border-color); border: 1px solid var(--border-color); padding: 10px; border-radius: 10px; text-align: center; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
         .theme-option:active { transform: scale(0.95); background: var(--accent); color: var(--accent-text); }
 
+        .quick-actions { display:flex; gap:6px; margin-top:8px; }
+        .quick-action-btn { flex:1; background:var(--border-color); color:var(--text-primary); border:1px solid var(--border-color); padding:8px 7px; border-radius:9px; font-size:11px; font-weight:700; cursor:pointer; transition:transform .18s ease, background .25s ease, color .25s ease; }
+        .quick-action-btn:active { transform:scale(.97); background:var(--accent); color:var(--accent-text); }
+        .summary-card { background:var(--card-bg); border:1px solid var(--border-color); border-radius:14px; padding:12px; margin-bottom:10px; backdrop-filter:blur(8px); box-shadow:0 4px 18px rgba(0,0,0,.08); }
+        .summary-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+        .summary-title { font-size:12px; font-weight:800; color:var(--accent); text-transform:uppercase; letter-spacing:.4px; }
+        .summary-count { font-size:11px; color:var(--text-secondary); }
+        .summary-main { font-size:15px; font-weight:800; margin-bottom:4px; }
+        .summary-meta { display:flex; flex-wrap:wrap; gap:6px; color:var(--text-secondary); font-size:12px; }
+        .summary-empty { color:var(--text-secondary); font-size:13px; line-height:1.4; }
+        .error-card { background:rgba(239,68,68,.09); border:1px solid rgba(239,68,68,.35); color:var(--text-primary); border-radius:12px; padding:11px 12px; margin-bottom:10px; font-size:12px; line-height:1.45; }
+        .diagnostic-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:8px; }
+        .diagnostic-item { background:var(--border-color); border-radius:9px; padding:8px; min-width:0; }
+        .diagnostic-label { color:var(--text-secondary); font-size:10px; margin-bottom:3px; }
+        .diagnostic-value { font-size:11px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .modal-scroll { overflow-y:auto; max-height:62vh; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+        .my-schedule-source { font-size:10px; color:var(--text-secondary); margin:10px 0 5px; font-weight:800; text-transform:uppercase; letter-spacing:.35px; }
+        .my-schedule-empty { text-align:center; color:var(--text-secondary); padding:24px 10px; font-size:13px; }
         .offline-banner { background: #ef4444; color: #fff; text-align: center; font-size: 11px; font-weight: 700; padding: 4px; display: none; }
     </style>
 </head>
@@ -301,27 +321,18 @@
 
             <div class="creator-note" id="creator-note">Сделано для тех, кто открывает расписание раньше паники.</div>
 
+            <div class="nav-modes" style="margin-bottom:10px;">
+                <div class="nav-item active" id="nav-Group" onclick="switchSearchMode('Group')">👥 Группа</div>
+                <div class="nav-item" id="nav-Teacher" onclick="switchSearchMode('Teacher')">👤 Преподаватель</div>
+                <div class="nav-item" id="nav-Aud" onclick="switchSearchMode('Aud')">🚪 Аудитория</div>
+            </div>
+
             <div class="name-display-box" onclick="openSearchModal()">
                 <span id="name-display">ВЫБЕРИТЕ ГРУППУ</span>
                 <span style="font-size: 12px; color: var(--text-secondary);">🔍 Изменить</span>
             </div>
 
             <div class="favorites-scroll" id="favorites-container" style="display: none;"></div>
-
-            <div class="subgroup-row">
-                <span>Подгруппа:</span>
-                <select class="subgroup-select" id="subgroup-select" onchange="changeSubgroup(this.value)">
-                    <option value="0">Все</option>
-                    <option value="1">1 подгруппа</option>
-                    <option value="2">2 подгруппа</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="nav-modes">
-            <div class="nav-item active" id="nav-Group" onclick="switchSearchMode('Group')">👥 Группа</div>
-            <div class="nav-item" id="nav-Teacher" onclick="switchSearchMode('Teacher')">👤 Преподаватель</div>
-            <div class="nav-item" id="nav-Aud" onclick="switchSearchMode('Aud')">🚪 Аудитория</div>
         </div>
 
         <div class="controls-card" id="nav-controls">
@@ -337,6 +348,10 @@
                 <button class="icon-btn" style="width:30px; height:30px; font-size:12px;" onclick="changeDate(1)">▶</button>
             </div>
             <input type="text" class="global-search-input" id="global-search-input" placeholder="🔍 Быстрый поиск по странице..." oninput="debouncedGlobalFilter(this.value)">
+            <div class="quick-actions">
+                <button class="quick-action-btn" onclick="openMyScheduleModal()">📚 Мои пары</button>
+                <button class="quick-action-btn" onclick="forceRefreshCurrentView()">↻ Обновить</button>
+            </div>
         </div>
 
         <div id="schedule-container">
@@ -367,6 +382,7 @@
                 <div class="modal-title">Настройки и темы</div>
                 <button class="icon-btn" style="width:30px; height:30px;" onclick="closeModals()">✕</button>
             </div>
+            <button class="quick-action-btn" style="width:100%; margin-bottom:12px;" onclick="openDiagnosticsModal()">🛠 Диагностика соединения и кэша</button>
             <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">Цветовая тема:</div>
             <div class="themes-grid">
                 <div class="theme-option" onclick="setTheme('theme-purple', true)">🔮 Фиолетовая</div>
@@ -377,6 +393,17 @@
                 <div class="theme-option" onclick="setTheme('theme-green', true)">🌿 Зеленая</div>
                 <div class="theme-option" onclick="setTheme('theme-amber', true)">☕ Осенняя</div>
                 <div class="theme-option" onclick="setTheme('theme-cyber', true)">🪨 Спокойный графит</div>
+            </div>
+            <div class="form-group settings-subgroup">
+                <label class="form-label">Подгруппа занятий:</label>
+                <div class="subgroup-row">
+                    <span>Показывать</span>
+                    <select class="subgroup-select" id="subgroup-select" onchange="changeSubgroup(this.value)">
+                        <option value="0">Все подгруппы</option>
+                        <option value="1">1 подгруппа</option>
+                        <option value="2">2 подгруппа</option>
+                    </select>
+                </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Свой фон (картинка):</label>
@@ -392,6 +419,28 @@
         </div>
     </div>
 
+    <!-- Модальное окно «Мои пары» -->
+    <div class="modal" id="my-schedule-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📚 Мои пары</div>
+                <button class="icon-btn" style="width:30px; height:30px;" onclick="closeModals()">✕</button>
+            </div>
+            <div class="modal-scroll" id="my-schedule-content"><div class="loading">⌛ Загрузка...</div></div>
+        </div>
+    </div>
+
+    <!-- Модальное окно диагностики -->
+    <div class="modal" id="diagnostic-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">🛠 Диагностика</div>
+                <button class="icon-btn" style="width:30px; height:30px;" onclick="closeModals()">✕</button>
+            </div>
+            <div class="modal-scroll" id="diagnostic-content"></div>
+        </div>
+    </div>
+
     <script>
         const WORKER_URL = 'https://kgeu-schedule-bot.garzite.workers.dev';
 
@@ -403,37 +452,112 @@
         let currentTab = 'day';
         let currentDate = new Date();
         
-        let currentMode = localStorage.getItem('kgeu_mode') || 'Group';
+        let currentMode = safeGetStorage('kgeu_mode', 'Group') || 'Group';
         let modeNames = {
-            'Group': localStorage.getItem('kgeu_name_Group') || '',
-            'Teacher': localStorage.getItem('kgeu_name_Teacher') || '',
-            'Aud': localStorage.getItem('kgeu_name_Aud') || ''
+            'Group': safeGetStorage('kgeu_name_Group', '') || '',
+            'Teacher': safeGetStorage('kgeu_name_Teacher', '') || '',
+            'Aud': safeGetStorage('kgeu_name_Aud', '') || ''
         };
         let modeIds = {
-            'Group': localStorage.getItem('kgeu_id_Group') || '',
-            'Teacher': localStorage.getItem('kgeu_id_Teacher') || '',
-            'Aud': localStorage.getItem('kgeu_id_Aud') || ''
+            'Group': safeGetStorage('kgeu_id_Group', '') || '',
+            'Teacher': safeGetStorage('kgeu_id_Teacher', '') || '',
+            'Aud': safeGetStorage('kgeu_id_Aud', '') || ''
         };
         let currentName = modeNames[currentMode] || '';
         let currentId = modeIds[currentMode] || '';
         let searchResults = [];
-        let userSubgroup = localStorage.getItem('kgeu_subgroup') || '0';
+        let userSubgroup = safeGetStorage('kgeu_subgroup', '0') || '0';
 
-        let customBg = localStorage.getItem('kgeu_bg') || '';
-        let cachedBgColors = localStorage.getItem('kgeu_bg_colors') ? JSON.parse(localStorage.getItem('kgeu_bg_colors')) : null;
-        let favorites = JSON.parse(localStorage.getItem('kgeu_favorites') || '[]');
+        function safeGetStorage(key, fallback = null) {
+            try { return localStorage.getItem(key) ?? fallback; } catch (_) { return fallback; }
+        }
+        function safeSetStorage(key, value) {
+            try { localStorage.setItem(key, value); return true; } catch (e) { console.warn('Storage write failed:', key, e); return false; }
+        }
+        function safeRemoveStorage(key) {
+            try { localStorage.removeItem(key); } catch (_) {}
+        }
+        function safeParseStorage(key, fallback) {
+            try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (_) { safeRemoveStorage(key); return fallback; }
+        }
+        function cacheFresh(savedAt, ttl) { return Number(savedAt) > 0 && (Date.now() - Number(savedAt)) < ttl; }
+        function getDayCacheTTL(dateStr) {
+            const today = formatDate(new Date());
+            if (dateStr === today) return CACHE_TTL.day;
+            return dateStr < today ? 30 * 60 * 1000 : 10 * 60 * 1000;
+        }
+        function getWeekCacheTTL(weekKey) {
+            const match = String(weekKey).match(/(\d{4}-\d{2}-\d{2})$/);
+            const today = new Date(); today.setHours(0,0,0,0);
+            if (!match) return CACHE_TTL.week;
+            const monday = new Date(`${match[1]}T00:00:00`);
+            const currentMonday = getMonday(today);
+            if (monday.getTime() === currentMonday.getTime()) return CACHE_TTL.week;
+            return monday < currentMonday ? 24 * 60 * 60 * 1000 : 30 * 60 * 1000;
+        }
+        function getMonthCacheTTL(year, month) {
+            const target = new Date(year, month, 1); target.setHours(0,0,0,0);
+            const current = new Date(); current.setDate(1); current.setHours(0,0,0,0);
+            if (target.getTime() === current.getTime()) return CACHE_TTL.month;
+            return target < current ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000;
+        }
+        function getWeekCacheEntry(key) {
+            const entry = weekCache?.[key];
+            if (!entry) return null;
+            if (entry && entry.data && cacheFresh(entry.savedAt, getWeekCacheTTL(key))) return entry.data;
+            // Старый формат без savedAt считаем устаревшим и запрашиваем заново.
+            return null;
+        }
+        function saveWeekCacheEntry(key, data) {
+            weekCache[key] = { savedAt: Date.now(), data };
+            const keys = Object.keys(weekCache);
+            if (keys.length > 8) {
+                keys.sort((a,b) => Number(weekCache[a]?.savedAt || 0) - Number(weekCache[b]?.savedAt || 0));
+                keys.slice(0, keys.length - 8).forEach(k => delete weekCache[k]);
+            }
+            safeSetStorage('kgeu_week_cache_v2', JSON.stringify(weekCache));
+        }
+        function clearScheduleCaches() {
+            weekCache = {};
+            dayLessonsCache = {};
+            dayLessonsCacheAt = {};
+            monthLessonsCache = {};
+            monthLessonsCacheAt = 0;
+            monthLessonsCacheKey = '';
+            weekErrors = {};
+            monthErrors = {};
+            safeRemoveStorage('kgeu_week_cache_v2');
+        }
+
+        let customBg = safeGetStorage('kgeu_bg', '') || '';
+        let cachedBgColors = safeParseStorage('kgeu_bg_colors', null);
+        let favorites = safeParseStorage('kgeu_favorites', []);
+        if (!Array.isArray(favorites)) favorites = [];
 
         let defaultTheme = 'theme-purple';
         if (tg && tg.colorScheme) {
             defaultTheme = tg.colorScheme === 'dark' ? 'theme-purple' : 'theme-light';
         }
-        let currentTheme = localStorage.getItem('kgeu_theme') || defaultTheme;
+        let currentTheme = safeGetStorage('kgeu_theme', defaultTheme) || defaultTheme;
 
-        let weekCache = JSON.parse(localStorage.getItem('kgeu_week_cache') || '{}');
+        const CACHE_TTL = { day: 2 * 60 * 1000, week: 5 * 60 * 1000, month: 10 * 60 * 1000 };
+        let weekCache = safeParseStorage('kgeu_week_cache_v2', {});
         let dayLessonsCache = {};
-        
-        let listsData = JSON.parse(localStorage.getItem('kgeu_lists') || '{"Group":[], "Teacher":[], "Aud":[]}');
+        let dayLessonsCacheAt = {};
         let monthLessonsCache = {};
+        let monthLessonsCacheAt = 0;
+        let monthLessonsCacheKey = '';
+        let weekErrors = {};
+        let monthErrors = {};
+        let lastApiRequest = null;
+        let lastApiError = null;
+        let apiRequestCount = 0;
+        let liveRefreshTimer = null;
+        let forceNetworkRefresh = false;
+        let activeRequestController = null;
+        let viewRequestId = 0;
+        
+        let listsData = safeParseStorage('kgeu_lists', {Group:[], Teacher:[], Aud:[]});
         let filterTimeout; 
         let globalFilterTimeout;
 
@@ -483,6 +607,8 @@
             else setTheme(currentTheme, false);
 
             setupOnlineListeners();
+            if (liveRefreshTimer) clearInterval(liveRefreshTimer);
+            liveRefreshTimer = setInterval(refreshLiveSchedule, 30000);
 
             document.addEventListener('click', e => {
                 if (!e.target.closest('.form-group')) {
@@ -575,12 +701,12 @@
                 if (!res.ok) throw new Error('Network response was not ok');
                 const data = await res.json();
                 listsData = normalizeListsPayload(data);
-                localStorage.setItem('kgeu_lists', JSON.stringify(listsData));
+                safeSetStorage('kgeu_lists', JSON.stringify(listsData));
                 return listsData;
             } catch (e) {
                 console.error("Ошибка загрузки списков", e);
                 try {
-                    const saved = JSON.parse(localStorage.getItem('kgeu_lists') || '{}');
+                    const saved = safeParseStorage('kgeu_lists', {});
                     listsData = {
                         Group: (saved.Group || []).map(normalizeListItem).filter(Boolean),
                         Teacher: (saved.Teacher || []).map(normalizeListItem).filter(Boolean),
@@ -608,9 +734,9 @@
             modeIds[mode] = currentId;
 
             if (save) {
-                localStorage.setItem('kgeu_mode', currentMode);
-                localStorage.setItem(`kgeu_name_${currentMode}`, currentName);
-                localStorage.setItem(`kgeu_id_${currentMode}`, currentId);
+                safeSetStorage('kgeu_mode', currentMode);
+                safeSetStorage(`kgeu_name_${currentMode}`, currentName);
+                safeSetStorage(`kgeu_id_${currentMode}`, currentId);
             }
 
             document.getElementById('name-display').innerText = currentName ? currentName.toUpperCase() : 'НЕ ВЫБРАНО';
@@ -620,21 +746,23 @@
 
         function switchSearchMode(mode) {
             currentMode = mode;
-            localStorage.setItem('kgeu_mode', currentMode);
+            safeSetStorage('kgeu_mode', currentMode);
             currentName = modeNames[currentMode] || '';
             currentId = modeIds[currentMode] || '';
             updateUIForMode(mode);
             document.getElementById('name-display').innerText = currentName ? currentName.toUpperCase() : 'НЕ ВЫБРАНО';
-            
-            weekCache = {}; dayLessonsCache = {}; monthLessonsCache = {};
-            localStorage.removeItem('kgeu_week_cache');
-            
-            if (!currentName) openSearchModal(); 
-            else {
-                animateContainerUpdate(() => {
-                    if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
-                });
+
+            clearScheduleCaches();
+
+            if (!currentName) {
+                openSearchModal();
+                return;
             }
+
+            navigateView(requestId => {
+                if (currentTab === 'month') loadMonthView(requestId).catch(e => console.error(e));
+                else loadSchedule(requestId).catch(e => console.error(e));
+            });
         }
 
         function updateUIForMode(mode) {
@@ -654,20 +782,37 @@
         }
 
         function changeSubgroup(val) {
-            userSubgroup = val;
-            localStorage.setItem('kgeu_subgroup', val);
-            dayLessonsCache = {}; 
-            animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
+            userSubgroup = String(val);
+            safeSetStorage('kgeu_subgroup', userSubgroup);
+            // Кэш хранит сырые пары, поэтому при смене подгруппы повторно запрашивать API не нужно.
+            navigateView((requestId, signal) => {
+                if (currentTab === 'month') loadMonthView(requestId, signal).catch(e => console.error(e));
+                else loadSchedule(requestId, signal).catch(e => console.error(e));
             });
         }
 
+        function getLessonSubgroup(l) {
+            const raw = l?.номерПодгруппы ?? l?.подгруппа ?? l?.подгруппаНомер ?? l?.subgroup ?? l?.subgroupNumber ?? l?.номер_подгруппы;
+            if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+                const n = parseInt(String(raw).match(/\d+/)?.[0] || '', 10);
+                if (!Number.isNaN(n) && n > 0) return n;
+            }
+
+            const source = [l?.дисциплина, l?.типЗанятия, l?.тип, l?.custom1, l?.title, l?.description]
+                .filter(Boolean).join(' ').toLowerCase();
+            const match = source.match(/(?:п\s*\/\s*г|п\s*г|подгрупп(?:а|ы)?)[^0-9]{0,5}(1|2)\b/);
+            return match ? Number(match[1]) : 0;
+        }
+
         function filterLessonBySubgroup(lessons) {
-            if (userSubgroup === '0') return lessons;
+            if (!Array.isArray(lessons) || userSubgroup === '0') return lessons || [];
+            const selected = Number(userSubgroup);
             return lessons.filter(l => {
-                if (l.isWindow) return true;
-                const sub = l.номерПодгруппы;
-                return sub === undefined || sub === null || sub == 0 || sub == parseInt(userSubgroup);
+                if (l?.isWindow) return true;
+                const sub = getLessonSubgroup(l);
+                // Общие пары (0) остаются видимыми для обеих подгрупп;
+                // пары с явной подгруппой показываются только выбранной.
+                return sub === 0 || sub === selected;
             });
         }
 
@@ -688,7 +833,7 @@
             let list = (listsData[currentMode] || []).map(normalizeListItem).filter(Boolean);
             if (list.length === 0) {
                 try {
-                    const saved = JSON.parse(localStorage.getItem('kgeu_lists') || '{}');
+                    const saved = safeParseStorage('kgeu_lists', {});
                     list = (saved[currentMode] || []).map(normalizeListItem).filter(Boolean);
                     listsData[currentMode] = list;
                 } catch (_) {}
@@ -729,17 +874,23 @@
             let found = null;
             if (id) found = list.find(item => String(item.id) === id);
 
-            if (!found && clean) {
-                found = list.find(item => item.name.toLowerCase() === clean.toLowerCase());
-            }
+            const normalize = value => String(value || '')
+                .toLowerCase()
+                .replace(/ё/g, 'е')
+                .replace(/[.\s\-–—'’`]/g, '');
 
+            if (!found && clean) found = list.find(item => item.name.toLowerCase() === clean.toLowerCase());
             if (!found && clean) {
-                const normalize = value => value.replace(/[.\s\-]/g, '').toLowerCase();
                 const targetNorm = normalize(clean);
                 found = list.find(item => normalize(item.name) === targetNorm);
             }
 
             return found || (clean ? { name: clean, id: id || clean } : null);
+        }
+
+        function getKnownItemId(mode, name) {
+            const resolved = resolveItem(mode, name);
+            return resolved?.id || '';
         }
 
         function resolveItemName(mode, rawName) {
@@ -762,15 +913,12 @@
 
             setCurrentSelection(mode, resolved.name, resolved.id, true);
 
-            weekCache = {};
-            dayLessonsCache = {};
-            monthLessonsCache = {};
-            localStorage.removeItem('kgeu_week_cache');
+            clearScheduleCaches();
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView().catch(e => console.error(e));
-                else loadSchedule().catch(e => console.error(e));
+            navigateView((requestId, signal) => {
+                if (currentTab === 'month') loadMonthView(requestId, signal).catch(e => console.error(e));
+                else loadSchedule(requestId, signal).catch(e => console.error(e));
             });
         }
 
@@ -778,13 +926,16 @@
             const container = document.getElementById('favorites-container');
             if (!favorites.length) { container.style.display = 'none'; return; }
             container.style.display = 'flex';
-            container.innerHTML = favorites.map(fav => `
-                <div class="favorite-chip" onclick="jumpTo('${fav.type}', '${fav.name.replace(/'/g, "\\'")}')">
-                    <span>${fav.type === 'Group' ? '👥' : fav.type === 'Teacher' ? '👤' : '🚪'}</span>
-                    <span>${fav.name}</span>
-                    <span onclick="event.stopPropagation(); removeFavorite('${fav.type}', '${fav.name}')" style="opacity:0.6; margin-left:4px; font-size:14px;">×</span>
-                </div>
-            `).join('');
+            container.innerHTML = favorites.map(fav => {
+                const safeName = String(fav.name || '').replace(/'/g, "\\'");
+                const safeId = String(fav.id || '').replace(/'/g, "\\'");
+                return `
+                    <div class="favorite-chip" onclick="jumpTo('${fav.type}', '${safeName}', '${safeId}')">
+                        <span>${fav.type === 'Group' ? '👥' : fav.type === 'Teacher' ? '👤' : '🚪'}</span>
+                        <span>${fav.name}</span>
+                        <span onclick="event.stopPropagation(); removeFavorite('${fav.type}', '${safeName}')" style="opacity:0.6; margin-left:4px; font-size:14px;">×</span>
+                    </div>`;
+            }).join('');
             updateStarButton();
         }
 
@@ -792,14 +943,14 @@
             if (!currentName) return;
             const index = favorites.findIndex(f => f.type === currentMode && f.name === currentName);
             if (index > -1) favorites.splice(index, 1);
-            else favorites.push({ type: currentMode, name: currentName });
-            localStorage.setItem('kgeu_favorites', JSON.stringify(favorites));
+            else favorites.push({ type: currentMode, name: currentName, id: currentId });
+            safeSetStorage('kgeu_favorites', JSON.stringify(favorites));
             renderFavorites();
         }
 
         function removeFavorite(type, name) {
             favorites = favorites.filter(f => !(f.type === type && f.name === name));
-            localStorage.setItem('kgeu_favorites', JSON.stringify(favorites));
+            safeSetStorage('kgeu_favorites', JSON.stringify(favorites));
             renderFavorites();
         }
 
@@ -825,10 +976,23 @@
             todayBtn.style.display = (currentTab === 'day' && currentStr !== todayStr) ? 'block' : 'none';
         }
 
+        function navigateView(loader) {
+            if (activeRequestController) activeRequestController.abort();
+            activeRequestController = new AbortController();
+            const requestId = ++viewRequestId;
+            const signal = activeRequestController.signal;
+            animateContainerUpdate(() => {
+                if (requestId !== viewRequestId || signal.aborted) return;
+                loader(requestId, signal);
+            });
+        }
+
         function jumpToToday() { 
             currentDate = new Date(); 
-            animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
+            updateTodayButtonVisibility();
+            navigateView(requestId => {
+                if (currentTab === 'month') loadMonthView(requestId).catch(e => console.error(e));
+                else loadSchedule(requestId).catch(e => console.error(e));
             });
         }
 
@@ -836,13 +1000,12 @@
             currentTab = tab;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             if (button) button.classList.add('active');
-            
             document.getElementById('nav-controls').style.display = 'flex';
             document.getElementById('global-search-input').value = '';
-
             updateTodayButtonVisibility();
-            animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
+            navigateView(requestId => {
+                if (currentTab === 'month') loadMonthView(requestId).catch(e => console.error(e));
+                else loadSchedule(requestId).catch(e => console.error(e));
             });
         }
 
@@ -850,10 +1013,10 @@
             if (currentTab === 'day') currentDate.setDate(currentDate.getDate() + delta);
             else if (currentTab === 'week') currentDate.setDate(currentDate.getDate() + (delta * 7));
             else if (currentTab === 'month') currentDate.setMonth(currentDate.getMonth() + delta);
-            
             updateTodayButtonVisibility();
-            animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
+            navigateView(requestId => {
+                if (currentTab === 'month') loadMonthView(requestId).catch(e => console.error(e));
+                else loadSchedule(requestId).catch(e => console.error(e));
             });
         }
 
@@ -910,7 +1073,7 @@
 
             // Сначала проверяем тип занятия, затем только однозначные служебные слова
             // в начале названия. Это не даёт слову «программирование» ошибочно стать «пр».
-            if (normalizedType.includes('лаб') || ['лаб', 'лабораторная', 'лаб.'].includes(firstWord) || title.startsWith('лаб ')) return 'type-lab';
+            if (normalizedType.includes('лаб') || ['лаб', 'лаб.', 'лр', 'лр.', 'лабораторная', 'лабораторная'].includes(firstWord) || title.startsWith('лаб ') || title.startsWith('лр ')) return 'type-lab';
             if (normalizedType.includes('лек') || ['лек', 'лекция', 'лек.', 'лектор'].includes(firstWord) || title.startsWith('лек ')) return 'type-lecture';
             if (normalizedType.includes('практ') || ['пр', 'пр.', 'практ', 'практика', 'практическое'].includes(firstWord)) return 'type-practice';
             return 'default';
@@ -990,13 +1153,56 @@
             return lessons.filter(l => extractLessonDate(l) === dateStr);
         }
 
-        async function loadSchedule() {
-            if (!currentName) return;
+        async function fetchScheduleForDate(queryParam, dateStr, signal, retries = 2) {
+            let lastError = null;
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                if (signal?.aborted) throw new DOMException('Запрос отменён', 'AbortError');
+                const startedAt = performance.now();
+                const url = `${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dateStr}${forceNetworkRefresh ? '&fresh=1' : ''}`;
+                apiRequestCount++;
+                try {
+                    const res = await fetch(url, { signal, cache: 'no-store' });
+                    const duration = Math.round(performance.now() - startedAt);
+                    lastApiRequest = { date: dateStr, url, status: res.status, duration, at: Date.now() };
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const data = await res.json();
+                    lastApiError = null;
+                    return filterLessonsByDate(extractLessonsFromAPIResponse(data), dateStr);
+                } catch (e) {
+                    if (e.name === 'AbortError') throw e;
+                    lastError = e;
+                    lastApiError = `${dateStr}: ${e.message || 'ошибка запроса'}`;
+                    if (attempt < retries) await new Promise(resolve => setTimeout(resolve, 180 * (attempt + 1)));
+                }
+            }
+            throw lastError || new Error('Не удалось получить расписание');
+        }
+
+        function renderErrorState(container, title, details = '') {
+            if (!container) return;
+            container.innerHTML = `<div class="error-card"><strong>⚠️ ${title}</strong><br><span style="color:var(--text-secondary);">${details || 'Попробуйте обновить данные.'}</span><button class="btn-primary" style="margin-top:8px;" onclick="forceRefreshCurrentView()">↻ Повторить загрузку</button></div>`;
+        }
+
+        async function mapWithConcurrency(items, limit, worker) {
+            const results = new Array(items.length);
+            let nextIndex = 0;
+            async function runner() {
+                while (true) {
+                    const index = nextIndex++;
+                    if (index >= items.length) return;
+                    results[index] = await worker(items[index], index);
+                }
+            }
+            await Promise.all(Array.from({ length: Math.min(limit, items.length) }, runner));
+            return results;
+        }
+
+        async function loadSchedule(requestId = viewRequestId, signal = activeRequestController?.signal) {
+            if (!currentName || requestId !== viewRequestId) return;
             const container = document.getElementById('schedule-container');
             const dateLabel = document.getElementById('date-label');
             const dateStr = formatDate(currentDate);
             const identifier = getApiIdentifier(currentMode);
-
             if (!identifier) return;
 
             document.getElementById('global-search-input').value = '';
@@ -1004,76 +1210,71 @@
 
             if (currentTab === 'day') {
                 dateLabel.innerText = formatDisplayDate(currentDate);
-                const cacheKey = `${currentMode}_${identifier}_${userSubgroup}_${dateStr}`;
+                const cacheKey = `${currentMode}_${identifier}_${dateStr}`;
 
-                if (dayLessonsCache[cacheKey]) {
-                    renderLessons(dayLessonsCache[cacheKey], container, dateStr);
+                if (dayLessonsCache[cacheKey] && cacheFresh(dayLessonsCacheAt[cacheKey], getDayCacheTTL(dateStr))) {
+                    if (requestId === viewRequestId && currentTab === 'day') renderLessons(dayLessonsCache[cacheKey], container, dateStr);
                     return;
                 }
 
                 container.innerHTML = '<div class="loading">⌛ Загрузка данных...</div>';
-
                 try {
                     const queryParam = buildScheduleQuery(currentMode, identifier);
-                    const res = await fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dateStr}`);
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-                    const data = await res.json();
-                    const rawLessons = filterLessonsByDate(extractLessonsFromAPIResponse(data), dateStr);
-                    const filtered = filterLessonBySubgroup(rawLessons);
-
-                    dayLessonsCache[cacheKey] = filtered;
-                    renderLessons(filtered, container, dateStr);
+                    const rawLessons = await fetchScheduleForDate(queryParam, dateStr, signal);
+                    if (requestId !== viewRequestId || currentTab !== 'day' || signal?.aborted) return;
+                    dayLessonsCache[cacheKey] = rawLessons;
+                    dayLessonsCacheAt[cacheKey] = Date.now();
+                    lastApiError = null;
+                    renderLessons(rawLessons, container, dateStr);
+                    forceNetworkRefresh = false;
                 } catch (e) {
+                    if (e.name === 'AbortError') return;
                     console.error('Ошибка загрузки расписания дня:', e);
-                    container.innerHTML = '<div class="loading">❌ Не удалось загрузить расписание. Проверьте подключение или API.</div>';
+                    lastApiError = `${dateStr}: ${e.message || 'ошибка API'}`;
+                    if (requestId === viewRequestId) renderErrorState(container, 'Не удалось загрузить расписание этого дня.', lastApiError);
                 }
             } else if (currentTab === 'week') {
                 const monday = getMonday(currentDate);
                 dateLabel.innerText = `Неделя от ${monday.getDate()} ${MONTH_NAMES_GENITIVE[monday.getMonth()]}`;
                 const weekKey = `${currentMode}_${identifier}_${formatDate(monday)}`;
 
-                if (weekCache[weekKey]) {
-                    renderWeekSchedule(weekCache[weekKey], container);
+                const cachedWeek = getWeekCacheEntry(weekKey);
+                if (cachedWeek) {
+                    if (requestId === viewRequestId && currentTab === 'week') renderWeekSchedule(cachedWeek, container);
                     return;
                 }
 
-                container.innerHTML = '<div class="loading">⌛ Загрузка данных...</div>';
-
+                container.innerHTML = '<div class="loading">⌛ Загрузка недели...</div>';
                 try {
-                    const weekData = {};
                     const queryParam = buildScheduleQuery(currentMode, identifier);
-
-                    for (let i = 0; i < 7; i++) {
-                        const d = new Date(monday);
-                        d.setDate(d.getDate() + i);
-                        const dStr = formatDate(d);
-
-                        try {
-                            const res = await fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dStr}`);
-                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-                            const data = await res.json();
-                            const rawLessons = filterLessonsByDate(extractLessonsFromAPIResponse(data), dStr);
-                            weekData[dStr] = filterLessonBySubgroup(rawLessons);
-                        } catch (err) {
+                    const dates = Array.from({ length: 7 }, (_, i) => {
+                        const d = new Date(monday); d.setDate(d.getDate() + i); return formatDate(d);
+                    });
+                    weekErrors = {};
+                    const results = await mapWithConcurrency(dates, 4, async dStr => {
+                        try { return [dStr, await fetchScheduleForDate(queryParam, dStr, signal)]; }
+                        catch (err) {
+                            if (err.name === 'AbortError') throw err;
+                            weekErrors[dStr] = true;
+                            lastApiError = `${dStr}: ${err.message || 'ошибка API'}`;
                             console.error(`Ошибка загрузки ${dStr}:`, err);
-                            weekData[dStr] = [];
+                            return [dStr, null];
                         }
-                    }
-
-                    weekCache[weekKey] = weekData;
-                    localStorage.setItem('kgeu_week_cache', JSON.stringify(weekCache));
-                    renderWeekSchedule(weekCache[weekKey], container);
+                    });
+                    if (requestId !== viewRequestId || currentTab !== 'week' || signal?.aborted) return;
+                    const weekData = Object.fromEntries(results);
+                    saveWeekCacheEntry(weekKey, weekData);
+                    renderWeekSchedule(weekData, container);
+                    forceNetworkRefresh = false;
                 } catch (e) {
                     console.error('Ошибка загрузки недели:', e);
-                    container.innerHTML = '<div class="loading">❌ Ошибка загрузки недели.</div>';
+                    if (requestId === viewRequestId) container.innerHTML = '<div class="loading">❌ Ошибка загрузки недели.</div>';
                 }
             }
         }
 
-        async function loadMonthView() {
-            if (!currentName) return;
+        async function loadMonthView(requestId = viewRequestId, signal = activeRequestController?.signal) {
+            if (!currentName || requestId !== viewRequestId || currentTab !== 'month') return;
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
             const identifier = getApiIdentifier(currentMode);
@@ -1081,35 +1282,45 @@
             document.getElementById('date-label').innerText = `${MONTH_NAMES[month]} ${year} г.`;
             document.getElementById('global-search-input').value = '';
             updateTodayButtonVisibility();
-            
+
+            const cacheKey = `${currentMode}_${identifier}_${year}-${String(month + 1).padStart(2, '0')}`;
+            if (monthLessonsCacheKey === cacheKey && Object.keys(monthLessonsCache).length && cacheFresh(monthLessonsCacheAt, getMonthCacheTTL(year, month))) {
+                renderMonthGrid(year, month, false);
+                return;
+            }
+
             renderMonthGrid(year, month, true);
+            const totalDays = new Date(year, month + 1, 0).getDate();
+            const dates = Array.from({ length: totalDays }, (_, i) => `${year}-${String(month + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`);
+            const queryParam = buildScheduleQuery(currentMode, identifier);
 
             try {
-                const totalDays = new Date(year, month + 1, 0).getDate();
-                const monthData = {};
-                
-                const requests = Array.from({ length: totalDays }, (_, i) => {
-                    const day = i + 1;
-                    const dtStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    const queryParam = buildScheduleQuery(currentMode, identifier);
-                    
-                    return fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dtStr}`)
-                        .then(res => {
-                            if (!res.ok) throw new Error();
-                            return res.json();
-                        })
-                        .then(data => ({ dtStr, lessons: filterLessonsByDate(extractLessonsFromAPIResponse(data), dtStr) }))
-                        .catch(() => ({ dtStr, lessons: [] }));
+                // Не создаём 28–31 одновременный запрос: максимум 4 запроса к API за раз.
+                // Неудачные дни повторяются внутри fetchScheduleForDate.
+                monthErrors = {};
+                const results = await mapWithConcurrency(dates, 4, async dtStr => {
+                    try { return [dtStr, await fetchScheduleForDate(queryParam, dtStr, signal, 2)]; }
+                    catch (err) {
+                        if (err.name === 'AbortError') throw err;
+                        monthErrors[dtStr] = true;
+                        lastApiError = `${dtStr}: ${err.message || 'ошибка API'}`;
+                        console.error(`Ошибка загрузки ${dtStr}:`, err);
+                        return [dtStr, null];
+                    }
                 });
 
-                const results = await Promise.all(requests);
-                results.forEach(item => { monthData[item.dtStr] = item.lessons; });
-
-                monthLessonsCache = monthData;
+                if (requestId !== viewRequestId || currentTab !== 'month' || signal?.aborted) return;
+                monthLessonsCache = Object.fromEntries(results);
+                monthLessonsCacheAt = Date.now();
+                monthLessonsCacheKey = cacheKey;
                 renderMonthGrid(year, month, false);
-            } catch (e) { 
+                forceNetworkRefresh = false;
+            } catch (e) {
+                if (e.name === 'AbortError') return;
+                console.error('Ошибка загрузки месяца:', e);
+                lastApiError = `Месяц: ${e.message || 'ошибка API'}`;
                 const container = document.getElementById('schedule-container');
-                if (container) container.innerHTML = '<div class="loading">❌ Ошибка загрузки месяца.</div>'; 
+                if (requestId === viewRequestId && container) renderErrorState(container, 'Не удалось загрузить месяц.', lastApiError);
             }
         }
 
@@ -1128,13 +1339,14 @@
             for (let i = 0; i < firstDayIndex; i++) gridHtml += `<div class="calendar-day empty"></div>`;
             for (let day = 1; day <= totalDays; day++) {
                 let dtStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                let rawLessons = monthLessonsCache[dtStr] || [];
-                let filtered = filterLessonBySubgroup(rawLessons);
+                let rawLessons = monthLessonsCache[dtStr];
+                let filtered = filterLessonBySubgroup(rawLessons || []);
                 let lessons = addWindowsToLessons(filtered);
                 
                 let dotsCount = Math.min(lessons.length, 5); 
                 let dotsHtml = '';
                 for (let d = 0; d < dotsCount; d++) { dotsHtml += `<div class="dot ${getLessonTypeClass(lessons[d])}"></div>`; }
+                if (monthErrors[dtStr]) dotsHtml += '<div class="dot" style="background:#ef4444;"></div>';
                 let todayClass = (todayStr === dtStr) ? 'today' : '';
                 gridHtml += `<div class="calendar-day ${todayClass}" data-date="${dtStr}" onclick="selectMonthDay('${dtStr}', this)"><span>${day}</span><div class="dots-container">${dotsHtml}</div></div>`;
             }
@@ -1148,6 +1360,8 @@
             const room = extractLessonRoom(l);
             
             const typeClass = getLessonTypeClass(l);
+            const lessonSubgroup = getLessonSubgroup(l);
+            const subgroupBadge = lessonSubgroup > 0 ? `<span class="lesson-subgroup-badge">п/г ${lessonSubgroup}</span>` : '';
             const progress = checkIsCurrentLesson(timeStr, lessonDateStr);
             const isCurrentClass = progress !== null ? 'current-lesson' : '';
 
@@ -1162,14 +1376,20 @@
                     </div>`;
             }
 
-            let teacherBlock = teacher ? `<div class="clickable-badge" onclick="jumpTo('Teacher', '${teacher.replace(/'/g, "\\'")}')">👤 ${teacher}</div>` : '';
-            let roomBlock = room && room !== 'Ауд. не указана' ? `<div class="clickable-badge" onclick="jumpTo('Aud', '${room.replace(/'/g, "\\'")}')">📍 ${room}</div>` : `<div style="color:var(--text-secondary);">📍 ${room || 'Ауд. не указана'}</div>`;
+            const teacherId = teacher ? getKnownItemId('Teacher', teacher) : '';
+            const roomId = room ? getKnownItemId('Aud', room) : '';
+            const safeTeacher = teacher.replace(/'/g, "\\'");
+            const safeTeacherId = String(teacherId).replace(/'/g, "\\'");
+            const safeRoom = room.replace(/'/g, "\\'");
+            const safeRoomId = String(roomId).replace(/'/g, "\\'");
+            let teacherBlock = teacher ? `<div class="clickable-badge" onclick="jumpTo('Teacher', '${safeTeacher}', '${safeTeacherId}')">👤 ${teacher}</div>` : '';
+            let roomBlock = room && room !== 'Ауд. не указана' ? `<div class="clickable-badge" onclick="jumpTo('Aud', '${safeRoom}', '${safeRoomId}')">📍 ${room}</div>` : `<div style="color:var(--text-secondary);">📍 ${room || 'Ауд. не указана'}</div>`;
             let progressBar = progress !== null ? `<div class="live-progress" style="width: ${progress}%;"></div>` : '';
             let liveBadge = progress !== null ? `<span style="background:var(--accent); color:var(--accent-text); padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold; margin-left:auto;">ИДЕТ ПАРА</span>` : '';
 
             return `
                 <div class="lesson-card ${typeClass} ${isCurrentClass}" style="margin-bottom:8px;">
-                    <div class="lesson-title">📖 ${title} ${liveBadge}</div>
+                    <div class="lesson-title">📖 ${title} ${subgroupBadge} ${liveBadge}</div>
                     <div class="lesson-info"><span style="display:flex; align-items:center;">🕒 ${timeStr}</span>${roomBlock}</div>
                     ${teacherBlock ? `<div style="margin-top:6px;">${teacherBlock}</div>` : ''}
                     <div class="lesson-actions">
@@ -1187,14 +1407,17 @@
             
             preview.classList.add('page-exit');
             setTimeout(() => {
-                let rawLessons = monthLessonsCache[dtStr] || [];
-                let filtered = filterLessonBySubgroup(rawLessons);
-                let lessons = addWindowsToLessons(filtered);
+                let rawLessons = monthLessonsCache[dtStr];
                 let dtObj = new Date(dtStr);
                 let html = `<div class="day-header" style="margin-top:0;">${DAY_NAMES[dtObj.getDay()]}, ${dtObj.getDate()} ${MONTH_NAMES_GENITIVE[dtObj.getMonth()]}</div>`;
-                
-                if (lessons.length === 0) html += '<div style="text-align:center; padding:15px; font-weight:500;">🎉 На этот день пар нет!</div>';
-                else lessons.forEach(l => { html += renderLessonHtml(l, dtStr); });
+                if (monthErrors[dtStr]) {
+                    html += '<div class="error-card">⚠️ Не удалось получить данные за этот день.<br><span style="color:var(--text-secondary);">Нажмите «Обновить», чтобы повторить запрос.</span></div>';
+                } else {
+                    let filtered = filterLessonBySubgroup(rawLessons || []);
+                    let lessons = addWindowsToLessons(filtered);
+                    if (lessons.length === 0) html += '<div style="text-align:center; padding:15px; font-weight:500;">🎉 На этот день пар нет!</div>';
+                    else lessons.forEach(l => { html += renderLessonHtml(l, dtStr); });
+                }
                 
                 preview.innerHTML = html;
                 preview.classList.remove('page-exit');
@@ -1203,25 +1426,207 @@
             }, 150);
         }
 
+        function getDayLessonItems(rawLessons, dateStr) {
+            return (filterLessonBySubgroup(rawLessons || []) || [])
+                .filter(l => !l.isWindow)
+                .map(l => ({ lesson: l, time: parseTimeRange(extractLessonTime(l)) }))
+                .filter(item => item.time)
+                .sort((a,b) => a.time.start - b.time.start);
+        }
+
+        function renderDaySummary(rawLessons, dateStr) {
+            const items = getDayLessonItems(rawLessons, dateStr);
+            const today = formatDate(new Date()) === dateStr;
+            const now = new Date();
+            const nowMin = now.getHours() * 60 + now.getMinutes();
+            let current = null;
+            let next = null;
+            if (today) {
+                current = items.find(item => nowMin >= item.time.start && nowMin < item.time.end) || null;
+                next = items.find(item => item.time.start > nowMin) || null;
+            } else if (items.length) {
+                next = items[0];
+            }
+            const totalMinutes = items.reduce((sum, item) => sum + Math.max(0, item.time.end - item.time.start), 0);
+            const hours = Math.floor(totalMinutes / 60);
+            const mins = totalMinutes % 60;
+            const duration = hours ? `${hours} ч${mins ? ` ${mins} мин` : ''}` : `${mins} мин`;
+            let main = '';
+            if (current) {
+                const title = extractLessonTitle(current.lesson);
+                const room = extractLessonRoom(current.lesson);
+                const left = Math.max(0, current.time.end - nowMin);
+                main = `<div class="summary-title">🔴 Сейчас идёт</div><div class="summary-main">${title}</div><div class="summary-meta"><span>🕒 ${extractLessonTime(current.lesson)}</span>${room ? `<span>📍 ${room}</span>` : ''}<span>⏳ осталось ${left} мин</span></div>`;
+            } else if (next) {
+                const title = extractLessonTitle(next.lesson);
+                const teacher = extractLessonTeacher(next.lesson);
+                const room = extractLessonRoom(next.lesson);
+                const wait = today ? Math.max(0, next.time.start - nowMin) : null;
+                main = `<div class="summary-title">⏭ Следующая пара</div><div class="summary-main">${title}</div><div class="summary-meta"><span>🕒 ${extractLessonTime(next.lesson)}</span>${teacher ? `<span>👤 ${teacher}</span>` : ''}${room ? `<span>📍 ${room}</span>` : ''}${wait !== null ? `<span>через ${wait} мин</span>` : ''}</div>`;
+            } else {
+                main = `<div class="summary-title">📚 Учебный день</div><div class="summary-empty">${items.length ? 'Все пары на сегодня уже закончились.' : 'На этот день пар нет.'}</div>`;
+            }
+            return `<div class="summary-card"><div class="summary-head"><div style="min-width:0; flex:1;">${main}</div><span class="summary-count">${items.length} пар · ${duration}</span></div></div>`;
+        }
+
+        function refreshLiveSchedule() {
+            if (currentTab !== 'day' || !currentName) return;
+            const dateStr = formatDate(currentDate);
+            if (dateStr !== formatDate(new Date())) return;
+            const identifier = getApiIdentifier(currentMode);
+            const key = `${currentMode}_${identifier}_${dateStr}`;
+            if (dayLessonsCache[key]) {
+                const container = document.getElementById('schedule-container');
+                if (container) renderLessons(dayLessonsCache[key], container, dateStr);
+            }
+        }
+
         function renderLessons(rawLessons, container, dateStr) {
-            if (!rawLessons || rawLessons.length === 0) { container.innerHTML = '<div class="loading">🎉 На этот день пар нет!</div>'; return; }
+            if (!rawLessons || rawLessons.length === 0) { container.innerHTML = renderDaySummary([], dateStr) + '<div class="loading">🎉 На этот день пар нет!</div>'; return; }
             let lessons = addWindowsToLessons(rawLessons);
-            let html = ''; lessons.forEach(l => { html += renderLessonHtml(l, dateStr); });
+            let html = renderDaySummary(rawLessons, dateStr); lessons.forEach(l => { html += renderLessonHtml(l, dateStr); });
             container.innerHTML = html;
         }
 
         function renderWeekSchedule(weekData, container) {
             if (!weekData || Object.keys(weekData).length === 0) { container.innerHTML = '<div class="loading">🎉 На этой неделе пар нет!</div>'; return; }
             let html = '';
+            let hasErrors = false;
             for (const [dateKey, rawLessons] of Object.entries(weekData)) {
-                let filtered = filterLessonBySubgroup(rawLessons);
-                if (!filtered || filtered.length === 0) continue;
                 const dt = new Date(dateKey);
+                if (rawLessons === null || weekErrors[dateKey]) {
+                    hasErrors = true;
+                    html += `<div class="day-header">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div>`;
+                    html += '<div class="error-card">⚠️ Данные за этот день не удалось загрузить.</div>';
+                    continue;
+                }
+                let filtered = filterLessonBySubgroup(rawLessons || []);
+                if (!filtered || filtered.length === 0) continue;
                 html += `<div class="day-header">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div>`;
                 let lessons = addWindowsToLessons(filtered);
                 lessons.forEach(l => { html += renderLessonHtml(l, dateKey); });
             }
-            container.innerHTML = html || '<div class="loading">🎉 На этой неделе пар нет!</div>';
+            if (!html && !hasErrors) html = '<div class="loading">🎉 На этой неделе пар нет!</div>';
+            if (hasErrors) html = '<div class="error-card">⚠️ Часть дней не удалось загрузить. Остальные данные показаны ниже.</div>' + html;
+            container.innerHTML = html;
+        }
+
+        function getFavoriteSources() {
+            const sources = [];
+            const push = (type, name, id) => {
+                const resolved = resolveItem(type, name, id);
+                if (!resolved?.name) return;
+                const key = `${type}:${resolved.id || resolved.name}`;
+                if (!sources.some(s => s.key === key)) sources.push({ ...resolved, type, key });
+            };
+            favorites.forEach(f => push(f.type, f.name, f.id || ''));
+            if (currentName) push(currentMode, currentName, currentId);
+            return sources;
+        }
+
+        async function openMyScheduleModal() {
+            const modal = document.getElementById('my-schedule-modal');
+            const content = document.getElementById('my-schedule-content');
+            if (!modal || !content) return;
+            modal.style.display = 'block';
+            setTimeout(() => modal.classList.add('show'), 10);
+            const sources = getFavoriteSources();
+            if (!sources.length) {
+                content.innerHTML = '<div class="my-schedule-empty">Добавьте группы, преподавателей или аудитории в избранное — здесь соберутся их пары на сегодня.</div>';
+                return;
+            }
+            content.innerHTML = '<div class="loading">⌛ Собираю расписание...</div>';
+            const dateStr = formatDate(new Date());
+            const controller = new AbortController();
+            try {
+                const results = await mapWithConcurrency(sources, 4, async source => {
+                    const identifier = source.id || source.name;
+                    const query = buildScheduleQuery(source.type, identifier);
+                    const cacheKey = `${source.type}_${identifier}_${dateStr}`;
+                    try {
+                        let lessons = dayLessonsCache[cacheKey] && cacheFresh(dayLessonsCacheAt[cacheKey], CACHE_TTL.day)
+                            ? dayLessonsCache[cacheKey]
+                            : await fetchScheduleForDate(query, dateStr, controller.signal, 1);
+                        if (!dayLessonsCache[cacheKey]) {
+                            dayLessonsCache[cacheKey] = lessons;
+                            dayLessonsCacheAt[cacheKey] = Date.now();
+                        }
+                        return { source, lessons: filterLessonBySubgroup(lessons || []), error: null };
+                    } catch (e) {
+                        if (e.name === 'AbortError') throw e;
+                        return { source, lessons: [], error: e.message || 'ошибка API' };
+                    }
+                });
+                const combined = [];
+                const errors = [];
+                const seen = new Set();
+                results.forEach(result => {
+                    if (result.error) errors.push(`${result.source.name}: ${result.error}`);
+                    result.lessons.filter(l => !l.isWindow).forEach(lesson => {
+                        const key = `${extractLessonTitle(lesson)}|${extractLessonTime(lesson)}|${extractLessonRoom(lesson)}|${extractLessonTeacher(lesson)}`;
+                        if (!seen.has(key)) {
+                            seen.add(key);
+                            combined.push({ lesson, source: result.source });
+                        }
+                    });
+                });
+                combined.sort((a,b) => {
+                    const ta = parseTimeRange(extractLessonTime(a.lesson));
+                    const tb = parseTimeRange(extractLessonTime(b.lesson));
+                    return (ta?.start || 9999) - (tb?.start || 9999);
+                });
+                let html = `<div class="summary-card"><div class="summary-title">Сегодня · ${combined.length} пар</div><div class="summary-meta" style="margin-top:4px;"><span>Избранных источников: ${sources.length}</span></div></div>`;
+                if (errors.length) html += `<div class="error-card">⚠️ Часть источников не загрузилась:<br>${errors.map(e => `• ${e}`).join('<br>')}</div>`;
+                if (!combined.length) html += '<div class="my-schedule-empty">Сегодня пар нет или ни один источник не вернул данные.</div>';
+                else {
+                    let lastTime = '';
+                    combined.forEach(({lesson, source}) => {
+                        const time = extractLessonTime(lesson);
+                        if (time !== lastTime) { html += `<div class="my-schedule-source">${time}</div>`; lastTime = time; }
+                        html += `<div class="lesson-card ${getLessonTypeClass(lesson)}" style="margin-bottom:7px;"><div class="lesson-title">📖 ${extractLessonTitle(lesson)}</div><div class="lesson-info"><span>📍 ${extractLessonRoom(lesson) || 'Ауд. не указана'}</span><span>${source.type === 'Group' ? '👥' : source.type === 'Teacher' ? '👤' : '🚪'} ${source.name}</span></div></div>`;
+                    });
+                }
+                content.innerHTML = html;
+            } catch (e) {
+                if (e.name === 'AbortError') return;
+                content.innerHTML = '<div class="error-card">⚠️ Не удалось собрать «Мои пары». Попробуйте обновить.</div>';
+            }
+        }
+
+        function forceRefreshCurrentView() {
+            forceNetworkRefresh = true;
+            clearScheduleCaches();
+            const currentDateStr = formatDate(currentDate);
+            if (currentTab === 'day') delete dayLessonsCache[`${currentMode}_${getApiIdentifier(currentMode)}_${currentDateStr}`];
+            navigateView((requestId, signal) => {
+                if (currentTab === 'month') loadMonthView(requestId, signal).catch(e => console.error(e));
+                else loadSchedule(requestId, signal).catch(e => console.error(e));
+            });
+        }
+
+        function openDiagnosticsModal() {
+            const modal = document.getElementById('diagnostic-modal');
+            const content = document.getElementById('diagnostic-content');
+            if (!modal || !content) return;
+            const weekCount = Object.keys(weekCache || {}).length;
+            const dayCount = Object.keys(dayLessonsCache || {}).length;
+            const monthState = monthLessonsCacheKey ? `${monthLessonsCacheKey} · ${cacheFresh(monthLessonsCacheAt, getMonthCacheTTL(currentDate.getFullYear(), currentDate.getMonth())) ? 'свежий' : 'устарел'}` : 'нет';
+            const req = lastApiRequest ? `${lastApiRequest.status} · ${lastApiRequest.duration} мс · ${new Date(lastApiRequest.at).toLocaleTimeString()}` : 'ещё не было';
+            content.innerHTML = `<div class="diagnostic-grid">
+                <div class="diagnostic-item"><div class="diagnostic-label">Интернет</div><div class="diagnostic-value">${navigator.onLine ? '🟢 Онлайн' : '🔴 Офлайн'}</div></div>
+                <div class="diagnostic-item"><div class="diagnostic-label">Текущий режим</div><div class="diagnostic-value">${currentMode} · ${currentName || 'не выбран'}</div></div>
+                <div class="diagnostic-item"><div class="diagnostic-label">ID</div><div class="diagnostic-value">${currentId || '—'}</div></div>
+                <div class="diagnostic-item"><div class="diagnostic-label">Подгруппа</div><div class="diagnostic-value">${userSubgroup === '0' ? 'Все' : userSubgroup}</div></div>
+                <div class="diagnostic-item"><div class="diagnostic-label">Кэш дней</div><div class="diagnostic-value">${dayCount}</div></div>
+                <div class="diagnostic-item"><div class="diagnostic-label">Кэш недель</div><div class="diagnostic-value">${weekCount}</div></div>
+                <div class="diagnostic-item"><div class="diagnostic-label">Кэш месяца</div><div class="diagnostic-value">${monthState}</div></div>
+                <div class="diagnostic-item"><div class="diagnostic-label">API-запросов</div><div class="diagnostic-value">${apiRequestCount}</div></div>
+            </div>
+            <div class="error-card" style="margin-top:10px;"><strong>Последний API-запрос:</strong><br>${req}<br><span style="color:var(--text-secondary);">${lastApiRequest?.url || '—'}</span></div>
+            <div class="error-card" style="margin-top:8px;"><strong>Последняя ошибка:</strong><br>${lastApiError || 'Нет зарегистрированных ошибок.'}</div>
+            <button class="btn-primary" onclick="forceRefreshCurrentView(); setTimeout(openDiagnosticsModal, 250);">↻ Обновить и проверить</button>`;
+            modal.style.display = 'block';
+            setTimeout(() => modal.classList.add('show'), 10);
         }
 
         function openSearchModal() {
@@ -1264,9 +1669,9 @@
             const text = THEME_TEXTS[theme] || THEME_TEXTS['theme-purple'];
             updateCreatorNote(text);
             if (save) {
-                localStorage.removeItem('kgeu_bg');
-                localStorage.removeItem('kgeu_bg_colors');
-                localStorage.setItem('kgeu_theme', currentTheme);
+                safeRemoveStorage('kgeu_bg');
+                safeRemoveStorage('kgeu_bg_colors');
+                safeSetStorage('kgeu_theme', currentTheme);
             }
         }
 
@@ -1302,7 +1707,7 @@
                         for (let i = 0; i < data.length; i += 16) { r += data[i]; g += data[i+1]; b += data[i+2]; count++; }
                         cachedBgColors = { r: Math.floor(r/count), g: Math.floor(g/count), b: Math.floor(b/count) };
                         applyColors(cachedBgColors.r, cachedBgColors.g, cachedBgColors.b);
-                        if (save) localStorage.setItem('kgeu_bg_colors', JSON.stringify(cachedBgColors));
+                        if (save) safeSetStorage('kgeu_bg_colors', JSON.stringify(cachedBgColors));
                     } catch (err) {
                         console.error("Canvas background processing error:", err);
                     }
@@ -1310,7 +1715,7 @@
                 img.onerror = () => console.error("Failed to load background image");
                 img.src = dataUrl;
             }
-            if (save) localStorage.setItem('kgeu_bg', customBg);
+            if (save) safeSetStorage('kgeu_bg', customBg);
         }
 
         document.getElementById('bg-upload').addEventListener('change', e => {
@@ -1327,7 +1732,7 @@
 
         function clearBg() { 
             customBg = ''; cachedBgColors = null; 
-            localStorage.removeItem('kgeu_bg'); localStorage.removeItem('kgeu_bg_colors'); 
+            safeRemoveStorage('kgeu_bg'); safeRemoveStorage('kgeu_bg_colors'); 
             document.body.style.backgroundImage = 'none'; 
             const nameDisplay = document.getElementById('file-chosen-name');
             if (nameDisplay) nameDisplay.innerText = 'Файл не выбран';
@@ -1353,15 +1758,16 @@
                 weekCache = {};
                 dayLessonsCache = {};
                 monthLessonsCache = {};
-                localStorage.removeItem('kgeu_week_cache');
+                monthLessonsCacheKey = '';
+                safeRemoveStorage('kgeu_week_cache_v2');
             }
 
             setCurrentSelection(currentMode, resolved.name, resolved.id, true);
             closeModals();
 
-            animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView().catch(e => console.error(e));
-                else loadSchedule().catch(e => console.error(e));
+            navigateView(requestId => {
+                if (currentTab === 'month') loadMonthView(requestId).catch(e => console.error(e));
+                else loadSchedule(requestId).catch(e => console.error(e));
             });
         }
 
