@@ -24,8 +24,7 @@
         
         .bg-pattern { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: -1; background-image: radial-gradient(rgba(150,150,150,0.15) 1px, transparent 1px); background-size: 20px 20px; }
 
-        #offline-banner { display: none; background: #e11d48; color: #fff; text-align: center; font-size: 12px; font-weight: 700; padding: 6px; border-radius: 8px; margin-bottom: 12px; animation: pulseBanner 2s infinite; }
-        @keyframes pulseBanner { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+        #offline-banner { display: none; background: #e11d48; color: #fff; text-align: center; font-size: 12px; font-weight: 700; padding: 6px; border-radius: 8px; margin-bottom: 12px; }
 
         .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
         .header-title { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; min-width: 0; }
@@ -33,31 +32,32 @@
         #name-display { font-size: 17px; font-weight: bold; word-break: break-word; overflow-wrap: break-word; line-height: 1.2; text-transform: uppercase; }
         .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
         
-        .motto { font-size: 13px; color: var(--text-secondary); font-weight: 500; font-style: italic; margin-bottom: 12px; transition: 0.3s; }
+        .motto { font-size: 13px; color: var(--text-secondary); font-weight: 500; font-style: italic; margin-bottom: 12px; }
 
         .favorites-bar { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--accent) transparent; -webkit-overflow-scrolling: touch; }
         .favorites-bar::-webkit-scrollbar { height: 4px; }
         .favorites-bar::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
-        .favorite-chip { background: var(--card-bg); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); transition: 0.2s; flex-shrink: 0; max-width: 250px; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; }
+        .favorite-chip { background: var(--card-bg); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); transition: 0.2s; flex-shrink: 0; max-width: 250px; overflow: hidden; text-overflow: ellipsis; }
         .favorite-chip:hover { border-color: var(--accent); background: rgba(150,150,150,0.2); }
 
-        .tabs { display: flex; background: var(--card-bg); border-radius: 14px; padding: 4px; margin-bottom: 16px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); transition: 0.3s; }
+        .tabs { display: flex; background: var(--card-bg); border-radius: 14px; padding: 4px; margin-bottom: 16px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); }
         .tab-btn { flex: 1; padding: 10px; text-align: center; border: none; background: transparent; color: var(--text-secondary); font-weight: 600; font-size: 14px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
         .tab-btn.active { background: var(--accent); color: var(--accent-text); }
 
         .nav-date { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; position: relative; }
-        .nav-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; backdrop-filter: blur(10px); transition: 0.3s; }
-        .current-date-title { font-size: 16px; font-weight: bold; text-align: center; color: var(--text-primary); transition: 0.3s; flex: 1; }
+        .nav-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; backdrop-filter: blur(10px); }
+        .current-date-title { font-size: 16px; font-weight: bold; text-align: center; color: var(--text-primary); flex: 1; }
 
-        .today-float-btn { position: absolute; right: 50px; top: 50%; transform: translateY(-50%); background: var(--accent); color: var(--accent-text); border: none; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer; display: none; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 10; }
+        .today-float-btn { position: absolute; right: 50px; top: 50%; transform: translateY(-50%); background: var(--accent); color: var(--accent-text); border: none; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer; display: none; z-index: 10; }
 
-        /* Умный поиск для всех вкладок */
+        /* Умный поиск (без капса) */
         .global-search-container { margin-bottom: 12px; display: block; }
-        .global-search-input { width: 100%; padding: 10px 14px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 14px; outline: none; backdrop-filter: blur(10px); }
+        .global-search-input { width: 100%; padding: 10px 14px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 14px; outline: none; backdrop-filter: blur(10px); text-transform: none; }
+        .global-search-input::placeholder { text-transform: none; color: var(--text-secondary); opacity: 0.8; }
 
-        .day-header { font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase; margin: 16px 0 8px 0; letter-spacing: 0.5px; transition: 0.3s; }
+        .day-header { font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase; margin: 16px 0 8px 0; letter-spacing: 0.5px; }
         
-        .lesson-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; margin-bottom: 10px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.2s; position: relative; overflow: hidden; }
+        .lesson-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; margin-bottom: 10px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
         
         .lesson-card.type-lecture { background: rgba(16, 185, 129, 0.22) !important; border-color: #10b981 !important; }
         .lesson-card.type-lab { background: rgba(157, 78, 221, 0.22) !important; border-color: #9d4edd !important; }
@@ -70,17 +70,17 @@
         .lesson-title { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px; }
         .lesson-info { font-size: 13px; color: var(--text-secondary); display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; font-weight: 500; }
         
-        .clickable-badge { background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; transition: 0.2s; display: inline-flex; align-items: center; gap: 4px;}
+        .clickable-badge { background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 4px; }
         .clickable-badge:hover { border-color: var(--accent); background: rgba(255,255,255,0.2); color: var(--accent); }
 
         .lesson-actions { display: flex; gap: 8px; margin-top: 8px; border-top: 1px solid rgba(150,150,150,0.15); padding-top: 8px; }
-        .action-btn { background: rgba(150,150,150,0.1); border: none; color: var(--text-secondary); padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: 0.2s; }
+        .action-btn { background: rgba(150,150,150,0.1); border: none; color: var(--text-secondary); padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
         .action-btn:hover { background: var(--accent); color: var(--accent-text); }
 
         .month-calendar { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); margin-bottom: 16px; }
         .weekdays-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: var(--text-secondary); font-weight: 700; margin-bottom: 10px; }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
-        .calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-primary); border: 1px solid transparent; transition: 0.2s; background: rgba(150, 150, 150, 0.05); }
+        .calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-primary); border: 1px solid transparent; background: rgba(150, 150, 150, 0.05); }
         .calendar-day:hover { background: rgba(150, 150, 150, 0.15); }
         .calendar-day.today { border-color: var(--accent); }
         .calendar-day.selected { background: var(--card-bg); border-color: var(--accent) !important; box-shadow: 0 0 10px var(--accent); }
@@ -93,21 +93,24 @@
         .dot.type-practice { background-color: #f59e0b !important; }
         .dot.type-window { background-color: #3a86ff !important; }
 
-        .month-preview { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; min-height: 120px; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); transition: 0.3s; }
+        .month-preview { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; min-height: 120px; backdrop-filter: blur(15px); }
         
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 8px 0 14px 0; z-index: 1000; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -4px 20px rgba(0,0,0,0.3); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); cursor: pointer; font-size: 11px; font-weight: 700; transition: 0.2s; gap: 3px; padding: 6px 16px; border-radius: 12px; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-secondary); cursor: pointer; font-size: 11px; font-weight: 700; gap: 3px; padding: 6px 16px; border-radius: 12px; }
         .nav-item.active { color: var(--accent); background: rgba(150, 150, 150, 0.1); }
         .nav-item-icon { font-size: 20px; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-color); z-index: 2000; padding: 20px; overflow-y: auto; }
         .modal-header { font-size: 22px; font-weight: bold; margin-bottom: 20px; text-align: center; color: var(--text-primary); }
         .form-group { margin-bottom: 20px; position: relative; }
-        label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary); font-weight: 600; }
-        input[type="text"], select { width: 100%; padding: 12px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); outline: none; font-size: 16px; box-sizing: border-box; text-transform: uppercase; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-secondary); font-weight: 600; text-transform: none; }
+        
+        /* Убран text-transform: uppercase для полей поиска и выпадающих списков */
+        input[type="text"], select { width: 100%; padding: 12px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); outline: none; font-size: 16px; box-sizing: border-box; text-transform: none; }
+        input[type="text"]::placeholder { text-transform: none; color: var(--text-secondary); opacity: 0.7; }
         
         .autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; max-height: 220px; overflow-y: auto; z-index: 1000; display: none; backdrop-filter: blur(15px); margin-top: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-        .autocomplete-item { padding: 12px 14px; cursor: pointer; font-size: 15px; color: var(--text-primary); border-bottom: 1px solid rgba(150,150,150,0.1); text-transform: uppercase; }
+        .autocomplete-item { padding: 12px 14px; cursor: pointer; font-size: 15px; color: var(--text-primary); border-bottom: 1px solid rgba(150,150,150,0.1); text-transform: none; }
         .autocomplete-item:hover { background: rgba(150,150,150,0.2); }
 
         .themes-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -115,7 +118,7 @@
         .theme-dot.active { border-color: var(--accent); box-shadow: 0 0 8px var(--accent); }
         
         .upload-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
-        .btn-upload { display: block; padding: 14px; background: #2b3240; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; text-align: center; color: #fff; font-weight: 600; font-size: 15px; cursor: pointer; transition: background 0.2s; box-sizing: border-box; }
+        .btn-upload { display: block; padding: 14px; background: #2b3240; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; text-align: center; color: #fff; font-weight: 600; font-size: 15px; cursor: pointer; box-sizing: border-box; }
         .btn-upload input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
         
         .delete-bg-btn { margin-top: 8px; width: 100%; padding: 12px; background: transparent; color: #ff5252; border: 1px solid rgba(255,82,82,0.3); border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 15px; box-sizing: border-box; }
@@ -126,7 +129,7 @@
 </head>
 <body>
     <div class="bg-pattern"></div>
-    <div id="offline-banner">⚠️ Оффлайн-режим: нет соединения с интернетом, показаны сохраненные данные</div>
+    <div id="offline-banner">⚠️ Оффлайн-режим: нет соединения с интернетом</div>
 
     <div class="header">
         <div class="header-title" onclick="openSearchModal()">
@@ -150,9 +153,9 @@
         <button class="tab-btn" onclick="switchTab('month')">Месяц</button>
     </div>
 
-    <!-- Умный поиск теперь доступен на всех вкладках -->
+    <!-- Заменено на «Умный поиск» без капса -->
     <div class="global-search-container" id="global-search-box">
-        <input type="text" class="global-search-input" id="global-search-input" placeholder="🔍 Найти предмет, препода или аудиторию..." oninput="debouncedGlobalFilter(this.value)">
+        <input type="text" class="global-search-input" id="global-search-input" placeholder="Умный поиск..." oninput="debouncedGlobalFilter(this.value)">
     </div>
 
     <div class="nav-date" id="nav-controls">
@@ -305,7 +308,6 @@
             else setTheme(currentTheme, false);
 
             if (currentTab === 'month') loadMonthView(); else loadSchedule();
-            registerServiceWorker();
             setupOnlineListeners();
 
             document.addEventListener('click', e => {
@@ -326,41 +328,15 @@
             updateStatus();
         }
 
-        function registerServiceWorker() {
-            if ('serviceWorker' in navigator) {
-                const swCode = `
-                    const CACHE_NAME = 'kgeu-offline-v1';
-                    self.addEventListener('install', e => self.skipWaiting());
-                    self.addEventListener('activate', e => e.waitUntil(clients.claim()));
-                    self.addEventListener('fetch', e => {
-                        if (e.request.url.includes('${WORKER_URL}')) {
-                            e.respondWith(
-                                fetch(e.request).then(res => {
-                                    const clone = res.clone();
-                                    caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-                                    return res;
-                                }).catch(() => caches.match(e.request))
-                            );
-                        }
-                    });
-                `;
-                const blob = new Blob([swCode], { type: 'text/javascript' });
-                navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
-            }
-        }
-
         async function fetchLists() {
             try {
                 const res = await fetch(`${WORKER_URL}/api/lists`);
                 const data = await res.json();
-                
-                // Приводим все элементы списков к заглавным буквам (включая группы, преподов и аудитории)
                 listsData = {
-                    Group: (data.Group || []).map(item => String(item).toUpperCase()),
-                    Teacher: (data.Teacher || []).map(item => String(item).toUpperCase()),
-                    Aud: (data.Aud || []).map(item => String(item).toUpperCase())
+                    Group: (data.Group || []).map(item => String(item)),
+                    Teacher: (data.Teacher || []).map(item => String(item)),
+                    Aud: (data.Aud || []).map(item => String(item))
                 };
-                
                 localStorage.setItem('kgeu_lists', JSON.stringify(listsData));
             } catch (e) { console.error("Ошибка загрузки списков", e); }
         }
@@ -372,9 +348,7 @@
             updateUIForMode(mode);
             document.getElementById('name-display').innerText = currentName ? currentName.toUpperCase() : 'НЕ ВЫБРАНО';
             
-            weekCache = {};
-            dayLessonsCache = {};
-            monthLessonsCache = {};
+            weekCache = {}; dayLessonsCache = {}; monthLessonsCache = {};
             localStorage.removeItem('kgeu_week_cache');
             
             if (!currentName) openSearchModal(); 
@@ -390,7 +364,7 @@
             updateStarButton();
             
             let label = 'Поиск группы', placeholder = 'Например: ИПК-1-25...';
-            if (mode === 'Teacher') { label = 'Поиск преподавателя'; placeholder = 'Например: САНИЕВА А.Д....'; }
+            if (mode === 'Teacher') { label = 'Поиск преподавателя'; placeholder = 'Например: Саниева А.Д....'; }
             if (mode === 'Aud') { label = 'Поиск аудитории'; placeholder = 'Например: Г-302...'; }
             
             document.getElementById('search-label').innerText = label;
@@ -427,9 +401,9 @@
 
         function filterData(query) {
             const dropdown = document.getElementById('autocomplete-dropdown');
-            const q = query.trim().toUpperCase();
+            const q = query.trim().toLowerCase();
             const list = listsData[currentMode] || [];
-            const filtered = list.filter(item => item.toUpperCase().includes(q)).slice(0, 50);
+            const filtered = list.filter(item => item.toLowerCase().includes(q)).slice(0, 50);
             
             if (filtered.length === 0) { dropdown.style.display = 'none'; return; }
 
@@ -438,28 +412,28 @@
         }
 
         function selectOption(name) {
-            document.getElementById('search-input').value = name.toUpperCase();
+            document.getElementById('search-input').value = name;
             document.getElementById('autocomplete-dropdown').style.display = 'none';
         }
 
         function resolveItemName(mode, rawName) {
-            let clean = rawName.trim().toUpperCase();
-            if (mode === 'Aud') clean = clean.replace('АУД.', '').trim();
+            let clean = rawName.trim();
+            if (mode === 'Aud') clean = clean.replace(/^ауд\.?\s*/i, '').trim();
             const list = listsData[mode] || [];
             if (list.length === 0) return clean;
             
-            let found = list.find(item => item.toUpperCase() === clean);
+            let found = list.find(item => item.toLowerCase() === clean.toLowerCase());
             if (found) return found;
             
-            const normalize = s => s.replace(/[\.\s\-]/g, '').toUpperCase();
+            const normalize = s => s.replace(/[\.\s\-]/g, '').toLowerCase();
             let targetNorm = normalize(clean);
             found = list.find(item => normalize(item) === targetNorm);
             if (found) return found;
             
             let parts = clean.split(/[\s\.\-]+/).filter(Boolean);
             if (parts.length > 0) {
-                let keyPart = parts[0];
-                found = list.find(item => item.toUpperCase().includes(keyPart));
+                let keyPart = parts[0].toLowerCase();
+                found = list.find(item => item.toLowerCase().includes(keyPart));
                 if (found) return found;
             }
             return clean;
@@ -477,9 +451,7 @@
             updateUIForMode(mode);
             document.getElementById('name-display').innerText = currentName.toUpperCase();
             
-            weekCache = {}; 
-            dayLessonsCache = {};
-            monthLessonsCache = {};
+            weekCache = {}; dayLessonsCache = {}; monthLessonsCache = {};
             localStorage.removeItem('kgeu_week_cache');
             
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -493,8 +465,8 @@
             container.innerHTML = favorites.map(fav => `
                 <div class="favorite-chip" onclick="jumpTo('${fav.type}', '${fav.name.replace(/'/g, "\\'")}')">
                     <span>${fav.type === 'Group' ? '👥' : fav.type === 'Teacher' ? '👤' : '🚪'}</span>
-                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fav.name.toUpperCase()}</span>
-                    <span onclick="event.stopPropagation(); removeFavorite('${fav.type}', '${fav.name}')" style="opacity:0.6; margin-left:4px; font-size:14px; flex-shrink:0;">×</span>
+                    <span>${fav.name}</span>
+                    <span onclick="event.stopPropagation(); removeFavorite('${fav.type}', '${fav.name}')" style="opacity:0.6; margin-left:4px; font-size:14px;">×</span>
                 </div>
             `).join('');
             updateStarButton();
@@ -537,12 +509,7 @@
             const todayBtn = document.getElementById('today-btn');
             const todayStr = formatDate(new Date());
             const currentStr = formatDate(currentDate);
-            
-            if (currentTab === 'day') {
-                todayBtn.style.display = (currentStr !== todayStr) ? 'block' : 'none';
-            } else {
-                todayBtn.style.display = 'none';
-            }
+            todayBtn.style.display = (currentTab === 'day' && currentStr !== todayStr) ? 'block' : 'none';
         }
 
         function jumpToToday() {
@@ -555,8 +522,7 @@
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             
-            const navControls = document.getElementById('nav-controls');
-            navControls.style.display = 'flex';
+            document.getElementById('nav-controls').style.display = 'flex';
             document.getElementById('global-search-input').value = '';
 
             updateTodayButtonVisibility();
@@ -619,19 +585,14 @@
         function checkIsCurrentLesson(timeStr, lessonDateStr) {
             const todayStr = formatDate(new Date());
             if (lessonDateStr !== todayStr) return null;
-            
             const parts = timeStr.split('-');
             if (parts.length !== 2) return null;
-            
             const now = new Date();
             const currentMinutes = now.getHours() * 60 + now.getMinutes();
-            
             const [startH, startM] = parts[0].trim().split(':').map(Number);
             const [endH, endM] = parts[1].trim().split(':').map(Number);
-            
             const startMinutes = startH * 60 + startM;
             const endMinutes = endH * 60 + endM;
-            
             if (currentMinutes >= startMinutes && currentMinutes <= endMinutes) {
                 const total = endMinutes - startMinutes;
                 const elapsed = currentMinutes - startMinutes;
@@ -640,7 +601,6 @@
             return null;
         }
 
-        // Универсальный фильтр (умный поиск) для всех вкладок
         function filterGlobalLessons(query) {
             const q = query.trim().toLowerCase();
             const cards = document.querySelectorAll('#schedule-container .lesson-card');
@@ -652,18 +612,13 @@
 
         function exportToCalendar(title, timeStr, dateStr, room, teacher) {
             let times = parseTimeRange(timeStr);
-            if (!times) { alert('Не удалось распознать время пары'); return; }
-            
+            if (!times) return;
             let [y, m, d] = dateStr.split('-').map(Number);
-            let startH = Math.floor(times.start / 60), startM = times.start % 60;
-            let endH = Math.floor(times.end / 60), endM = times.end % 60;
-
             let pad = n => String(n).padStart(2, '0');
-            let dtStart = `${y}${pad(m)}${pad(d)}T${pad(startH)}${pad(startM)}00`;
-            let dtEnd = `${y}${pad(m)}${pad(d)}T${pad(endH)}${pad(endM)}00`;
+            let dtStart = `${y}${pad(m)}${pad(d)}T${pad(Math.floor(times.start/60))}${pad(times.start%60)}00`;
+            let dtEnd = `${y}${pad(m)}${pad(d)}T${pad(Math.floor(times.end/60))}${pad(times.end%60)}00`;
 
-            let icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${title}\nDESCRIPTION:Преподаватель: ${teacher || 'Не указан'}\\nАудитория: ${room || 'Не указана'}\nLOCATION:${room || ''}\nDTSTART:${dtStart}\nDTEND:${dtEnd}\nEND:VEVENT\nEND:VCALENDAR`;
-
+            let icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${title}\nDESCRIPTION:Преподаватель: ${teacher || ''}\\nАудитория: ${room || ''}\nLOCATION:${room || ''}\nDTSTART:${dtStart}\nDTEND:${dtEnd}\nEND:VEVENT\nEND:VCALENDAR`;
             let blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
             let link = document.createElement('a');
             link.href = window.URL.createObjectURL(blob);
@@ -684,27 +639,21 @@
 
             if (currentTab === 'day') {
                 dateLabel.innerText = formatDisplayDate(currentDate);
-                
                 let cacheKey = `${currentMode}_${currentName}_${userSubgroup}_${dateStr}`;
-                if (dayLessonsCache[cacheKey]) {
-                    renderLessons(dayLessonsCache[cacheKey], container, dateStr); 
-                    return;
-                }
+                if (dayLessonsCache[cacheKey]) { renderLessons(dayLessonsCache[cacheKey], container, dateStr); return; }
 
                 let monday = getMonday(currentDate);
                 let weekKey = `${currentMode}_${currentName}_${formatDate(monday)}`;
-                
                 if (weekCache[weekKey] && weekCache[weekKey][dateStr]) {
                     let filtered = filterLessonBySubgroup(weekCache[weekKey][dateStr]);
                     dayLessonsCache[cacheKey] = filtered;
-                    renderLessons(filtered, container, dateStr); 
-                    return;
+                    renderLessons(filtered, container, dateStr); return;
                 }
 
                 try {
                     const res = await fetch(`${WORKER_URL}/api/schedule?type=${currentMode}&name=${encodeURIComponent(currentName)}&date=${dateStr}`);
                     const data = await res.json();
-                    let filtered = filterLessonBySubgroup(data.lessons);
+                    let filtered = filterLessonBySubgroup(data.lessons || []);
                     dayLessonsCache[cacheKey] = filtered;
                     renderLessons(filtered, container, dateStr);
                 } catch (e) { container.innerHTML = '<div class="loading">❌ Нет сети, проверьте подключение.</div>'; }
@@ -712,7 +661,6 @@
             } else if (currentTab === 'week') {
                 let monday = getMonday(currentDate);
                 dateLabel.innerText = `Неделя от ${monday.getDate()} ${MONTH_NAMES_GENITIVE[monday.getMonth()]}`;
-
                 let weekKey = `${currentMode}_${currentName}_${formatDate(monday)}`;
                 if (weekCache[weekKey]) { renderWeekSchedule(weekCache[weekKey], container); return; }
 
@@ -750,7 +698,7 @@
             const container = document.getElementById('schedule-container');
             container.innerHTML = `
                 <div class="month-calendar"><div class="weekdays-grid"><div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div></div><div class="days-grid" id="calendar-days-container"></div></div>
-                <div class="month-preview" id="month-preview-content"><div class="loading">${isLoading ? '⌛ Загрузка месяца...' : 'Нажмите на день, чтобы посмотреть пары'}</div></div>`;
+                <div class="month-preview" id="month-preview-content"><div class="loading">${isLoading ? '⌛ Загрузка месяца...' : 'Нажмите на день'}</div></div>`;
 
             const daysGrid = document.getElementById('calendar-days-container');
             let firstDayIndex = new Date(year, month, 1).getDay(); firstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
@@ -780,39 +728,28 @@
             const isCurrentClass = progress !== null ? 'current-lesson' : '';
 
             if (l.isWindow) {
-                let liveBadge = progress !== null ? `<span style="background:#3a86ff; color:#fff; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold; margin-left:8px; vertical-align: middle;">СЕЙЧАС ПЕРЕРЫВ</span>` : '';
+                let liveBadge = progress !== null ? `<span style="background:#3a86ff; color:#fff; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold; margin-left:8px;">СЕЙЧАС ПЕРЕРЫВ</span>` : '';
                 let progressBar = progress !== null ? `<div class="live-progress" style="width: ${progress}%; background: #3a86ff;"></div>` : '';
-
                 return `
                     <div class="lesson-card ${typeClass} ${isCurrentClass}" style="margin-bottom:8px; text-align:center; padding:12px; border-style: dashed;">
-                        <div style="font-size: 14px; font-weight: 700; color: #3a86ff; margin-bottom: 4px; display:flex; align-items:center; justify-content:center;">
-                            ${l.title} ${liveBadge}
-                        </div>
-                        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">🕒 ${l.time} (${l.duration})</div>
+                        <div style="font-size: 14px; font-weight: 700; color: #3a86ff; margin-bottom: 4px;">${l.title} ${liveBadge}</div>
+                        <div style="font-size: 13px; color: var(--text-secondary);">🕒 ${l.time} (${l.duration})</div>
                         ${progressBar}
                     </div>`;
             }
 
             let teacherBlock = l.teacher ? `<div class="clickable-badge" onclick="jumpTo('Teacher', '${l.teacher.replace(/'/g, "\\'")}')">👤 ${l.teacher}</div>` : '';
-            let roomBlock = l.room && l.room !== 'Ауд. не указана' ? `<div class="clickable-badge" onclick="jumpTo('Aud', '${l.room.replace(/'/g, "\\'")}')">📍 ${l.room}</div>` : `<div style="color:var(--text-secondary); display:flex; align-items:center;">📍 ${l.room}</div>`;
-            
+            let roomBlock = l.room && l.room !== 'Ауд. не указана' ? `<div class="clickable-badge" onclick="jumpTo('Aud', '${l.room.replace(/'/g, "\\'")}')">📍 ${l.room}</div>` : `<div style="color:var(--text-secondary);">📍 ${l.room}</div>`;
             let progressBar = progress !== null ? `<div class="live-progress" style="width: ${progress}%;"></div>` : '';
             let liveBadge = progress !== null ? `<span style="background:var(--accent); color:var(--accent-text); padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold; margin-left:auto;">ИДЕТ ПАРА</span>` : '';
-
-            let safeTitle = (l.title || '').replace(/'/g, "\\'");
-            let safeTeacher = (l.teacher || '').replace(/'/g, "\\'");
-            let safeRoom = (l.room || '').replace(/'/g, "\\'");
 
             return `
                 <div class="lesson-card ${typeClass} ${isCurrentClass}" style="margin-bottom:8px;">
                     <div class="lesson-title">📖 ${l.title} ${liveBadge}</div>
-                    <div class="lesson-info">
-                        <span style="display:flex; align-items:center;">🕒 ${l.time}</span>
-                        ${roomBlock}
-                    </div>
+                    <div class="lesson-info"><span style="display:flex; align-items:center;">🕒 ${l.time}</span>${roomBlock}</div>
                     ${teacherBlock ? `<div style="margin-top:6px;">${teacherBlock}</div>` : ''}
                     <div class="lesson-actions">
-                        <button class="action-btn" onclick="exportToCalendar('${safeTitle}', '${l.time}', '${lessonDateStr}', '${safeRoom}', '${safeTeacher}')">📅 В календарь</button>
+                        <button class="action-btn" onclick="exportToCalendar('${(l.title||'').replace(/'/g, "\\'")}', '${l.time}', '${lessonDateStr}', '${(l.room||'').replace(/'/g, "\\'")}', '${(l.teacher||'').replace(/'/g, "\\'")}')">📅 В календарь</button>
                     </div>
                     ${progressBar}
                 </div>`;
@@ -825,7 +762,6 @@
             let rawLessons = monthLessonsCache[dtStr] || [];
             let filtered = filterLessonBySubgroup(rawLessons);
             let lessons = addWindowsToLessons(filtered);
-            
             let dtObj = new Date(dtStr);
             let html = `<div class="day-header" style="margin-top:0;">${DAY_NAMES[dtObj.getDay()]}, ${dtObj.getDate()} ${MONTH_NAMES_GENITIVE[dtObj.getMonth()]}</div>`;
             if (lessons.length === 0) html += '<div style="text-align:center; padding:15px; font-weight:500;">🎉 На этот день пар нет!</div>';
@@ -855,14 +791,11 @@
         }
 
         function openSearchModal() {
-            document.getElementById('search-input').value = currentName.toUpperCase();
+            document.getElementById('search-input').value = currentName;
             document.getElementById('search-modal').style.display = 'block';
         }
 
-        function openSettingsModal() {
-            document.getElementById('settings-modal').style.display = 'block';
-        }
-
+        function openSettingsModal() { document.getElementById('settings-modal').style.display = 'block'; }
         function closeModals() {
             document.getElementById('search-modal').style.display = 'none';
             document.getElementById('settings-modal').style.display = 'none';
@@ -874,12 +807,7 @@
             document.documentElement.style.cssText = ''; 
             document.body.style.backgroundImage = 'none';
             document.body.className = theme;
-            
             document.getElementById('motto-text').innerText = THEME_MOTTOS[theme] || THEME_MOTTOS['theme-purple'];
-            
-            const bgUploadInput = document.getElementById('bg-upload');
-            if (bgUploadInput) bgUploadInput.value = '';
-
             if (save) { localStorage.removeItem('kgeu_bg'); localStorage.removeItem('kgeu_bg_colors'); localStorage.setItem('kgeu_theme', currentTheme); }
         }
 
@@ -892,15 +820,7 @@
             const applyColors = (r, g, b) => {
                 let brightness = (r * 299 + g * 587 + b * 114) / 1000;
                 let isLight = brightness > 140;
-                let max = Math.max(r, g, b), min = Math.min(r, g, b);
-                let accentColor;
-
-                if (isLight) {
-                    accentColor = `rgb(${Math.max(0, r - 90)}, ${Math.max(0, g - 90)}, ${Math.max(0, b - 90)})`;
-                } else {
-                    if (max - min < 25) accentColor = '#00ffcc';
-                    else accentColor = `rgb(${Math.min(255, r + 110)}, ${Math.min(255, g + 110)}, ${Math.min(255, b + 110)})`;
-                }
+                let accentColor = isLight ? `rgb(${Math.max(0, r-90)}, ${Math.max(0, g-90)}, ${Math.max(0, b-90)})` : `rgb(${Math.min(255, r+110)}, ${Math.min(255, g+110)}, ${Math.min(255, b+110)})`;
 
                 document.documentElement.style.setProperty('--bg-color', `rgb(${r}, ${g}, ${b})`);
                 document.documentElement.style.setProperty('--card-bg', isLight ? `rgba(255, 255, 255, 0.82)` : `rgba(15, 23, 42, 0.82)`);
@@ -937,24 +857,20 @@
             }
         });
 
-        function clearBg() { customBg = ''; cachedBgColors = null; localStorage.removeItem('kgeu_bg'); localStorage.removeItem('kgeu_bg_colors'); document.body.style.backgroundImage = 'none'; document.getElementById('bg-upload').value = ''; setTheme('theme-purple', true); }
+        function clearBg() { customBg = ''; cachedBgColors = null; localStorage.removeItem('kgeu_bg'); localStorage.removeItem('kgeu_bg_colors'); document.body.style.backgroundImage = 'none'; setTheme('theme-purple', true); }
 
         function applySearchSelection() {
             let inputName = document.getElementById('search-input').value.trim();
             if (!inputName) { alert('Пожалуйста, выберите нужный пункт!'); return; }
 
             let resolvedName = resolveItemName(currentMode, inputName);
-
             if (currentName !== resolvedName) { 
-                weekCache = {}; 
-                dayLessonsCache = {};
-                monthLessonsCache = {};
+                weekCache = {}; dayLessonsCache = {}; monthLessonsCache = {};
                 localStorage.removeItem('kgeu_week_cache'); 
             }
 
             currentName = resolvedName;
             modeNames[currentMode] = currentName;
-
             localStorage.setItem('kgeu_mode', currentMode);
             localStorage.setItem(`kgeu_name_${currentMode}`, currentName);
             
