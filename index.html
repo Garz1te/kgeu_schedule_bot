@@ -24,7 +24,9 @@
         body.theme-purple { --bg-color: #3b0764; --card-bg: rgba(88, 28, 135, 0.85); --text-primary: #f3e8ff; --text-secondary: #d8b4fe; --accent: #c084fc; --accent-text: #ffffff; --border-color: rgba(255, 255, 255, 0.15); --modal-bg: #6b21a8; }
         body.theme-green { --bg-color: #064e3b; --card-bg: rgba(6, 78, 59, 0.85); --text-primary: #ecfdf5; --text-secondary: #6ee7b7; --accent: #34d399; --accent-text: #064e3b; --border-color: rgba(255, 255, 255, 0.15); --modal-bg: #047857; }
         body.theme-amber { --bg-color: #451a03; --card-bg: rgba(120, 53, 15, 0.85); --text-primary: #fef3c7; --text-secondary: #fcd34d; --accent: #fbbf24; --accent-text: #451a03; --border-color: rgba(255, 255, 255, 0.15); --modal-bg: #92400e; }
-        body.theme-cyber { --bg-color: #050505; --card-bg: rgba(10, 10, 15, 0.9); --text-primary: #00ffcc; --text-secondary: #ff007f; --accent: #00ffcc; --accent-text: #050505; --border-color: #ff007f; }
+
+        /* Старый класс оставлен ради совместимости с сохранённым выбором темы. */
+        body.theme-cyber { --bg-color: #26313a; --card-bg: rgba(48, 61, 72, 0.92); --text-primary: #f3f5f7; --text-secondary: #b7c1c9; --accent: #9db7c9; --accent-text: #20303b; --border-color: rgba(255,255,255,0.11); --modal-bg: #34414c; }
 
         body.custom-bg-theme {
             background-size: cover;
@@ -85,15 +87,15 @@
             display: flex; align-items: center; justify-content: space-between; font-size: 13px;
             color: var(--text-secondary); background: var(--border-color); padding: 6px 12px; border-radius: 8px;
         }
-        
+
         /* Исправлено стильное выпадающее окно подгрупп (Фото 1) */
-        .subgroup-select { 
-            background: var(--card-bg); 
-            border: 1px solid var(--border-color); 
-            color: var(--text-primary); 
-            font-weight: 600; 
-            font-size: 13px; 
-            outline: none; 
+        .subgroup-select {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 13px;
+            outline: none;
             cursor: pointer;
             padding: 6px 28px 6px 12px;
             border-radius: 8px;
@@ -121,11 +123,23 @@
             background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 10px;
             margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; backdrop-filter: blur(8px);
         }
+
+        .creator-note {
+            text-align: center;
+            font-size: 10px;
+            line-height: 1.35;
+            color: var(--text-secondary);
+            margin: -2px 4px 12px;
+            opacity: 0.9;
+            user-select: none;
+        }
+        .creator-note strong { color: var(--accent); font-weight: 700; }
+
         .tabs-row { display: flex; background: var(--border-color); border-radius: 8px; padding: 2px; }
-        
+
         .tab-btn {
-            flex: 1; background: transparent; border: none; color: var(--text-secondary); padding: 6px; 
-            font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; 
+            flex: 1; background: transparent; border: none; color: var(--text-secondary); padding: 6px;
+            font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer;
             transition: background-color 0.25s ease, color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
         }
         .tab-btn.active { background: var(--card-bg); color: var(--text-primary); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -145,7 +159,7 @@
         }
         .page-exit { opacity: 0 !important; transform: translateY(6px) !important; }
         .page-enter { animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        
+
         @keyframes slideUpFade {
             from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
@@ -185,11 +199,11 @@
         .month-calendar { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 10px; margin-bottom: 12px; backdrop-filter: blur(8px); }
         .weekdays-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        
-        .calendar-day { 
-            aspect-ratio: 1; background: var(--border-color); border-radius: 8px; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; font-size: 12px; font-weight: 600; cursor: pointer; position: relative; 
-            transition: background-color 0.2s ease, transform 0.15s ease, border-color 0.2s ease, color 0.2s ease; 
+
+        .calendar-day {
+            aspect-ratio: 1; background: var(--border-color); border-radius: 8px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; font-size: 12px; font-weight: 600; cursor: pointer; position: relative;
+            transition: background-color 0.2s ease, transform 0.15s ease, border-color 0.2s ease, color 0.2s ease;
         }
         .calendar-day:active { transform: scale(0.9); }
         .calendar-day.empty { background: transparent; cursor: default; pointer-events: none; }
@@ -215,12 +229,12 @@
         .form-input { width: 100%; background: var(--border-color); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 10px; color: var(--text-primary); font-size: 14px; outline: none; transition: border-color 0.3s; }
         .form-input:focus { border-color: var(--accent); }
 
-        .autocomplete-dropdown { 
-            position: absolute; top: 100%; left: 0; width: 100%; max-height: 180px; overflow-y: auto; 
-            background: var(--modal-bg); border: 1px solid var(--border-color); border-radius: 0 0 10px 10px; 
+        .autocomplete-dropdown {
+            position: absolute; top: 100%; left: 0; width: 100%; max-height: 180px; overflow-y: auto;
+            background: var(--modal-bg); border: 1px solid var(--border-color); border-radius: 0 0 10px 10px;
             z-index: 10; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
             opacity: 0; transform: translateY(-8px); pointer-events: none; visibility: hidden; display: block;
-            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s; 
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
         }
         .autocomplete-dropdown.active {
             opacity: 1; transform: translateY(0); pointer-events: auto; visibility: visible;
@@ -294,6 +308,8 @@
             <input type="text" class="global-search-input" id="global-search-input" placeholder="🔍 Быстрый поиск по странице..." oninput="debouncedGlobalFilter(this.value)">
         </div>
 
+        <div class="creator-note" id="creator-note">✦ Отсылка от создателей: расписание тоже может быть спокойным.</div>
+
         <div id="schedule-container">
             <div class="loading">⌛ Загрузка данных...</div>
         </div>
@@ -331,7 +347,7 @@
                 <div class="theme-option" onclick="setTheme('theme-pink', true)">✨ Розовая</div>
                 <div class="theme-option" onclick="setTheme('theme-green', true)">🌿 Зеленая</div>
                 <div class="theme-option" onclick="setTheme('theme-amber', true)">☕ Осенняя</div>
-                <div class="theme-option" onclick="setTheme('theme-cyber', true)">💻 Киберпанк</div>
+                <div class="theme-option" onclick="setTheme('theme-cyber', true)">🪨 Спокойный графит</div>
             </div>
             <div class="form-group">
                 <label class="form-label">Свой фон (картинка):</label>
@@ -358,16 +374,23 @@
 
         let currentTab = 'day';
         let currentDate = new Date();
-        
-        let currentMode = localStorage.getItem('kgeu_mode') || 'Group'; 
+
+        let currentMode = localStorage.getItem('kgeu_mode') || 'Group';
         let modeNames = {
             'Group': localStorage.getItem('kgeu_name_Group') || '',
             'Teacher': localStorage.getItem('kgeu_name_Teacher') || '',
             'Aud': localStorage.getItem('kgeu_name_Aud') || ''
         };
+        let modeIds = {
+            'Group': localStorage.getItem('kgeu_id_Group') || '',
+            'Teacher': localStorage.getItem('kgeu_id_Teacher') || '',
+            'Aud': localStorage.getItem('kgeu_id_Aud') || ''
+        };
         let currentName = modeNames[currentMode] || '';
+        let currentId = modeIds[currentMode] || '';
+        let searchResults = [];
         let userSubgroup = localStorage.getItem('kgeu_subgroup') || '0';
-        
+
         let customBg = localStorage.getItem('kgeu_bg') || '';
         let cachedBgColors = localStorage.getItem('kgeu_bg_colors') ? JSON.parse(localStorage.getItem('kgeu_bg_colors')) : null;
         let favorites = JSON.parse(localStorage.getItem('kgeu_favorites') || '[]');
@@ -380,10 +403,10 @@
 
         let weekCache = JSON.parse(localStorage.getItem('kgeu_week_cache') || '{}');
         let dayLessonsCache = {};
-        
+
         let listsData = JSON.parse(localStorage.getItem('kgeu_lists') || '{"Group":[], "Teacher":[], "Aud":[]}');
         let monthLessonsCache = {};
-        let filterTimeout; 
+        let filterTimeout;
         let globalFilterTimeout;
 
         const DAY_NAMES = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
@@ -391,22 +414,22 @@
         const MONTH_NAMES_GENITIVE = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
         const THEME_MOTTOS = {
-            'theme-light': '☀️ «Утро начинается не с кофе»',
-            'theme-blue': '📊 «Фактически — это факт»',
-            'theme-black': '🌙 «Главное — не уснуть»',
-            'theme-pink': '✨ «Учёба на чилле»',
-            'theme-purple': '🔮 «Магия вне Хогвартса»',
-            'theme-green': '🌿 «Сохраняй спокойствие и закрывай сессию»',
-            'theme-amber': '☕ «Уютный вайб на лекциях»',
-            'theme-cyber': '💻 «Киберпанк уже на первой паре»',
-            'custom-bg-theme': '🖼 «Твой уникальный стиль»'
+            'theme-light': '☀️ «Сделано теми, кто считает, что утром нужен план, а не квест»',
+            'theme-blue': '📘 «Создатели напоминают: пары не отменяются от одного взгляда на расписание»',
+            'theme-black': '🌙 «Ночной режим для тех, кто открыл расписание за пять минут до пары»',
+            'theme-pink': '🌸 «Небольшая отсылка от создателей: учёба тоже может быть аккуратной»',
+            'theme-purple': '🔮 «Создатели верят в магию, но расписание всё равно берут из API»',
+            'theme-green': '🌿 «От создателей: меньше хаоса, больше понятных дней»',
+            'theme-amber': '☕ «Тёплая тема от создателей для холодных утренних пар»',
+            'theme-cyber': '🪨 «Создатели вышли из неона и выбрали спокойный графит»',
+            'custom-bg-theme': '🖼 «Фон твой, подпись наша — пока ты не заменишь её»'
         };
 
         function animateContainerUpdate(updateCallback) {
             const container = document.getElementById('schedule-container');
             if (!container) { updateCallback(); return; }
             container.classList.add('page-exit');
-            
+
             setTimeout(() => {
                 updateCallback();
                 container.classList.remove('page-exit');
@@ -418,27 +441,19 @@
         }
 
         function init() {
-            fetchLists().catch(err => console.error("Init fetchLists error:", err));
-            
-            if (currentName) {
-                currentName = resolveItemName(currentMode, currentName);
-                modeNames[currentMode] = currentName;
-                document.getElementById('name-display').innerText = currentName.toUpperCase();
-            }
             updateUIForMode(currentMode);
             renderFavorites();
             document.getElementById('subgroup-select').value = userSubgroup;
 
-            if (!currentName) { 
-                openSearchModal(); 
-            } else { 
-                document.getElementById('name-display').innerText = currentName.toUpperCase(); 
+            if (currentName) {
+                document.getElementById('name-display').innerText = currentName.toUpperCase();
+            } else {
+                openSearchModal();
             }
 
             if (customBg) applyCustomBackground(customBg, false, cachedBgColors);
             else setTheme(currentTheme, false);
 
-            if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
             setupOnlineListeners();
 
             document.addEventListener('click', e => {
@@ -447,6 +462,23 @@
                     if (dropdown) dropdown.classList.remove('active');
                 }
             });
+
+            fetchLists()
+                .then(() => {
+                    if (currentName) {
+                        const resolved = resolveItem(currentMode, currentName, currentId);
+                        if (resolved) setCurrentSelection(currentMode, resolved.name, resolved.id, false);
+                        if (currentTab === 'month') loadMonthView().catch(e => console.error(e));
+                        else loadSchedule().catch(e => console.error(e));
+                    }
+                })
+                .catch(err => {
+                    console.error("Init fetchLists error:", err);
+                    if (currentName) {
+                        if (currentTab === 'month') loadMonthView().catch(e => console.error(e));
+                        else loadSchedule().catch(e => console.error(e));
+                    }
+                });
         }
 
         function setupOnlineListeners() {
@@ -460,33 +492,116 @@
             updateStatus();
         }
 
+        function normalizeListItem(item) {
+            if (item === null || item === undefined) return null;
+
+            if (typeof item === 'string' || typeof item === 'number') {
+                const value = String(item).trim();
+                return value ? { id: value, name: value } : null;
+            }
+
+            const name = item.name ?? item.Name ?? item.title ?? item.Title ?? item.text ??
+                item.label ?? item.group ?? item.groupName ?? item.teacherName ?? item.auditoriumName ??
+                item.Группа ?? item.наименование ?? item.Наименование ?? item.Text ?? item.textValue ?? item.value;
+            const id = item.id ?? item.Id ?? item.ID ?? item.idGroup ?? item.idTeacher ?? item.idAudLine ??
+                item.groupId ?? item.teacherId ?? item.auditoriumId ?? item.audId ?? item.код ??
+                item.кодГруппы ?? item.кодПреподавателя ?? item.кодАудитории ?? item.Код ?? item.code ??
+                item.Code ?? item.key ?? item.Key ?? item.Value ?? item.value;
+
+            if (name === undefined || name === null) return null;
+            const cleanName = String(name).trim();
+            if (!cleanName) return null;
+
+            return {
+                id: id === undefined || id === null ? cleanName : String(id).trim(),
+                name: cleanName
+            };
+        }
+
+        function normalizeListsPayload(data) {
+            const unwrap = value => {
+                if (Array.isArray(value)) return value;
+                if (value && typeof value === 'object') {
+                    const candidates = [
+                        value.items, value.data?.items, value.data?.groups, value.data?.teachers,
+                        value.data?.auditoriums, value.data?.result, value.result, value.groups,
+                        value.teachers, value.auditoriums, value.data
+                    ];
+                    for (const candidate of candidates) {
+                        if (Array.isArray(candidate)) return candidate;
+                    }
+                }
+                return [];
+            };
+
+            return {
+                Group: unwrap(data.Group ?? data.groups).map(normalizeListItem).filter(Boolean),
+                Teacher: unwrap(data.Teacher ?? data.teachers).map(normalizeListItem).filter(Boolean),
+                Aud: unwrap(data.Aud ?? data.auditoriums ?? data.auds).map(normalizeListItem).filter(Boolean)
+            };
+        }
+
         async function fetchLists() {
             try {
                 const res = await fetch(`${WORKER_URL}/api/lists`);
                 if (!res.ok) throw new Error('Network response was not ok');
                 const data = await res.json();
-                listsData = {
-                    Group: (data.Group || data.groups || []).map(item => String(item)),
-                    Teacher: (data.Teacher || data.teachers || []).map(item => String(item)),
-                    Aud: (data.Aud || data.auditoriums || data.auds || []).map(item => String(item))
-                };
+                listsData = normalizeListsPayload(data);
                 localStorage.setItem('kgeu_lists', JSON.stringify(listsData));
-            } catch (e) { 
-                console.error("Ошибка загрузки списков", e); 
+                return listsData;
+            } catch (e) {
+                console.error("Ошибка загрузки списков", e);
+                try {
+                    const saved = JSON.parse(localStorage.getItem('kgeu_lists') || '{}');
+                    listsData = {
+                        Group: (saved.Group || []).map(normalizeListItem).filter(Boolean),
+                        Teacher: (saved.Teacher || []).map(normalizeListItem).filter(Boolean),
+                        Aud: (saved.Aud || []).map(normalizeListItem).filter(Boolean)
+                    };
+                } catch (_) {}
+                return listsData;
             }
+        }
+
+        function getListName(item) {
+            return normalizeListItem(item)?.name || '';
+        }
+
+        function getListId(item) {
+            return normalizeListItem(item)?.id || '';
+        }
+
+        function setCurrentSelection(mode, name, id, save = true) {
+            currentMode = mode;
+            currentName = String(name || '').trim();
+            currentId = String(id || currentName).trim();
+
+            modeNames[mode] = currentName;
+            modeIds[mode] = currentId;
+
+            if (save) {
+                localStorage.setItem('kgeu_mode', currentMode);
+                localStorage.setItem(`kgeu_name_${currentMode}`, currentName);
+                localStorage.setItem(`kgeu_id_${currentMode}`, currentId);
+            }
+
+            document.getElementById('name-display').innerText = currentName ? currentName.toUpperCase() : 'НЕ ВЫБРАНО';
+            updateUIForMode(mode);
+            updateStarButton();
         }
 
         function switchSearchMode(mode) {
             currentMode = mode;
             localStorage.setItem('kgeu_mode', currentMode);
             currentName = modeNames[currentMode] || '';
+            currentId = modeIds[currentMode] || '';
             updateUIForMode(mode);
             document.getElementById('name-display').innerText = currentName ? currentName.toUpperCase() : 'НЕ ВЫБРАНО';
-            
+
             weekCache = {}; dayLessonsCache = {}; monthLessonsCache = {};
             localStorage.removeItem('kgeu_week_cache');
-            
-            if (!currentName) openSearchModal(); 
+
+            if (!currentName) openSearchModal();
             else {
                 animateContainerUpdate(() => {
                     if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
@@ -498,14 +613,14 @@
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             const activeEl = document.getElementById('nav-' + mode);
             if (activeEl) activeEl.classList.add('active');
-            
+
             document.getElementById('type-badge').innerText = '⚡ КГЭУ';
             updateStarButton();
-            
+
             let label = 'Поиск группы', placeholder = 'Например: ИПК-1-25...';
             if (mode === 'Teacher') { label = 'Поиск преподавателя'; placeholder = 'Например: Саниева А.Д....'; }
             if (mode === 'Aud') { label = 'Поиск аудитории'; placeholder = 'Например: Г-302...'; }
-            
+
             document.getElementById('search-label').innerText = label;
             document.getElementById('search-input').placeholder = placeholder;
         }
@@ -513,7 +628,7 @@
         function changeSubgroup(val) {
             userSubgroup = val;
             localStorage.setItem('kgeu_subgroup', val);
-            dayLessonsCache = {}; 
+            dayLessonsCache = {};
             animateContainerUpdate(() => {
                 if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
             });
@@ -541,64 +656,91 @@
         function filterData(query) {
             const dropdown = document.getElementById('autocomplete-dropdown');
             const q = query.trim().toLowerCase();
-            const list = listsData[currentMode] || [];
-            
+
+            let list = (listsData[currentMode] || []).map(normalizeListItem).filter(Boolean);
             if (list.length === 0) {
-                let saved = JSON.parse(localStorage.getItem('kgeu_lists') || '{}');
-                if (saved[currentMode]) listsData[currentMode] = saved[currentMode];
+                try {
+                    const saved = JSON.parse(localStorage.getItem('kgeu_lists') || '{}');
+                    list = (saved[currentMode] || []).map(normalizeListItem).filter(Boolean);
+                    listsData[currentMode] = list;
+                } catch (_) {}
             }
 
-            const activeList = listsData[currentMode] || [];
-            const filtered = q === '' 
-                ? activeList.slice(0, 20) 
-                : activeList.filter(item => item.toLowerCase().includes(q)).slice(0, 30);
-            
-            if (filtered.length === 0) { 
-                dropdown.classList.remove('active'); 
-                return; 
+            searchResults = q === ''
+                ? list.slice(0, 20)
+                : list.filter(item => item.name.toLowerCase().includes(q)).slice(0, 30);
+
+            if (searchResults.length === 0) {
+                dropdown.classList.remove('active');
+                return;
             }
-            dropdown.innerHTML = filtered.map(item => `<div class="autocomplete-item" onclick="selectOption('${item.replace(/'/g, "\\'")}')">${item}</div>`).join('');
+
+            dropdown.innerHTML = searchResults.map((item, index) =>
+                `<div class="autocomplete-item" onclick="selectOption(${index})">${item.name}</div>`
+            ).join('');
             dropdown.classList.add('active');
         }
 
-        function selectOption(name) {
-            document.getElementById('search-input').value = name;
+        function selectOption(index) {
+            const item = searchResults[index];
+            if (!item) return;
+
+            document.getElementById('search-input').value = item.name;
             document.getElementById('autocomplete-dropdown').classList.remove('active');
         }
 
-        function resolveItemName(mode, rawName) {
-            let clean = rawName.trim();
-            if (mode === 'Aud') clean = clean.replace(/^ауд\.?\s*/i, '').trim();
-            const list = listsData[mode] || [];
-            if (list.length === 0) return clean;
-            
-            let found = list.find(item => item.toLowerCase() === clean.toLowerCase());
-            if (found) return found;
-            
-            const normalize = s => s.replace(/[\.\s\-]/g, '').toLowerCase();
-            let targetNorm = normalize(clean);
-            found = list.find(item => normalize(item) === targetNorm);
-            if (found) return found;
-            return clean;
+        function resolveItem(mode, rawName, rawId = '') {
+            const clean = String(rawName || '').trim();
+            const id = String(rawId || '').trim();
+            const list = (listsData[mode] || []).map(normalizeListItem).filter(Boolean);
+
+            if (!list.length) return clean ? { name: clean, id: id || clean } : null;
+
+            let found = null;
+            if (id) found = list.find(item => String(item.id) === id);
+
+            if (!found && clean) {
+                found = list.find(item => item.name.toLowerCase() === clean.toLowerCase());
+            }
+
+            if (!found && clean) {
+                const normalize = value => value.replace(/[.\s\-]/g, '').toLowerCase();
+                const targetNorm = normalize(clean);
+                found = list.find(item => normalize(item.name) === targetNorm);
+            }
+
+            return found || (clean ? { name: clean, id: id || clean } : null);
         }
 
-        function jumpTo(mode, nameToJump) {
-            let resolvedName = resolveItemName(mode, nameToJump);
-            currentMode = mode; currentName = resolvedName;
-            modeNames[currentMode] = currentName;
-            
-            localStorage.setItem('kgeu_mode', currentMode);
-            localStorage.setItem(`kgeu_name_${currentMode}`, currentName);
-            
-            updateUIForMode(mode);
-            document.getElementById('name-display').innerText = currentName.toUpperCase();
-            
-            weekCache = {}; dayLessonsCache = {}; monthLessonsCache = {};
+        function resolveItemName(mode, rawName) {
+            return resolveItem(mode, rawName, modeIds[mode])?.name || String(rawName || '').trim();
+        }
+
+        function getApiIdentifier(mode) {
+            const resolved = resolveItem(mode, currentName, currentId);
+            return resolved ? (resolved.id || resolved.name) : currentName;
+        }
+
+        function buildScheduleQuery(mode, identifier) {
+            const key = mode === 'Group' ? 'idGroup' : mode === 'Teacher' ? 'idTeacher' : 'idAudLine';
+            return `${key}=${encodeURIComponent(identifier)}`;
+        }
+
+        function jumpTo(mode, nameToJump, idToJump = '') {
+            const resolved = resolveItem(mode, nameToJump, idToJump);
+            if (!resolved) return;
+
+            setCurrentSelection(mode, resolved.name, resolved.id, true);
+
+            weekCache = {};
+            dayLessonsCache = {};
+            monthLessonsCache = {};
             localStorage.removeItem('kgeu_week_cache');
-            
+
             window.scrollTo({ top: 0, behavior: 'smooth' });
             animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
+                if (currentTab === 'month') loadMonthView().catch(e => console.error(e));
+                else loadSchedule().catch(e => console.error(e));
             });
         }
 
@@ -653,8 +795,8 @@
             todayBtn.style.display = (currentTab === 'day' && currentStr !== todayStr) ? 'block' : 'none';
         }
 
-        function jumpToToday() { 
-            currentDate = new Date(); 
+        function jumpToToday() {
+            currentDate = new Date();
             animateContainerUpdate(() => {
                 if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
             });
@@ -664,7 +806,7 @@
             currentTab = tab;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             if (event && event.target) event.target.classList.add('active');
-            
+
             document.getElementById('nav-controls').style.display = 'flex';
             document.getElementById('global-search-input').value = '';
 
@@ -678,7 +820,7 @@
             if (currentTab === 'day') currentDate.setDate(currentDate.getDate() + delta);
             else if (currentTab === 'week') currentDate.setDate(currentDate.getDate() + (delta * 7));
             else if (currentTab === 'month') currentDate.setMonth(currentDate.getMonth() + delta);
-            
+
             updateTodayButtonVisibility();
             animateContainerUpdate(() => {
                 if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
@@ -769,7 +911,7 @@
         function exportToCalendar(title, timeStr, dateStr, room, teacher) {
             let times = parseTimeRange(timeStr);
             if (!times) return;
-            
+
             let pad = n => String(n).padStart(2, '0');
             let [y, m, d] = dateStr.split('-').map(Number);
             let dtStart = `${y}${pad(m)}${pad(d)}T${pad(Math.floor(times.start/60))}${pad(times.start%60)}00`;
@@ -780,7 +922,7 @@
             let text = encodeURIComponent(title);
 
             let gCalUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dtStart}/${dtEnd}&details=${details}&location=${location}`;
-            
+
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
                 window.Telegram.WebApp.openLink(gCalUrl);
             } else {
@@ -789,11 +931,27 @@
         }
 
         function extractLessonsFromAPIResponse(data) {
-            if (data && data.data && data.data.rasp) return data.data.rasp;
-            if (data && data.rasp) return data.rasp;
+            if (data && data.data && Array.isArray(data.data.rasp)) return data.data.rasp;
+            if (data && Array.isArray(data.rasp)) return data.rasp;
             if (Array.isArray(data)) return data;
-            if (data && data.lessons) return data.lessons;
+            if (data && Array.isArray(data.lessons)) return data.lessons;
             return [];
+        }
+
+        function extractLessonDate(l) {
+            const raw = l.дата || l.date || l.lessonDate || l.датаНачала || l.start || '';
+            const value = String(raw);
+            return value.length >= 10 ? value.slice(0, 10) : '';
+        }
+
+        function filterLessonsByDate(lessons, dateStr) {
+            if (!Array.isArray(lessons)) return [];
+            if (lessons.length === 0) return [];
+
+            const dates = lessons.map(extractLessonDate).filter(Boolean);
+            if (dates.length === 0) return lessons;
+
+            return lessons.filter(l => extractLessonDate(l) === dateStr);
         }
 
         async function loadSchedule() {
@@ -801,81 +959,110 @@
             const container = document.getElementById('schedule-container');
             const dateLabel = document.getElementById('date-label');
             const dateStr = formatDate(currentDate);
+            const identifier = getApiIdentifier(currentMode);
+
+            if (!identifier) return;
 
             document.getElementById('global-search-input').value = '';
             updateTodayButtonVisibility();
 
             if (currentTab === 'day') {
                 dateLabel.innerText = formatDisplayDate(currentDate);
-                let cacheKey = `${currentMode}_${currentName}_${userSubgroup}_${dateStr}`;
-                if (dayLessonsCache[cacheKey]) { renderLessons(dayLessonsCache[cacheKey], container, dateStr); return; }
+                const cacheKey = `${currentMode}_${identifier}_${userSubgroup}_${dateStr}`;
+
+                if (dayLessonsCache[cacheKey]) {
+                    renderLessons(dayLessonsCache[cacheKey], container, dateStr);
+                    return;
+                }
 
                 container.innerHTML = '<div class="loading">⌛ Загрузка данных...</div>';
+
                 try {
-                    let queryParam = currentMode === 'Group' ? `idGroup=${encodeURIComponent(currentName)}` : currentMode === 'Teacher' ? `idTeacher=${encodeURIComponent(currentName)}` : `idAudLine=${encodeURIComponent(currentName)}`;
+                    const queryParam = buildScheduleQuery(currentMode, identifier);
                     const res = await fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dateStr}`);
-                    if (!res.ok) throw new Error('Network error');
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
                     const data = await res.json();
-                    let rawLessons = extractLessonsFromAPIResponse(data);
-                    let filtered = filterLessonBySubgroup(rawLessons);
+                    const rawLessons = filterLessonsByDate(extractLessonsFromAPIResponse(data), dateStr);
+                    const filtered = filterLessonBySubgroup(rawLessons);
+
                     dayLessonsCache[cacheKey] = filtered;
                     renderLessons(filtered, container, dateStr);
-                } catch (e) { container.innerHTML = '<div class="loading">❌ Нет сети, проверьте подключение.</div>'; }
-
+                } catch (e) {
+                    console.error('Ошибка загрузки расписания дня:', e);
+                    container.innerHTML = '<div class="loading">❌ Не удалось загрузить расписание. Проверьте подключение или API.</div>';
+                }
             } else if (currentTab === 'week') {
-                let monday = getMonday(currentDate);
+                const monday = getMonday(currentDate);
                 dateLabel.innerText = `Неделя от ${monday.getDate()} ${MONTH_NAMES_GENITIVE[monday.getMonth()]}`;
-                let weekKey = `${currentMode}_${currentName}_${formatDate(monday)}`;
-                if (weekCache[weekKey]) { renderWeekSchedule(weekCache[weekKey], container); return; }
+                const weekKey = `${currentMode}_${identifier}_${formatDate(monday)}`;
+
+                if (weekCache[weekKey]) {
+                    renderWeekSchedule(weekCache[weekKey], container);
+                    return;
+                }
 
                 container.innerHTML = '<div class="loading">⌛ Загрузка данных...</div>';
+
                 try {
-                    let weekData = {};
+                    const weekData = {};
+                    const queryParam = buildScheduleQuery(currentMode, identifier);
+
                     for (let i = 0; i < 7; i++) {
-                        let d = new Date(monday); d.setDate(d.getDate() + i);
-                        let dStr = formatDate(d);
-                        let queryParam = currentMode === 'Group' ? `idGroup=${encodeURIComponent(currentName)}` : currentMode === 'Teacher' ? `idTeacher=${encodeURIComponent(currentName)}` : `idAudLine=${encodeURIComponent(currentName)}`;
+                        const d = new Date(monday);
+                        d.setDate(d.getDate() + i);
+                        const dStr = formatDate(d);
+
                         try {
                             const res = await fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dStr}`);
-                            if (!res.ok) throw new Error();
+                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
                             const data = await res.json();
-                            weekData[dStr] = extractLessonsFromAPIResponse(data);
-                        } catch(err) { weekData[dStr] = []; }
+                            const rawLessons = filterLessonsByDate(extractLessonsFromAPIResponse(data), dStr);
+                            weekData[dStr] = filterLessonBySubgroup(rawLessons);
+                        } catch (err) {
+                            console.error(`Ошибка загрузки ${dStr}:`, err);
+                            weekData[dStr] = [];
+                        }
                     }
+
                     weekCache[weekKey] = weekData;
                     localStorage.setItem('kgeu_week_cache', JSON.stringify(weekCache));
                     renderWeekSchedule(weekCache[weekKey], container);
-                } catch (e) { container.innerHTML = '<div class="loading">❌ Ошибка загрузки недели.</div>'; }
+                } catch (e) {
+                    console.error('Ошибка загрузки недели:', e);
+                    container.innerHTML = '<div class="loading">❌ Ошибка загрузки недели.</div>';
+                }
             }
         }
 
         async function loadMonthView() {
             if (!currentName) return;
-            const year = currentDate.getFullYear(); 
+            const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
+            const identifier = getApiIdentifier(currentMode);
+            if (!identifier) return;
             document.getElementById('date-label').innerText = `${MONTH_NAMES[month]} ${year} г.`;
             document.getElementById('global-search-input').value = '';
             updateTodayButtonVisibility();
-            
+
             renderMonthGrid(year, month, true);
 
             try {
                 const totalDays = new Date(year, month + 1, 0).getDate();
                 const monthData = {};
-                
+
                 const requests = Array.from({ length: totalDays }, (_, i) => {
                     const day = i + 1;
                     const dtStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    const queryParam = currentMode === 'Group' ? `idGroup=${encodeURIComponent(currentName)}` 
-                        : currentMode === 'Teacher' ? `idTeacher=${encodeURIComponent(currentName)}` 
-                        : `idAudLine=${encodeURIComponent(currentName)}`;
-                    
+                    const queryParam = buildScheduleQuery(currentMode, identifier);
+
                     return fetch(`${WORKER_URL}/api/Rasp?${queryParam}&sdate=${dtStr}`)
                         .then(res => {
                             if (!res.ok) throw new Error();
                             return res.json();
                         })
-                        .then(data => ({ dtStr, lessons: extractLessonsFromAPIResponse(data) }))
+                        .then(data => ({ dtStr, lessons: filterLessonsByDate(extractLessonsFromAPIResponse(data), dtStr) }))
                         .catch(() => ({ dtStr, lessons: [] }));
                 });
 
@@ -884,9 +1071,9 @@
 
                 monthLessonsCache = monthData;
                 renderMonthGrid(year, month, false);
-            } catch (e) { 
+            } catch (e) {
                 const container = document.getElementById('schedule-container');
-                if (container) container.innerHTML = '<div class="loading">❌ Ошибка загрузки месяца.</div>'; 
+                if (container) container.innerHTML = '<div class="loading">❌ Ошибка загрузки месяца.</div>';
             }
         }
 
@@ -908,8 +1095,8 @@
                 let rawLessons = monthLessonsCache[dtStr] || [];
                 let filtered = filterLessonBySubgroup(rawLessons);
                 let lessons = addWindowsToLessons(filtered);
-                
-                let dotsCount = Math.min(lessons.length, 5); 
+
+                let dotsCount = Math.min(lessons.length, 5);
                 let dotsHtml = '';
                 for (let d = 0; d < dotsCount; d++) { dotsHtml += `<div class="dot ${getLessonTypeClass(lessons[d])}"></div>`; }
                 let todayClass = (todayStr === dtStr) ? 'today' : '';
@@ -923,7 +1110,7 @@
             const title = extractLessonTitle(l);
             const teacher = extractLessonTeacher(l);
             const room = extractLessonRoom(l);
-            
+
             const typeClass = getLessonTypeClass(l);
             const progress = checkIsCurrentLesson(timeStr, lessonDateStr);
             const isCurrentClass = progress !== null ? 'current-lesson' : '';
@@ -961,7 +1148,7 @@
             element.classList.add('selected');
             const preview = document.getElementById('month-preview-content');
             if (!preview) return;
-            
+
             preview.classList.add('page-exit');
             setTimeout(() => {
                 let rawLessons = monthLessonsCache[dtStr] || [];
@@ -969,10 +1156,10 @@
                 let lessons = addWindowsToLessons(filtered);
                 let dtObj = new Date(dtStr);
                 let html = `<div class="day-header" style="margin-top:0;">${DAY_NAMES[dtObj.getDay()]}, ${dtObj.getDate()} ${MONTH_NAMES_GENITIVE[dtObj.getMonth()]}</div>`;
-                
+
                 if (lessons.length === 0) html += '<div style="text-align:center; padding:15px; font-weight:500;">🎉 На этот день пар нет!</div>';
                 else lessons.forEach(l => { html += renderLessonHtml(l, dtStr); });
-                
+
                 preview.innerHTML = html;
                 preview.classList.remove('page-exit');
                 preview.classList.add('page-enter');
@@ -1009,11 +1196,12 @@
             filterData(document.getElementById('search-input').value);
         }
 
-        function openSettingsModal() { 
+        function openSettingsModal() {
             const modal = document.getElementById('settings-modal');
-            modal.style.display = 'block'; 
+            modal.style.display = 'block';
             setTimeout(() => modal.classList.add('show'), 10);
         }
+
         function closeModals() {
             const modals = document.querySelectorAll('.modal');
             modals.forEach(modal => {
@@ -1024,21 +1212,33 @@
             if (dropdown) dropdown.classList.remove('active');
         }
 
+        function updateCreatorNote(textValue) {
+            const note = document.getElementById('creator-note');
+            if (note) note.innerHTML = textValue;
+        }
+
         function setTheme(theme, save = false) {
             currentTheme = theme; customBg = ''; cachedBgColors = null;
-            document.documentElement.style.cssText = ''; 
+            document.documentElement.style.cssText = '';
             document.body.style.backgroundImage = 'none';
             document.body.className = theme;
-            document.getElementById('motto-text').innerText = THEME_MOTTOS[theme] || THEME_MOTTOS['theme-purple'];
-            if (save) { localStorage.removeItem('kgeu_bg'); localStorage.removeItem('kgeu_bg_colors'); localStorage.setItem('kgeu_theme', currentTheme); }
+            const motto = THEME_MOTTOS[theme] || THEME_MOTTOS['theme-purple'];
+            document.getElementById('motto-text').innerText = motto;
+            updateCreatorNote(`<strong>Отсылка от создателей:</strong> ${motto}`);
+            if (save) {
+                localStorage.removeItem('kgeu_bg');
+                localStorage.removeItem('kgeu_bg_colors');
+                localStorage.setItem('kgeu_theme', currentTheme);
+            }
         }
 
         function applyCustomBackground(dataUrl, save = false, precomputedColors = null) {
-            customBg = dataUrl; 
-            document.body.style.backgroundImage = `url(${customBg})`; 
+            customBg = dataUrl;
+            document.body.style.backgroundImage = `url(${customBg})`;
             document.body.className = 'custom-bg-theme';
             document.getElementById('motto-text').innerText = THEME_MOTTOS['custom-bg-theme'];
-            
+            updateCreatorNote(`<strong>Отсылка от создателей:</strong> ${THEME_MOTTOS['custom-bg-theme']}`);
+
             const applyColors = (r, g, b) => {
                 let brightness = (r * 299 + g * 587 + b * 114) / 1000;
                 let isLight = brightness > 140;
@@ -1069,7 +1269,7 @@
                     } catch (err) {
                         console.error("Canvas background processing error:", err);
                     }
-                }; 
+                };
                 img.onerror = () => console.error("Failed to load background image");
                 img.src = dataUrl;
             }
@@ -1077,7 +1277,7 @@
         }
 
         document.getElementById('bg-upload').addEventListener('change', e => {
-            const file = e.target.files[0]; 
+            const file = e.target.files[0];
             if (file) {
                 const nameDisplay = document.getElementById('file-chosen-name');
                 if (nameDisplay) nameDisplay.innerText = file.name;
@@ -1088,43 +1288,43 @@
             }
         });
 
-        function clearBg() { 
-            customBg = ''; cachedBgColors = null; 
-            localStorage.removeItem('kgeu_bg'); localStorage.removeItem('kgeu_bg_colors'); 
-            document.body.style.backgroundImage = 'none'; 
+        function clearBg() {
+            customBg = ''; cachedBgColors = null;
+            localStorage.removeItem('kgeu_bg'); localStorage.removeItem('kgeu_bg_colors');
+            document.body.style.backgroundImage = 'none';
             const nameDisplay = document.getElementById('file-chosen-name');
             if (nameDisplay) nameDisplay.innerText = 'Файл не выбран';
-            setTheme('theme-purple', true); 
+            setTheme('theme-purple', true);
         }
 
         function applySearchSelection() {
-            let inputName = document.getElementById('search-input').value.trim();
-            if (!inputName) { alert('Пожалуйста, выберите нужный пункт!'); return; }
+            const inputName = document.getElementById('search-input').value.trim();
+            if (!inputName) {
+                alert('Пожалуйста, выберите нужный пункт!');
+                return;
+            }
 
-            let resolvedName = resolveItemName(currentMode, inputName);
-            const list = listsData[currentMode] || [];
-            
-            if (!list.includes(resolvedName)) {
+            const list = (listsData[currentMode] || []).map(normalizeListItem).filter(Boolean);
+            const resolved = resolveItem(currentMode, inputName);
+
+            if (!resolved || !list.some(item => item.name === resolved.name && String(item.id) === String(resolved.id))) {
                 alert('Пожалуйста, выберите элемент из выпадающего списка подсказок! Ввод собственных названий запрещен.');
                 return;
             }
 
-            if (currentName !== resolvedName) { 
-                weekCache = {}; dayLessonsCache = {}; monthLessonsCache = {};
-                localStorage.removeItem('kgeu_week_cache'); 
+            if (currentName !== resolved.name || String(currentId) !== String(resolved.id)) {
+                weekCache = {};
+                dayLessonsCache = {};
+                monthLessonsCache = {};
+                localStorage.removeItem('kgeu_week_cache');
             }
 
-            currentName = resolvedName;
-            modeNames[currentMode] = currentName;
-            localStorage.setItem('kgeu_mode', currentMode);
-            localStorage.setItem(`kgeu_name_${currentMode}`, currentName);
-            
-            document.getElementById('name-display').innerText = currentName.toUpperCase();
+            setCurrentSelection(currentMode, resolved.name, resolved.id, true);
             closeModals();
-            updateStarButton();
 
             animateContainerUpdate(() => {
-                if (currentTab === 'month') loadMonthView().catch(e => console.error(e)); else loadSchedule().catch(e => console.error(e));
+                if (currentTab === 'month') loadMonthView().catch(e => console.error(e));
+                else loadSchedule().catch(e => console.error(e));
             });
         }
 
