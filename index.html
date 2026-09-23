@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>КГЭУ Расписание & Планировщик</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      /* Базовые переменные (переопределяются через JS в настройках) */
+      --bg-dark: #0f172a;
+      --card-bg: rgba(15, 23, 42, 0.65);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --accent-main: #3b82f6; 
+      --accent-glow: rgba(59, 130, 246, 0.4);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --btn-bg: rgba(30, 41, 59, 0.8);
+
+      /* Строгие цвета типов занятий */
+      --color-lecture: #10b981;  
+      --color-practice: #facc15; 
+      --color-lab: #a855f7;      
+      --color-event: #ef4444;
+      --color-deadline: #f97316;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: var(--bg-dark);
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 12px;
+      padding-bottom: 90px;
+      transition: background 0.3s ease;
+    }
+
+    /* Навигация */
+    .top-nav {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 8px;
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      margin-bottom: 16px;
+      scrollbar-width: none;
+      position: sticky;
+      top: 12px;
+      z-index: 50;
+    }
+    .top-nav::-webkit-scrollbar { display: none; }
+
+    .nav-tab {
+      flex: 0 0 auto;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 12px;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .nav-tab.active {
+      background: var(--accent-main);
+      color: #fff;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .tab-content { display: none; animation: fadeIn 0.3s ease; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Карточки (Glassmorphism) */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 20px;
+      padding: 18px;
+      margin-bottom: 16px;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    .section-title { font-size: 18px; font-weight: 800; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .section-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+
+    /* Кнопки */
+    .btn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
+    .btn {
+      padding: 12px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      background: var(--btn-bg);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:active { transform: scale(0.95); }
+    .btn.primary { background: var(--accent-main); color: #fff; border: none; box-shadow: 0 4px 15px var(--accent-glow); }
+
+    /* Расписание (Карточки пар) */
+    .date-header { font-size: 16px; font-weight: 800; margin: 20px 0 10px 4px; color: var(--accent-main); }
+    .lesson-card {
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid var(--card-border);
+      border-left: 6px solid #64748b;
+      position: relative;
+      overflow: hidden;
+    }
+    .lesson-card.lecture { border-left-color: var(--color-lecture); }
+    .lesson-card.practice { border-left-color: var(--color-practice); }
+    .lesson-card.lab { border-left-color: var(--color-lab); }
+
+    .lesson-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .lesson-time { font-size: 15px; font-weight: 800; letter-spacing: 0.5px; }
+    .lesson-badge { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; }
+    
+    .lecture .lesson-badge { background: rgba(16, 185, 129, 0.15); color: var(--color-lecture); }
+    .practice .lesson-badge { background: rgba(250, 204, 21, 0.15); color: var(--color-practice); }
+    .lab .lesson-badge { background: rgba(168, 85, 247, 0.15); color: var(--color-lab); }
+
+    .lesson-name { font-size: 16px; font-weight: 700; margin-bottom: 8px; line-height: 1.3; }
+    .lesson-details { font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; }
+    .lesson-details span { display: flex; align-items: center; gap: 6px; }
+
+    /* Календарь (Месяц) */
+    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-weight: bold; font-size: 18px; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+    .calendar-day-name { font-size: 12px; color: var(--text-muted); font-weight: 700; padding-bottom: 8px; }
+    .calendar-cell {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      position: relative;
+    }
+    .calendar-cell.today { border-color: var(--accent-main); background: rgba(59, 130, 246, 0.15); }
+    .calendar-cell.has-task::after { content: ''; position: absolute; bottom: 4px; width: 6px; height: 6px; background: var(--color-deadline); border-radius: 50%; }
+
+    /* Списки задач */
+    .task-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      border: 1px solid var(--card-border);
+    }
+    .task-info { display: flex; flex-direction: column; gap: 4px; }
+    .task-title { font-size: 14px; font-weight: 600; }
+    .task-meta { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+    .delete-btn { color: #ef4444; font-weight: bold; cursor: pointer; padding: 4px 8px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; }
+
+    /* Настройки (Темы) */
+    .color-picker-grid { display: flex; gap: 12px; margin-bottom: 16px; }
+    .color-swatch { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+    .color-swatch.active { border-color: #fff; transform: scale(1.1); }
+    .setting-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); color: #fff; padding: 12px; border-radius: 12px; margin-bottom: 12px; outline: none; }
+
+    /* Поиск */
+    .search-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .search-row select, .search-row input { background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); color: #fff; padding: 12px; border-radius: 12px; outline: none; font-size: 14px; }
+    .search-row input { flex: 1; }
+
+    /* Модальное окно */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+    .modal-overlay.active { display: flex; }
+    .modal-content { background: var(--bg-dark); width: 100%; max-width: 400px; border-radius: 24px; padding: 24px; border: 1px solid var(--card-border); }
+  </style>
+</head>
+<body>
+
+  <!-- Навигация -->
+  <nav class="top-nav">
+    <button class="nav-tab active" onclick="switchTab('service')">Главная</button>
+    <button class="nav-tab" onclick="switchTab('today')">День</button>
+    <button class="nav-tab" onclick="switchTab('week')">Неделя</button>
+    <button class="nav-tab" onclick="switchTab('month')">Месяц</button>
+    <button class="nav-tab" onclick="switchTab('search')">Поиск</button>
+    <button class="nav-tab" onclick="switchTab('settings')">Настройки</button>
+  </nav>
+
+  <!-- Вкладка: ГЛАВНАЯ (Мой сервис) -->
+  <div id="tab-service" class="tab-content active">
+    <div class="glass-card">
+      <div class="section-title">
+        Мой профиль
+        <span id="profile-entity" style="font-size:14px; color:var(--accent-main); font-weight:700; background:rgba(59,130,246,0.15); padding:4px 10px; border-radius:8px;">ИПК-1-25</span>
+      </div>
+      <div class="section-subtitle">Создавайте задачи, дедлайны и мероприятия</div>
+      
+      <div class="btn-grid">
+        <button class="btn primary" onclick="openTaskModal('Задача')">📋 + Задача</button>
+        <button class="btn" style="color: var(--color-deadline);" onclick="openTaskModal('Дедлайн')">⏱ + Дедлайн</button>
+        <button class="btn" style="color: var(--color-event);" onclick="openTaskModal('Мероприятие')">🎉 + Событие</button>
+        <button class="btn" onclick="syncData()">☁️ Синхронизация</button>
+      </div>
+    </div>
+
+    <div class="glass-card">
+      <div class="section-title">Следующая пара</div>
+      <div id="next-lesson-widget" style="color: var(--text-muted); font-size: 14px;">Загрузка данных...</div>
+    </div>
+
+    <div class="glass-card">
+      <div class="section-title">Ближайшие дедлайны и задачи</div>
+      <div id="tasks-list-container">
+        <div style="text-align:center; color:var(--text-muted); font-size:13px;">Список пуст.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Вкладка: ДЕНЬ -->
+  <div id="tab-today" class="tab-content">
+    <div class="glass-card">
+      <div class="section-title">Расписание на день</div>
+      <div class="search-row" style="margin-bottom: 0;">
+        <input type="date" id="day-picker" class="setting-input" style="margin-bottom:0;" onchange="loadSpecificDay()">
+      </div>
+    </div>
+    <div id="day-container"></div>
+  </div>
+
+  <!-- Вкладка: НЕДЕЛЯ -->
+  <div id="tab-week" class="tab-content">
+    <div id="week-container"></div>
+  </div>
+
+  <!-- Вкладка: МЕСЯЦ (Календарь) -->
+  <div id="tab-month" class="tab-content">
+    <div class="glass-card">
+      <div class="calendar-header">
+        <button class="btn" style="padding: 6px 12px;" onclick="changeMonth(-1)">◀</button>
+        <span id="calendar-month-label">Сентябрь 2026</span>
+        <button class="btn" style="padding: 6px 12px;" onclick="changeMonth(1)">▶</button>
+      </div>
+      <div class="calendar-grid" id="calendar-grid">
+        <!-- JS генерирует календарь -->
+      </div>
+    </div>
+    <div class="glass-card">
+      <div class="section-title" id="selected-date-title">События за день</div>
+      <div id="selected-date-content" style="font-size:14px; color:var(--text-muted);">Выберите день в календаре.</div>
+    </div>
+  </div>
+
+  <!-- Вкладка: ПОИСК -->
+  <div id="tab-search" class="tab-content">
+    <div class="glass-card">
+      <div class="section-title">Поиск по расписанию</div>
+      <div class="search-row">
+        <select id="search-type">
+          <option value="group">Группа</option>
+          <option value="teacher">Преподаватель</option>
+          <option value="room">Аудитория</option>
+        </select>
+        <input type="text" id="search-input" placeholder="Введите название..." oninput="debounceSearch()">
+      </div>
+      <div id="search-results"></div>
+    </div>
+  </div>
+
+  <!-- Вкладка: НАСТРОЙКИ (Темы и Обои) -->
+  <div id="tab-settings" class="tab-content">
+    <div class="glass-card">
+      <div class="section-title">Оформление приложения</div>
+      
+      <div class="section-subtitle">Акцентный цвет</div>
+      <div class="color-picker-grid" id="color-picker">
+        <div class="color-swatch" style="background: #3b82f6;" onclick="setThemeColor('#3b82f6', this)"></div>
+        <div class="color-swatch" style="background: #10b981;" onclick="setThemeColor('#10b981', this)"></div>
+        <div class="color-swatch" style="background: #f43f5e;" onclick="setThemeColor('#f43f5e', this)"></div>
+        <div class="color-swatch" style="background: #8b5cf6;" onclick="setThemeColor('#8b5cf6', this)"></div>
+        <div class="color-swatch" style="background: #f97316;" onclick="setThemeColor('#f97316', this)"></div>
+      </div>
+
+      <div class="section-subtitle" style="margin-top:20px;">Кастомные обои (URL или Файл)</div>
+      <input type="text" id="bg-url-input" class="setting-input" placeholder="https://ссылка-на-картинку.jpg">
+      <button class="btn primary" style="width: 100%; margin-bottom: 12px;" onclick="applyBgUrl()">Применить URL обоев</button>
+      
+      <div style="text-align:center; margin: 10px 0; color:var(--text-muted);">ИЛИ</div>
+      
+      <input type="file" id="bg-file-input" class="setting-input" accept="image/*" style="padding: 8px;">
+      <button class="btn" style="width: 100%;" onclick="applyBgFile()">Загрузить из галереи</button>
+      
+      <button class="btn" style="width: 100%; margin-top: 16px; color: #ef4444;" onclick="resetTheme()">Сбросить оформление</button>
+    </div>
+  </div>
+
+  <!-- Модальное окно создания задачи -->
+  <div id="task-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="section-title" id="modal-title">Новая запись</div>
+      <input type="text" id="task-title-input" class="setting-input" placeholder="Название (например: Сдать курсач)">
+      <input type="date" id="task-date-input" class="setting-input">
+      <div style="display:flex; gap:10px; margin-top: 16px;">
+        <button class="btn" style="flex:1;" onclick="closeModal()">Отмена</button>
+        <button class="btn primary" style="flex:1;" onclick="saveTask()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    // КОНСТАНТЫ И СОСТОЯНИЕ
+    const WORKER_URL = 'https://kgeu-schedule-bot.garzite.workers.dev';
+    
+    let appState = {
+      id: localStorage.getItem('kgeu_id') || '14456',
+      name: localStorage.getItem('kgeu_name') || 'ИПК-1-25',
+      type: localStorage.getItem('kgeu_type') || 'group',
+      tasks: JSON.parse(localStorage.getItem('kgeu_tasks') || '[]'),
+      themeColor: localStorage.getItem('kgeu_color') || '#3b82f6',
+      bgImage: localStorage.getItem('kgeu_bg') || ''
+    };
+
+    let currentCalendarDate = new Date();
+    let currentModalType = '';
+    let searchTimeout = null;
+
+    // ИНИЦИАЛИЗАЦИЯ
+    window.onload = () => {
+      document.getElementById('profile-entity').innerText = appState.name;
+      document.getElementById('day-picker').value = new Date().toISOString().split('T')[0];
+      
+      applyStoredTheme();
+      renderTasks();
+      switchTab('service');
+    };
+
+    // НАВИГАЦИЯ
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+      const activeBtn = Array.from(document.querySelectorAll('.nav-tab')).find(b => b.getAttribute('onclick')?.includes(tabId));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      if (tabId === 'today') loadSpecificDay();
+      if (tabId === 'week') loadWeek();
+      if (tabId === 'month') renderCalendar();
+      if (tabId === 'service') checkNextLesson();
+    }
+
+    // РАСПИСАНИЕ И АПИ
+    async function fetchScheduleData(sdate) {
+      const cacheKey = `cache_${appState.type}_${appState.id}_${sdate}`;
+      try {
+        const res = await fetch(`${WORKER_URL}/api/schedule?id=${appState.id}&type=${appState.type}&sdate=${sdate}`);
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return data;
+        }
+      } catch (e) {
+        console.warn('API fetch failed, falling back to cache');
+      }
+      return JSON.parse(localStorage.getItem(cacheKey) || '[]');
+    }
+
+    async function loadSpecificDay() {
+      const dateStr = document.getElementById('day-picker').value;
+      const container = document.getElementById('day-container');
+      container.innerHTML = '<div style="text-align:center; padding:20px;">Загрузка...</div>';
+      
+      const data = await fetchScheduleData(dateStr);
+      container.innerHTML = renderLessonsHTML(data, dateStr);
+    }
+
+    async function loadWeek() {
+      const container = document.getElementById('week-container');
+      container.innerHTML = '<div style="text-align:center; padding:20px;">Сборка недели...</div>';
+      
+      let html = '';
+      const startOfWeek = new Date();
+      // Корректировка на понедельник
+      const day = startOfWeek.getDay();
+      const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+      startOfWeek.setDate(diff);
+
+      for (let i = 0; i < 6; i++) {
+        const d = new Date(startOfWeek);
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().split('T')[0];
+        
+        const data = await fetchScheduleData(dateStr);
+        if (data.length > 0) {
+          html += `<div class="date-header">${d.toLocaleDateString('ru-RU', {weekday:'long', day:'numeric', month:'long'})}</div>`;
+          html += renderLessonsHTML(data);
+        }
+      }
+      container.innerHTML = html || '<div style="text-align:center; padding:20px;">На этой неделе пар нет.</div>';
+    }
+
+    function renderLessonsHTML(lessons, dateStr = null) {
+      if (!lessons || lessons.length === 0) return `<div class="glass-card" style="text-align:center; color:var(--text-muted);">Занятий нет.</div>`;
+      
+      return lessons.map(l => {
+        const typeStr = (l.disciplineType || l.type || '').toLowerCase();
+        let classType = 'lecture';
+        let badgeText = l.disciplineType || 'Пара';
+
+        if (typeStr.includes('практ')) classType = 'practice';
+        if (typeStr.includes('лаб')) classType = 'lab';
+
+        return `
+          <div class="lesson-card ${classType}">
+            <div class="lesson-header">
+              <span class="lesson-time">${l.timeStart || l.start || '00:00'} - ${l.timeEnd || l.end || '00:00'}</span>
+              <span class="lesson-badge">${badgeText}</span>
+            </div>
+            <div class="lesson-name">${l.disciplineName || l.name || 'Дисциплина'}</div>
+            <div class="lesson-details">
+              <span>📍 ${l.auditorium || l.room || 'Ауд. не указана'}</span>
+              <span>👨‍🏫 ${l.teacherName || l.teacher || 'Не указан'}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function checkNextLesson() {
+      const today = new Date().toISOString().split('T')[0];
+      const lessons = await fetchScheduleData(today);
+      const widget = document.getElementById('next-lesson-widget');
+      
+      const now = new Date().toTimeString().substring(0, 5);
+      const upcoming = lessons.find(l => (l.timeStart || l.start) > now);
+
+      if (upcoming) {
+        widget.innerHTML = `
+          <div style="font-weight:700; color:#fff; margin-bottom:4px;">${upcoming.disciplineName || upcoming.name}</div>
+          <div>Начало в <b>${upcoming.timeStart || upcoming.start}</b> · Ауд: ${upcoming.auditorium || upcoming.room}</div>
+        `;
+      } else {
+        widget.innerHTML = 'На сегодня пары завершены.';
+      }
+    }
+
+    // КАЛЕНДАРЬ (МЕСЯЦ)
+    function changeMonth(delta) {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const grid = document.getElementById('calendar-grid');
+      const label = document.getElementById('calendar-month-label');
+      
+      const year = currentCalendarDate.getFullYear();
+      const month = currentCalendarDate.getMonth();
+      label.textContent = currentCalendarDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+
+      grid.innerHTML = '';
+      const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      dayNames.forEach(d => grid.innerHTML += `<div class="calendar-day-name">${d}</div>`);
+
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      let startDayOfWeek = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+
+      for (let i = 0; i < startDayOfWeek; i++) {
+        grid.innerHTML += `<div></div>`;
+      }
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      for (let d = 1; d <= lastDay.getDate(); d++) {
+        const iterDate = new Date(year, month, d);
+        // Корректировка часового пояса для ISO
+        const iterDateStr = new Date(iterDate.getTime() - (iterDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        
+        let cellClass = 'calendar-cell';
+        if (iterDateStr === todayStr) cellClass += ' today';
+        
+        // Проверка наличия задач
+        if (appState.tasks.some(t => t.date === iterDateStr)) {
+          cellClass += ' has-task';
+        }
+
+        grid.innerHTML += `<div class="${cellClass}" onclick="selectCalendarDay('${iterDateStr}')">${d}</div>`;
+      }
+    }
+
+    async function selectCalendarDay(dateStr) {
+      const title = document.getElementById('selected-date-title');
+      const content = document.getElementById('selected-date-content');
+      title.textContent = `События: ${dateStr}`;
+      
+      const dayTasks = appState.tasks.filter(t => t.date === dateStr);
+      let html = '';
+      
+      if (dayTasks.length > 0) {
+        html += '<div style="margin-bottom:12px;"><b>Ваши записи:</b><ul>';
+        dayTasks.forEach(t => { html += `<li>[${t.type}] ${t.title}</li>`; });
+        html += '</ul></div>';
+      }
+
+      const lessons = await fetchScheduleData(dateStr);
+      if (lessons.length > 0) {
+        html += '<b>Пары:</b><br>' + lessons.map(l => `• ${l.timeStart || l.start} - ${l.disciplineName || l.name}`).join('<br>');
+      }
+
+      content.innerHTML = html || 'В этот день ничего не запланировано.';
+    }
+
+    // МЕНЕДЖЕР ЗАДАЧ
+    function openTaskModal(type) {
+      currentModalType = type;
+      document.getElementById('modal-title').textContent = `Добавить: ${type}`;
+      document.getElementById('task-date-input').value = new Date().toISOString().split('T')[0];
+      document.getElementById('task-modal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('task-modal').classList.remove('active');
+      document.getElementById('task-title-input').value = '';
+    }
+
+    function saveTask() {
+      const title = document.getElementById('task-title-input').value.trim();
+      const date = document.getElementById('task-date-input').value;
+      if (title && date) {
+        appState.tasks.push({ id: Date.now(), type: currentModalType, title, date });
+        localStorage.setItem('kgeu_tasks', JSON.stringify(appState.tasks));
+        renderTasks();
+        closeModal();
+        if (document.getElementById('tab-month').classList.contains('active')) renderCalendar();
+      }
+    }
+
+    function renderTasks() {
+      const container = document.getElementById('tasks-list-container');
+      
+      // Сортировка по дате (сначала ближайшие)
+      const sortedTasks = [...appState.tasks].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      if (sortedTasks.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px;">Список пуст.</div>';
+        return;
+      }
+
+      container.innerHTML = sortedTasks.map(t => {
+        let color = 'var(--accent-main)';
+        if (t.type === 'Дедлайн') color = 'var(--color-deadline)';
+        if (t.type === 'Мероприятие') color = 'var(--color-event)';
+
+        return `
+          <div class="task-item">
+            <div class="task-info">
+              <span class="task-meta" style="color:${color}">${t.type} • ${t.date}</span>
+              <span class="task-title">${t.title}</span>
+            </div>
+            <div class="delete-btn" onclick="deleteTask(${t.id})">Удалить</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function deleteTask(id) {
+      appState.tasks = appState.tasks.filter(t => t.id !== id);
+      localStorage.setItem('kgeu_tasks', JSON.stringify(appState.tasks));
+      renderTasks();
+      if (document.getElementById('tab-month').classList.contains('active')) renderCalendar();
+    }
+
+    // СИСТЕМА ТЕМ И ОБОЕВ
+    function applyStoredTheme() {
+      document.documentElement.style.setProperty('--accent-main', appState.themeColor);
+      document.documentElement.style.setProperty('--accent-glow', appState.themeColor + '66'); // добавляем прозрачность
+      
+      if (appState.bgImage) {
+        document.body.style.backgroundImage = `url(${appState.bgImage})`;
+        document.documentElement.style.setProperty('--card-bg', 'rgba(15, 23, 42, 0.4)'); // Делаем прозрачнее для обоев
+      } else {
+        document.body.style.backgroundImage = 'none';
+        document.documentElement.style.setProperty('--card-bg', 'rgba(15, 23, 42, 0.65)');
+      }
+
+      // Подсветка выбранного цвета в настройках
+      document.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('active'));
+      const activeSwatch = Array.from(document.querySelectorAll('.color-swatch')).find(el => el.style.backgroundColor === rgbToHex(appState.themeColor));
+      if (activeSwatch) activeSwatch.classList.add('active');
+    }
+
+    function setThemeColor(color, element) {
+      appState.themeColor = color;
+      localStorage.setItem('kgeu_color', color);
+      applyStoredTheme();
+    }
+
+    function applyBgUrl() {
+      const url = document.getElementById('bg-url-input').value.trim();
+      if (url) {
+        appState.bgImage = url;
+        localStorage.setItem('kgeu_bg', url);
+        applyStoredTheme();
+      }
+    }
+
+    function applyBgFile() {
+      const fileInput = document.getElementById('bg-file-input');
+      const file = fileInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          appState.bgImage = e.target.result;
+          localStorage.setItem('kgeu_bg', appState.bgImage);
+          applyStoredTheme();
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function resetTheme() {
+      appState.themeColor = '#3b82f6';
+      appState.bgImage = '';
+      localStorage.removeItem('kgeu_color');
+      localStorage.removeItem('kgeu_bg');
+      document.getElementById('bg-url-input').value = '';
+      applyStoredTheme();
+    }
+
+    // ПОИСК ГРУПП/ПРЕПОДАВАТЕЛЕЙ
+    function debounceSearch() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(executeSearch, 500);
+    }
+
+    async function executeSearch() {
+      const q = document.getElementById('search-input').value.trim();
+      const type = document.getElementById('search-type').value;
+      const resContainer = document.getElementById('search-results');
+
+      if (q.length < 2) { resContainer.innerHTML = ''; return; }
+      resContainer.innerHTML = 'Поиск...';
+
+      try {
+        const res = await fetch(`${WORKER_URL}/api/search?type=${type}&q=${encodeURIComponent(q)}`);
+        if (res.ok) {
+          const items = await res.json();
+          resContainer.innerHTML = items.map(item => `
+            <div class="task-item" style="cursor:pointer;" onclick="selectEntity('${item.id}', '${item.name || item.fio}', '${type}')">
+              <span style="font-weight:700;">${item.name || item.fio}</span>
+              <span style="font-size:12px; color:var(--accent-main);">Выбрать</span>
+            </div>
+          `).join('');
+        }
+      } catch (e) {
+        resContainer.innerHTML = 'Ошибка поиска.';
+      }
+    }
+
+    function selectEntity(id, name, type) {
+      appState.id = id;
+      appState.name = name;
+      appState.type = type;
+
+      localStorage.setItem('kgeu_id', id);
+      localStorage.setItem('kgeu_name', name);
+      localStorage.setItem('kgeu_type', type);
+
+      document.getElementById('profile-entity').innerText = name;
+      switchTab('service');
+    }
+
+    // УТИЛИТЫ
+    async function syncData() {
+      try {
+        await fetch(`${WORKER_URL}/api/user`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telegram_id: tg.initDataUnsafe?.user?.id || 0,
+            selected_id: appState.id,
+            selected_name: appState.name,
+            selected_type: appState.type,
+            tasks: appState.tasks
+          })
+        });
+        tg.showAlert('Синхронизация выполнена!');
+      } catch (e) {
+        tg.showAlert('Ошибка сети при синхронизации.');
+      }
+    }
+
+    function rgbToHex(rgb) {
+      if (rgb.startsWith('#')) return rgb;
+      let rgbArr = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+      if (!rgbArr) return rgb;
+      function hex(x) { return ("0" + parseInt(x).toString(16)).slice(-2); }
+      return "#" + hex(rgbArr[1]) + hex(rgbArr[2]) + hex(rgbArr[3]);
+    }
+  </script>
+</body>
+</html>
