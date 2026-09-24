@@ -39,6 +39,8 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        body.modal-open { overflow: hidden; overscroll-behavior: none; touch-action: none; }
+
         body {
             background-color: var(--bg-color); color: var(--text-primary);
             min-height: 100vh; padding-bottom: calc(30px + env(safe-area-inset-bottom));
@@ -197,6 +199,8 @@
         .lesson-subgroup-badge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 999px; background: var(--border-color); color: var(--text-secondary); font-size: 10px; font-weight: 700; white-space: nowrap; flex: 0 0 auto; }
         .lesson-groups { margin: 5px 0 6px; padding: 5px 7px; border-radius: 8px; background: var(--border-color); color: var(--text-primary); font-size: 11px; line-height: 1.35; font-weight: 700; }
         .lesson-groups span { color: var(--text-secondary); font-weight: 600; }
+        .lesson-group-link { color: var(--text-primary); text-decoration: none; border-bottom: 1px dashed var(--text-secondary); cursor: pointer; transition: color .18s ease, opacity .18s ease; }
+        .lesson-group-link:active { color: var(--accent); opacity: .78; }
         .lesson-info { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
 
         .clickable-badge { background: var(--border-color); padding: 2px 8px; border-radius: 6px; cursor: pointer; font-weight: 600; color: var(--text-primary); display: inline-flex; align-items: center; gap: 4px; font-size: 12px; transition: 0.2s; }
@@ -226,22 +230,28 @@
         .calendar-day.selected { background: var(--accent) !important; color: var(--accent-text) !important; transform: scale(1.05); }
 
         .dots-container { display: flex; gap: 2px; margin-top: 2px; }
-        .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-primary); }
-        .dot.type-lecture { background: #38bdf8; }
-        .dot.type-practice { background: #34d399; }
-        .dot.type-lab { background: #f472b6; }
+        .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-primary); box-shadow: 0 0 0 1px rgba(255,255,255,.18); flex: 0 0 5px; }
+        .dot.type-lecture { background: #22b8ff; box-shadow: 0 0 0 1px rgba(34,184,255,.35), 0 0 5px rgba(34,184,255,.28); }
+        .dot.type-practice { background: #20e58b; box-shadow: 0 0 0 1px rgba(32,229,139,.35), 0 0 5px rgba(32,229,139,.24); }
+        .dot.type-lab { background: #ff4fa3; box-shadow: 0 0 0 1px rgba(255,79,163,.35), 0 0 5px rgba(255,79,163,.24); }
+        body.theme-light .dot.type-lecture { background:#0284c7; box-shadow:0 0 0 1px rgba(2,132,199,.28); }
+        body.theme-light .dot.type-practice { background:#059669; box-shadow:0 0 0 1px rgba(5,150,105,.28); }
+        body.theme-light .dot.type-lab { background:#db2777; box-shadow:0 0 0 1px rgba(219,39,119,.28); }
         .month-preview { margin-top: 10px; min-height: 100px; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 1000; opacity: 0; transition: opacity 0.3s ease; }
         .modal.show { display: block; opacity: 1; }
         .modal-content {
             position: absolute; bottom: 0; left: 0; width: 100%; background: var(--modal-bg);
-            border-top: 1px solid var(--border-color); border-radius: 22px 22px 0 0; padding: 20px;
-            max-height: 92vh; display: flex; flex-direction: column; overflow: visible;
+            border-top: 1px solid var(--border-color); border-radius: 22px 22px 0 0; padding: 14px 20px 20px;
+            max-height: 78dvh; display: flex; flex-direction: column; overflow: visible;
             box-shadow: 0 -12px 44px rgba(0,0,0,0.38); transform: translateY(100%);
             transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
             padding-bottom: calc(20px + env(safe-area-inset-bottom));
             touch-action: pan-y;
+            overscroll-behavior: contain;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             will-change: transform;
         }
         .modal-content.swiping { transition: none !important; }
@@ -260,7 +270,7 @@
         .form-input:focus { border-color: var(--accent); }
 
         .autocomplete-dropdown { 
-            position: absolute; top: 100%; left: 0; width: 100%; max-height: 252px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; 
+            position: absolute; top: 100%; left: 0; width: 100%; max-height: 230px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; 
             background: var(--modal-bg); border: 1px solid var(--border-color); border-radius: 0 0 10px 10px; 
             z-index: 10; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
             opacity: 0; transform: translateY(-8px); pointer-events: none; visibility: hidden; display: block;
@@ -271,7 +281,7 @@
         }
 
         .autocomplete-item {
-            min-height: 42px; padding: 10px 14px; font-size: 13px; cursor: pointer;
+            min-height: 46px; padding: 11px 14px; font-size: 13px; cursor: pointer;
             border-bottom: 1px solid var(--border-color); display: flex; align-items: center;
             transition: background 0.2s ease, color 0.2s ease, padding-left 0.2s ease;
         }
@@ -1045,20 +1055,33 @@
         function extractLessonTeacher(l) { return l.преподаватель || l.teacher || ''; }
         function extractLessonRoom(l) { return l.аудитория || l.room || ''; }
 
-        function extractLessonGroups(l) {
+        function extractLessonGroupList(l) {
             const raw = l?.группа ?? l?.группы ?? l?.group ?? l?.groups ?? l?.groupName ?? l?.groupNames ?? '';
+            let values = [];
             if (Array.isArray(raw)) {
-                return raw
-                    .flatMap(v => typeof v === 'object' ? [v?.name ?? v?.Наименование ?? v?.группа ?? v?.group ?? v?.title] : [v])
-                    .filter(v => v !== undefined && v !== null && String(v).trim())
-                    .map(v => String(v).trim())
-                    .join(', ');
+                values = raw.flatMap(v => typeof v === 'object' ? [v?.name ?? v?.Наименование ?? v?.группа ?? v?.group ?? v?.title] : [v]);
+            } else if (raw && typeof raw === 'object') {
+                values = [raw.name ?? raw.Наименование ?? raw.группа ?? raw.group ?? raw.title ?? raw.value];
+            } else {
+                values = String(raw || '').replace(/[\r\n]+/g, ', ').split(/[;|,]+/);
             }
-            if (raw && typeof raw === 'object') {
-                const value = raw.name ?? raw.Наименование ?? raw.группа ?? raw.group ?? raw.title ?? raw.value;
-                return value ? String(value).trim() : '';
-            }
-            return String(raw || '').replace(/[\r\n]+/g, ', ').replace(/\s*[;|]+\s*/g, ', ').replace(/(?:,\s*){2,}/g, ', ').trim();
+            return values.map(v => String(v ?? '').trim()).filter(Boolean).filter((v,i,a) => a.indexOf(v) === i);
+        }
+
+        function extractLessonGroups(l) {
+            return extractLessonGroupList(l).join(', ');
+        }
+
+        function renderLessonGroupLinks(l) {
+            const groups = extractLessonGroupList(l);
+            if (!groups.length) return '';
+            const links = groups.map(name => {
+                const resolved = resolveItem('Group', name);
+                const safeName = String(name).replace(/'/g, "\\'");
+                const safeId = String(resolved?.id || '').replace(/'/g, "\\'");
+                return resolved ? `<a class="lesson-group-link" href="#" onclick="event.preventDefault(); jumpTo('Group', '${safeName}', '${safeId}')">${name}</a>` : `<span>${name}</span>`;
+            }).join(', ');
+            return `<div class="lesson-groups">👥 <span>Группы:</span> ${links}</div>`;
         }
 
         function addWindowsToLessons(lessons) {
@@ -1353,13 +1376,23 @@
             daysGrid.innerHTML = gridHtml;
         }
 
-        function renderLessonHtml(l, lessonDateStr = '') {
+        function getNextLessonForToday(lessons, lessonDateStr) {
+            if (lessonDateStr !== formatDate(new Date()) || !Array.isArray(lessons)) return null;
+            const now = new Date();
+            const nowMin = now.getHours() * 60 + now.getMinutes();
+            return lessons
+                .filter(l => !l?.isWindow)
+                .map(l => ({ l, time: parseTimeRange(extractLessonTime(l)) }))
+                .filter(x => x.time && x.time.start > nowMin)
+                .sort((a,b) => a.time.start - b.time.start)[0]?.l || null;
+        }
+
+        function renderLessonHtml(l, lessonDateStr = '', isNextLesson = false) {
             const timeStr = extractLessonTime(l);
             const title = extractLessonTitle(l);
             const teacher = extractLessonTeacher(l);
             const room = extractLessonRoom(l);
-            const groups = extractLessonGroups(l);
-            const groupBlock = groups ? `<div class="lesson-groups">👥 <span>Группы:</span> ${groups}</div>` : '';
+            const groupBlock = renderLessonGroupLinks(l);
             
             const typeClass = getLessonTypeClass(l);
             const lessonSubgroup = getLessonSubgroup(l);
@@ -1387,7 +1420,7 @@
             let teacherBlock = teacher ? `<div class="clickable-badge" onclick="jumpTo('Teacher', '${safeTeacher}', '${safeTeacherId}')">👤 ${teacher}</div>` : '';
             let roomBlock = room && room !== 'Ауд. не указана' ? `<div class="clickable-badge" onclick="jumpTo('Aud', '${safeRoom}', '${safeRoomId}')">📍 ${room}</div>` : `<div style="color:var(--text-secondary);">📍 ${room || 'Ауд. не указана'}</div>`;
             let progressBar = progress !== null ? `<div class="live-progress" style="width: ${progress}%;"></div>` : '';
-            let liveBadge = getLessonLiveInfo(l, lessonDateStr);
+            let liveBadge = getLessonLiveInfo(l, lessonDateStr, isNextLesson);
 
             return `
                 <div class="lesson-card ${typeClass} ${isCurrentClass}" style="margin-bottom:8px;">
@@ -1416,7 +1449,7 @@
                     let filtered = filterLessonBySubgroup(rawLessons || []);
                     let lessons = addWindowsToLessons(filtered);
                     if (lessons.length === 0) html += '<div style="text-align:center; padding:15px; font-weight:500;">🎉 На этот день пар нет!</div>';
-                    else lessons.forEach(l => { html += renderLessonHtml(l, dtStr); });
+                    else { const nextLesson = getNextLessonForToday(lessons, dtStr); lessons.forEach(l => { html += renderLessonHtml(l, dtStr, l === nextLesson); }); }
                 }
                 
                 preview.innerHTML = html;
@@ -1443,7 +1476,7 @@
             return `через ${mins} мин`;
         }
 
-        function getLessonLiveInfo(l, lessonDateStr = '') {
+        function getLessonLiveInfo(l, lessonDateStr = '', isNextLesson = false) {
             if (!lessonDateStr || formatDate(new Date()) !== lessonDateStr || l?.isWindow) return '';
             const time = parseTimeRange(extractLessonTime(l));
             if (!time) return '';
@@ -1453,7 +1486,7 @@
                 const left = Math.max(0, time.end - nowMin);
                 return `<span class="lesson-live-badge">ИДЕТ ПАРА · осталось ${left} мин</span>`;
             }
-            if (time.start > nowMin) return `<span class="lesson-live-badge lesson-next-badge">${formatCountdown(time.start - nowMin)}</span>`;
+            if (isNextLesson && time.start > nowMin) return `<span class="lesson-live-badge lesson-next-badge">${formatCountdown(time.start - nowMin)}</span>`;
             return '';
         }
 
@@ -1472,7 +1505,8 @@
         function renderLessons(rawLessons, container, dateStr) {
             if (!rawLessons || rawLessons.length === 0) { container.innerHTML = '<div class="loading">🎉 На этот день пар нет!</div>'; return; }
             let lessons = addWindowsToLessons(rawLessons);
-            let html = ''; lessons.forEach(l => { html += renderLessonHtml(l, dateStr); });
+            const nextLesson = getNextLessonForToday(lessons, dateStr);
+            let html = ''; lessons.forEach(l => { html += renderLessonHtml(l, dateStr, l === nextLesson); });
             container.innerHTML = html;
         }
 
@@ -1492,7 +1526,8 @@
                 if (!filtered || filtered.length === 0) continue;
                 html += `<div class="day-header">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div>`;
                 let lessons = addWindowsToLessons(filtered);
-                lessons.forEach(l => { html += renderLessonHtml(l, dateKey); });
+                const nextLesson = getNextLessonForToday(lessons, dateKey);
+                lessons.forEach(l => { html += renderLessonHtml(l, dateKey, l === nextLesson); });
             }
             if (!html && !hasErrors) html = '<div class="loading">🎉 На этой неделе пар нет!</div>';
             if (hasErrors) html = '<div class="error-card">⚠️ Часть дней не удалось загрузить. Остальные данные показаны ниже.</div>' + html;
@@ -1517,6 +1552,7 @@
             const content = document.getElementById('my-schedule-content');
             if (!modal || !content) return;
             modal.style.display = 'block';
+            setModalOpenState(true);
             setTimeout(() => modal.classList.add('show'), 10);
             const sources = getFavoriteSources();
             if (!sources.length) {
@@ -1624,10 +1660,15 @@
             <div class="error-card" style="margin-top:8px;"><strong>Последняя ошибка:</strong><br>${lastApiError || 'Нет зарегистрированных ошибок.'}</div>
             <button class="btn-primary" onclick="forceRefreshCurrentView(); setTimeout(openDiagnosticsModal, 250);">↻ Обновить и проверить</button>`;
             modal.style.display = 'block';
+            setModalOpenState(true);
             setTimeout(() => modal.classList.add('show'), 10);
         }
 
         let activeModalSwipe = null;
+
+        function setModalOpenState(isOpen) {
+            document.body.classList.toggle('modal-open', isOpen);
+        }
 
         function setupModalSwipeToClose() {
             document.querySelectorAll('.modal-content').forEach(content => {
@@ -1637,8 +1678,8 @@
                     if (e.touches.length !== 1) return;
                     const touch = e.touches[0];
                     const rect = content.getBoundingClientRect();
-                    // Начинаем жест только возле верхней части окна — там, где находится полоска.
-                    if (touch.clientY > rect.top + 64) return;
+                    // Закрытие только жестом от верхней ручки. Внутри окна свайп = обычная прокрутка.
+                    if (touch.clientY > rect.top + 52) return;
                     activeModalSwipe = { content, startY: touch.clientY, currentY: touch.clientY, moved: false };
                 }, { passive: true });
                 content.addEventListener('touchmove', e => {
@@ -1646,7 +1687,7 @@
                     const dy = e.touches[0].clientY - activeModalSwipe.startY;
                     if (dy <= 0) return;
                     activeModalSwipe.currentY = e.touches[0].clientY;
-                    if (dy > 6) {
+                    if (dy > 5) {
                         activeModalSwipe.moved = true;
                         content.classList.add('swiping');
                         content.style.transform = `translateY(${Math.min(dy, content.offsetHeight)}px)`;
@@ -1657,9 +1698,20 @@
                     const dy = activeModalSwipe.currentY - activeModalSwipe.startY;
                     const shouldClose = activeModalSwipe.moved && dy > 85;
                     activeModalSwipe = null;
-                    content.classList.remove('swiping');
-                    content.style.transform = '';
-                    if (shouldClose) closeModals();
+                    if (shouldClose) {
+                        content.classList.remove('swiping');
+                        content.style.transform = 'translateY(100%)';
+                        const modal = content.closest('.modal');
+                        if (modal) modal.classList.remove('show');
+                        setTimeout(() => {
+                            if (modal) modal.style.display = 'none';
+                            content.style.transform = '';
+                            setModalOpenState(false);
+                        }, 340);
+                    } else {
+                        content.classList.remove('swiping');
+                        content.style.transform = '';
+                    }
                 }, { passive: true });
                 content.addEventListener('touchcancel', () => {
                     if (!activeModalSwipe || activeModalSwipe.content !== content) return;
@@ -1687,6 +1739,7 @@
             input.value = '';
             const modal = document.getElementById('search-modal');
             modal.style.display = 'block';
+            setModalOpenState(true);
             setTimeout(() => {
                 modal.classList.add('show');
                 input.focus();
@@ -1697,14 +1750,18 @@
         function openSettingsModal() { 
             const modal = document.getElementById('settings-modal');
             modal.style.display = 'block'; 
+            setModalOpenState(true);
             setTimeout(() => modal.classList.add('show'), 10);
         }
         function closeModals() {
             const modals = document.querySelectorAll('.modal');
             modals.forEach(modal => {
+                const content = modal.querySelector('.modal-content');
                 modal.classList.remove('show');
-                setTimeout(() => { modal.style.display = 'none'; }, 300);
+                if (content) { content.classList.remove('swiping'); content.style.transform = ''; }
+                setTimeout(() => { modal.style.display = 'none'; }, 340);
             });
+            setModalOpenState(false);
             const dropdown = document.getElementById('autocomplete-dropdown');
             if (dropdown) dropdown.classList.remove('active');
         }
