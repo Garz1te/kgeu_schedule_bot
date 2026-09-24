@@ -55,8 +55,8 @@
         }
 
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; letter-spacing: 0.5px; }
-        .badge-type { background: var(--accent); color: var(--accent-text); padding: 2px 8px; border-radius: 6px; font-size: 11px; text-transform: uppercase; }
+        .brand { display: flex; align-items: center; justify-content: flex-start; gap: 0; font-weight: 800; font-size: 18px; letter-spacing: 0.5px; }
+        .badge-type { display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: var(--accent-text); padding: 9px 18px; margin-left: 4px; border-radius: 11px; font-size: 16px; line-height: 1.1; font-weight: 900; text-transform: uppercase; box-shadow: 0 3px 10px rgba(0,0,0,.10); }
 
         .icon-btn {
             background: var(--border-color); border: none; color: var(--text-primary);
@@ -132,7 +132,7 @@
             margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; backdrop-filter: blur(8px);
         }
 
-        .creator-note {
+        .creator-note { display:none !important;
             text-align: left;
             font-size: 10px;
             line-height: 1.4;
@@ -195,6 +195,8 @@
 
         .lesson-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
         .lesson-subgroup-badge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 999px; background: var(--border-color); color: var(--text-secondary); font-size: 10px; font-weight: 700; white-space: nowrap; flex: 0 0 auto; }
+        .lesson-groups { margin: 5px 0 6px; padding: 5px 7px; border-radius: 8px; background: var(--border-color); color: var(--text-primary); font-size: 11px; line-height: 1.35; font-weight: 700; }
+        .lesson-groups span { color: var(--text-secondary); font-weight: 600; }
         .lesson-info { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
 
         .clickable-badge { background: var(--border-color); padding: 2px 8px; border-radius: 6px; cursor: pointer; font-weight: 600; color: var(--text-primary); display: inline-flex; align-items: center; gap: 4px; font-size: 12px; transition: 0.2s; }
@@ -239,7 +241,10 @@
             box-shadow: 0 -12px 44px rgba(0,0,0,0.38); transform: translateY(100%);
             transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
             padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            touch-action: pan-y;
+            will-change: transform;
         }
+        .modal-content.swiping { transition: none !important; }
         .modal-content::before {
             content: ''; width: 38px; height: 4px; border-radius: 999px;
             background: var(--text-secondary); opacity: 0.45;
@@ -291,6 +296,8 @@
         .summary-main { font-size:15px; font-weight:800; margin-bottom:4px; }
         .summary-meta { display:flex; flex-wrap:wrap; gap:6px; color:var(--text-secondary); font-size:12px; }
         .summary-empty { color:var(--text-secondary); font-size:13px; line-height:1.4; }
+        .lesson-live-badge { background:var(--accent); color:var(--accent-text); padding:3px 7px; border-radius:6px; font-size:11px; font-weight:800; margin-left:auto; white-space:nowrap; }
+        .lesson-next-badge { background:rgba(56,189,248,.16); color:var(--text-primary); border:1px solid rgba(56,189,248,.32); }
         .error-card { background:rgba(239,68,68,.09); border:1px solid rgba(239,68,68,.35); color:var(--text-primary); border-radius:12px; padding:11px 12px; margin-bottom:10px; font-size:12px; line-height:1.45; }
         .diagnostic-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:8px; }
         .diagnostic-item { background:var(--border-color); border-radius:9px; padding:8px; min-width:0; }
@@ -310,8 +317,7 @@
         <div class="header">
             <div class="header-top">
                 <div class="brand">
-                    <span>КГЭУ</span>
-                    <span class="badge-type" id="type-badge">⚡ КГЭУ</span>
+                    <span class="badge-type" id="type-badge" onclick="secretDiagnosticsTap()" title="">⚡ КГЭУ</span>
                 </div>
                 <div style="display:flex; gap:6px;">
                     <button class="icon-btn" id="star-btn" onclick="toggleFavorite()" title="В избранное">☆</button>
@@ -319,7 +325,6 @@
                 </div>
             </div>
 
-            <div class="creator-note" id="creator-note">Сделано для тех, кто открывает расписание раньше паники.</div>
 
             <div class="nav-modes" style="margin-bottom:10px;">
                 <div class="nav-item active" id="nav-Group" onclick="switchSearchMode('Group')">👥 Группа</div>
@@ -364,7 +369,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="search-modal-title">Выбор расписания</div>
-                <button class="icon-btn" style="width:30px; height:30px;" onclick="closeModals()">✕</button>
+                
             </div>
             <div class="form-group">
                 <label class="form-label" id="search-label">Поиск группы</label>
@@ -380,9 +385,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">Настройки и темы</div>
-                <button class="icon-btn" style="width:30px; height:30px;" onclick="closeModals()">✕</button>
+                
             </div>
-            <button class="quick-action-btn" style="width:100%; margin-bottom:12px;" onclick="openDiagnosticsModal()">🛠 Диагностика соединения и кэша</button>
             <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">Цветовая тема:</div>
             <div class="themes-grid">
                 <div class="theme-option" onclick="setTheme('theme-purple', true)">🔮 Фиолетовая</div>
@@ -424,7 +428,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">📚 Мои пары</div>
-                <button class="icon-btn" style="width:30px; height:30px;" onclick="closeModals()">✕</button>
+                
             </div>
             <div class="modal-scroll" id="my-schedule-content"><div class="loading">⌛ Загрузка...</div></div>
         </div>
@@ -434,8 +438,8 @@
     <div class="modal" id="diagnostic-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">🛠 Диагностика</div>
-                <button class="icon-btn" style="width:30px; height:30px;" onclick="closeModals()">✕</button>
+                <div class="modal-title" id="diagnostic-title">🛠 Диагностика</div>
+                
             </div>
             <div class="modal-scroll" id="diagnostic-content"></div>
         </div>
@@ -467,6 +471,8 @@
         let currentId = modeIds[currentMode] || '';
         let searchResults = [];
         let userSubgroup = safeGetStorage('kgeu_subgroup', '0') || '0';
+        let diagnosticTapCount = 0;
+        let diagnosticTapTimer = null;
 
         function safeGetStorage(key, fallback = null) {
             try { return localStorage.getItem(key) ?? fallback; } catch (_) { return fallback; }
@@ -1039,6 +1045,22 @@
         function extractLessonTeacher(l) { return l.преподаватель || l.teacher || ''; }
         function extractLessonRoom(l) { return l.аудитория || l.room || ''; }
 
+        function extractLessonGroups(l) {
+            const raw = l?.группа ?? l?.группы ?? l?.group ?? l?.groups ?? l?.groupName ?? l?.groupNames ?? '';
+            if (Array.isArray(raw)) {
+                return raw
+                    .flatMap(v => typeof v === 'object' ? [v?.name ?? v?.Наименование ?? v?.группа ?? v?.group ?? v?.title] : [v])
+                    .filter(v => v !== undefined && v !== null && String(v).trim())
+                    .map(v => String(v).trim())
+                    .join(', ');
+            }
+            if (raw && typeof raw === 'object') {
+                const value = raw.name ?? raw.Наименование ?? raw.группа ?? raw.group ?? raw.title ?? raw.value;
+                return value ? String(value).trim() : '';
+            }
+            return String(raw || '').replace(/[\r\n]+/g, ', ').replace(/\s*[;|]+\s*/g, ', ').replace(/(?:,\s*){2,}/g, ', ').trim();
+        }
+
         function addWindowsToLessons(lessons) {
             if (!lessons || lessons.length <= 1) return lessons;
             let newLessons = [];
@@ -1105,28 +1127,6 @@
                 const text = card.innerText.toLowerCase();
                 card.style.display = text.includes(q) ? 'block' : 'none';
             });
-        }
-
-        function exportToCalendar(title, timeStr, dateStr, room, teacher) {
-            let times = parseTimeRange(timeStr);
-            if (!times) return;
-            
-            let pad = n => String(n).padStart(2, '0');
-            let [y, m, d] = dateStr.split('-').map(Number);
-            let dtStart = `${y}${pad(m)}${pad(d)}T${pad(Math.floor(times.start/60))}${pad(times.start%60)}00`;
-            let dtEnd = `${y}${pad(m)}${pad(d)}T${pad(Math.floor(times.end/60))}${pad(times.end%60)}00`;
-
-            let details = encodeURIComponent(`Преподаватель: ${teacher}\nАудитория: ${room}`);
-            let location = encodeURIComponent(room);
-            let text = encodeURIComponent(title);
-
-            let gCalUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dtStart}/${dtEnd}&details=${details}&location=${location}`;
-            
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
-                window.Telegram.WebApp.openLink(gCalUrl);
-            } else {
-                window.open(gCalUrl, '_blank');
-            }
         }
 
         function extractLessonsFromAPIResponse(data) {
@@ -1358,6 +1358,8 @@
             const title = extractLessonTitle(l);
             const teacher = extractLessonTeacher(l);
             const room = extractLessonRoom(l);
+            const groups = extractLessonGroups(l);
+            const groupBlock = groups ? `<div class="lesson-groups">👥 <span>Группы:</span> ${groups}</div>` : '';
             
             const typeClass = getLessonTypeClass(l);
             const lessonSubgroup = getLessonSubgroup(l);
@@ -1385,16 +1387,14 @@
             let teacherBlock = teacher ? `<div class="clickable-badge" onclick="jumpTo('Teacher', '${safeTeacher}', '${safeTeacherId}')">👤 ${teacher}</div>` : '';
             let roomBlock = room && room !== 'Ауд. не указана' ? `<div class="clickable-badge" onclick="jumpTo('Aud', '${safeRoom}', '${safeRoomId}')">📍 ${room}</div>` : `<div style="color:var(--text-secondary);">📍 ${room || 'Ауд. не указана'}</div>`;
             let progressBar = progress !== null ? `<div class="live-progress" style="width: ${progress}%;"></div>` : '';
-            let liveBadge = progress !== null ? `<span style="background:var(--accent); color:var(--accent-text); padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold; margin-left:auto;">ИДЕТ ПАРА</span>` : '';
+            let liveBadge = getLessonLiveInfo(l, lessonDateStr);
 
             return `
                 <div class="lesson-card ${typeClass} ${isCurrentClass}" style="margin-bottom:8px;">
                     <div class="lesson-title">📖 ${title} ${subgroupBadge} ${liveBadge}</div>
+                    ${groupBlock}
                     <div class="lesson-info"><span style="display:flex; align-items:center;">🕒 ${timeStr}</span>${roomBlock}</div>
                     ${teacherBlock ? `<div style="margin-top:6px;">${teacherBlock}</div>` : ''}
-                    <div class="lesson-actions">
-                        <button class="action-btn" onclick="exportToCalendar('${title.replace(/'/g, "\\'")}', '${timeStr}', '${lessonDateStr}', '${room.replace(/'/g, "\\'")}', '${teacher.replace(/'/g, "\\'")}')">📅 В календарь</button>
-                    </div>
                     ${progressBar}
                 </div>`;
         }
@@ -1434,39 +1434,27 @@
                 .sort((a,b) => a.time.start - b.time.start);
         }
 
-        function renderDaySummary(rawLessons, dateStr) {
-            const items = getDayLessonItems(rawLessons, dateStr);
-            const today = formatDate(new Date()) === dateStr;
+        function formatCountdown(minutes) {
+            const total = Math.max(0, Math.round(Number(minutes) || 0));
+            const hours = Math.floor(total / 60);
+            const mins = total % 60;
+            if (hours > 0 && mins > 0) return `через ${hours} ч ${mins} мин`;
+            if (hours > 0) return `через ${hours} ч`;
+            return `через ${mins} мин`;
+        }
+
+        function getLessonLiveInfo(l, lessonDateStr = '') {
+            if (!lessonDateStr || formatDate(new Date()) !== lessonDateStr || l?.isWindow) return '';
+            const time = parseTimeRange(extractLessonTime(l));
+            if (!time) return '';
             const now = new Date();
             const nowMin = now.getHours() * 60 + now.getMinutes();
-            let current = null;
-            let next = null;
-            if (today) {
-                current = items.find(item => nowMin >= item.time.start && nowMin < item.time.end) || null;
-                next = items.find(item => item.time.start > nowMin) || null;
-            } else if (items.length) {
-                next = items[0];
+            if (nowMin >= time.start && nowMin < time.end) {
+                const left = Math.max(0, time.end - nowMin);
+                return `<span class="lesson-live-badge">ИДЕТ ПАРА · осталось ${left} мин</span>`;
             }
-            const totalMinutes = items.reduce((sum, item) => sum + Math.max(0, item.time.end - item.time.start), 0);
-            const hours = Math.floor(totalMinutes / 60);
-            const mins = totalMinutes % 60;
-            const duration = hours ? `${hours} ч${mins ? ` ${mins} мин` : ''}` : `${mins} мин`;
-            let main = '';
-            if (current) {
-                const title = extractLessonTitle(current.lesson);
-                const room = extractLessonRoom(current.lesson);
-                const left = Math.max(0, current.time.end - nowMin);
-                main = `<div class="summary-title">🔴 Сейчас идёт</div><div class="summary-main">${title}</div><div class="summary-meta"><span>🕒 ${extractLessonTime(current.lesson)}</span>${room ? `<span>📍 ${room}</span>` : ''}<span>⏳ осталось ${left} мин</span></div>`;
-            } else if (next) {
-                const title = extractLessonTitle(next.lesson);
-                const teacher = extractLessonTeacher(next.lesson);
-                const room = extractLessonRoom(next.lesson);
-                const wait = today ? Math.max(0, next.time.start - nowMin) : null;
-                main = `<div class="summary-title">⏭ Следующая пара</div><div class="summary-main">${title}</div><div class="summary-meta"><span>🕒 ${extractLessonTime(next.lesson)}</span>${teacher ? `<span>👤 ${teacher}</span>` : ''}${room ? `<span>📍 ${room}</span>` : ''}${wait !== null ? `<span>через ${wait} мин</span>` : ''}</div>`;
-            } else {
-                main = `<div class="summary-title">📚 Учебный день</div><div class="summary-empty">${items.length ? 'Все пары на сегодня уже закончились.' : 'На этот день пар нет.'}</div>`;
-            }
-            return `<div class="summary-card"><div class="summary-head"><div style="min-width:0; flex:1;">${main}</div><span class="summary-count">${items.length} пар · ${duration}</span></div></div>`;
+            if (time.start > nowMin) return `<span class="lesson-live-badge lesson-next-badge">${formatCountdown(time.start - nowMin)}</span>`;
+            return '';
         }
 
         function refreshLiveSchedule() {
@@ -1482,9 +1470,9 @@
         }
 
         function renderLessons(rawLessons, container, dateStr) {
-            if (!rawLessons || rawLessons.length === 0) { container.innerHTML = renderDaySummary([], dateStr) + '<div class="loading">🎉 На этот день пар нет!</div>'; return; }
+            if (!rawLessons || rawLessons.length === 0) { container.innerHTML = '<div class="loading">🎉 На этот день пар нет!</div>'; return; }
             let lessons = addWindowsToLessons(rawLessons);
-            let html = renderDaySummary(rawLessons, dateStr); lessons.forEach(l => { html += renderLessonHtml(l, dateStr); });
+            let html = ''; lessons.forEach(l => { html += renderLessonHtml(l, dateStr); });
             container.innerHTML = html;
         }
 
@@ -1604,6 +1592,16 @@
             });
         }
 
+        function secretDiagnosticsTap() {
+            diagnosticTapCount++;
+            clearTimeout(diagnosticTapTimer);
+            diagnosticTapTimer = setTimeout(() => { diagnosticTapCount = 0; }, 1200);
+            if (diagnosticTapCount >= 5) {
+                diagnosticTapCount = 0;
+                openDiagnosticsModal();
+            }
+        }
+
         function openDiagnosticsModal() {
             const modal = document.getElementById('diagnostic-modal');
             const content = document.getElementById('diagnostic-content');
@@ -1628,6 +1626,61 @@
             modal.style.display = 'block';
             setTimeout(() => modal.classList.add('show'), 10);
         }
+
+        let activeModalSwipe = null;
+
+        function setupModalSwipeToClose() {
+            document.querySelectorAll('.modal-content').forEach(content => {
+                if (content.dataset.swipeReady === '1') return;
+                content.dataset.swipeReady = '1';
+                content.addEventListener('touchstart', e => {
+                    if (e.touches.length !== 1) return;
+                    const touch = e.touches[0];
+                    const rect = content.getBoundingClientRect();
+                    // Начинаем жест только возле верхней части окна — там, где находится полоска.
+                    if (touch.clientY > rect.top + 64) return;
+                    activeModalSwipe = { content, startY: touch.clientY, currentY: touch.clientY, moved: false };
+                }, { passive: true });
+                content.addEventListener('touchmove', e => {
+                    if (!activeModalSwipe || activeModalSwipe.content !== content || e.touches.length !== 1) return;
+                    const dy = e.touches[0].clientY - activeModalSwipe.startY;
+                    if (dy <= 0) return;
+                    activeModalSwipe.currentY = e.touches[0].clientY;
+                    if (dy > 6) {
+                        activeModalSwipe.moved = true;
+                        content.classList.add('swiping');
+                        content.style.transform = `translateY(${Math.min(dy, content.offsetHeight)}px)`;
+                    }
+                }, { passive: true });
+                content.addEventListener('touchend', () => {
+                    if (!activeModalSwipe || activeModalSwipe.content !== content) return;
+                    const dy = activeModalSwipe.currentY - activeModalSwipe.startY;
+                    const shouldClose = activeModalSwipe.moved && dy > 85;
+                    activeModalSwipe = null;
+                    content.classList.remove('swiping');
+                    content.style.transform = '';
+                    if (shouldClose) closeModals();
+                }, { passive: true });
+                content.addEventListener('touchcancel', () => {
+                    if (!activeModalSwipe || activeModalSwipe.content !== content) return;
+                    activeModalSwipe = null;
+                    content.classList.remove('swiping');
+                    content.style.transform = '';
+                }, { passive: true });
+            });
+        }
+
+        function setupModalBackdropClose() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                if (modal.dataset.backdropReady === '1') return;
+                modal.dataset.backdropReady = '1';
+                modal.addEventListener('click', e => {
+                    if (e.target === modal) closeModals();
+                });
+            });
+        }
+
+        setupModalBackdropClose();
 
         function openSearchModal() {
             const input = document.getElementById('search-input');
@@ -1693,6 +1746,7 @@
                 document.documentElement.style.setProperty('--accent', accentColor);
                 document.documentElement.style.setProperty('--accent-text', isLight ? '#ffffff' : '#000000');
                 document.documentElement.style.setProperty('--border-color', isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)');
+                document.documentElement.style.setProperty('--modal-bg', isLight ? 'rgba(255,255,255,0.96)' : 'rgba(15,23,42,0.96)');
             };
 
             if (precomputedColors) applyColors(precomputedColors.r, precomputedColors.g, precomputedColors.b);
@@ -1772,6 +1826,7 @@
         }
 
         init();
-    </script>
+            setupModalSwipeToClose();
+</script>
 </body>
 </html>
