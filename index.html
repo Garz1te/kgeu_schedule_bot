@@ -443,23 +443,11 @@
             }
         }
 
-        /* ЦВЕТА ТИПОВ ПАР: лекция — зелёный, практика — оранжевый, лаба — фиолетовый */
-        .lesson-card.type-lecture {
-            border-left: 4px solid #22c55e;
-        }
-
-        .lesson-card.type-practice {
-            border-left: 4px solid #f97316;
-        }
-
-        .lesson-card.type-lab {
-            border-left: 4px solid #a855f7;
-        }
-
-        .lesson-card.type-window {
-            border-left: 4px dashed var(--text-secondary);
-            background: rgba(0,0,0,0.05);
-        }
+        /* ЦВЕТА ТИПОВ ПАР: лекция — синий, практика — оранжевый, лаба — розовый */
+        .lesson-card.type-lecture { border-left: 4px solid #38bdf8; }
+        .lesson-card.type-practice { border-left: 4px solid #f97316; }
+        .lesson-card.type-lab { border-left: 4px solid #f472b6; }
+        .lesson-card.type-window { border-left: 4px dashed var(--text-secondary); background: rgba(255,255,255,0.025); }
 
         .lesson-title {
             font-size: 15px;
@@ -562,6 +550,12 @@
         .action-btn:active {
             background: var(--accent);
             color: var(--accent-text);
+        }
+
+        .action-btn.danger {
+            background: rgba(239,68,68,.14);
+            color: #fca5a5;
+            border: 1px solid rgba(239,68,68,.26);
         }
 
         .current-lesson {
@@ -685,6 +679,11 @@
             box-shadow: 0 0 0 1px rgba(168,85,247,.35), 0 0 5px rgba(168,85,247,.24);
         }
 
+        .dot.type-window {
+            background: var(--border-color);
+            box-shadow: none;
+        }
+
         body.theme-light .dot.type-lecture {
             background:#16a34a;
             box-shadow:0 0 0 1px rgba(22,163,74,.28);
@@ -736,36 +735,16 @@
             max-height: 78dvh;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow: visible;
             box-shadow: 0 -12px 44px rgba(0,0,0,0.38);
             transform: translateY(100%);
             transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
             padding-bottom: calc(20px + env(safe-area-inset-bottom));
             touch-action: pan-y;
             overscroll-behavior: contain;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             will-change: transform;
-        }
-
-        .modal-content.swiping {
-            transition: none !important;
-        }
-
-        .modal-content::before {
-            content: '';
-            width: 38px;
-            height: 4px;
-            border-radius: 999px;
-            background: var(--text-secondary);
-            opacity: 0.45;
-            align-self: center;
-            margin: -8px auto 12px;
-            flex: 0 0 auto;
-        }
-
-        /* Поиск открывается выше: список при этом остаётся самостоятельной прокруткой. */
-        #search-modal .modal-content {
-            min-height: 62dvh;
-            max-height: 88dvh;
         }
 
         .modal.show .modal-content {
@@ -823,11 +802,10 @@
             top: 100%;
             left: 0;
             width: 100%;
-            max-height: 40dvh;
+            max-height: 230px;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
-            scrollbar-width: none;
             background: var(--modal-bg);
             border: 1px solid var(--border-color);
             border-radius: 0 0 10px 10px;
@@ -857,13 +835,6 @@
             display: flex;
             align-items: center;
             transition: background 0.2s ease, color 0.2s ease, padding-left 0.2s ease;
-        }
-
-        .autocomplete-dropdown::-webkit-scrollbar,
-        .modal-scroll::-webkit-scrollbar {
-            width: 0;
-            height: 0;
-            display: none;
         }
 
         .autocomplete-item:last-child {
@@ -925,27 +896,22 @@
         }
 
         .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 7px;
+            display: flex;
+            gap: 6px;
             margin-top: 8px;
         }
 
         .quick-action-btn {
-            min-width: 0;
+            flex: 1;
             background: var(--border-color);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
-            padding: 9px 7px;
+            padding: 8px 7px;
             border-radius: 9px;
             font-size: 11px;
             font-weight: 700;
             cursor: pointer;
             transition: transform .18s ease, background .25s ease, color .25s ease;
-        }
-
-        .quick-action-btn:last-child {
-            grid-column: 1 / -1;
         }
 
         .quick-action-btn:active {
@@ -1042,87 +1008,155 @@
             white-space: nowrap;
         }
 
+        .admin-user-tools {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .admin-user-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 9px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .admin-user-meta { min-width: 0; flex: 1; }
+        .admin-user-name { font-size: 12px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .admin-user-sub { font-size: 10px; color: var(--text-secondary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .admin-user-row .action-btn { flex: 0 0 auto; }
+
         .modal-scroll {
             overflow-y: auto;
-            flex: 1 1 auto;
-            min-height: 0;
             max-height: 62vh;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
+        }
+
+        .modal-scroll, .autocomplete-dropdown, .favorites-scroll {
             scrollbar-width: none;
         }
 
-        .my-schedule-nav {
-            display: grid;
-            grid-template-columns: 40px minmax(0, 1fr) 40px auto;
-            align-items: center;
-            gap: 6px;
-            margin: 0 0 10px;
-            padding: 6px;
-            background: var(--border-color);
-            border-radius: 12px;
-        }
-
-        .my-schedule-nav-btn {
-            height: 34px;
-            border: 1px solid var(--border-color);
-            border-radius: 9px;
-            background: var(--card-bg);
-            color: var(--text-primary);
-            font-size: 18px;
-            font-weight: 800;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform .18s ease, background .2s ease;
-        }
-
-        .my-schedule-nav-btn:active {
-            transform: scale(.95);
-            background: var(--accent);
-            color: var(--accent-text);
-        }
-
-        .my-schedule-date {
-            min-width: 0;
-            text-align: center;
-            font-size: 12px;
-            font-weight: 800;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .my-schedule-today-btn {
-            padding: 0 10px;
-            font-size: 11px;
-        }
-
-        /* Длинные списки внутри модалок прокручиваются отдельно от самого меню. */
-        #notes-list,
-        #free-auds-result {
-            max-height: 42dvh;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
-            scrollbar-width: none;
-        }
-
-        #notes-list::-webkit-scrollbar,
-        #free-auds-result::-webkit-scrollbar {
+        .modal-scroll::-webkit-scrollbar, .autocomplete-dropdown::-webkit-scrollbar, .favorites-scroll::-webkit-scrollbar {
             width: 0;
             height: 0;
             display: none;
         }
 
-        @media (max-width: 430px) {
-            .container { padding: 10px; }
-            .header, .controls-card { border-radius: 16px; }
+        #search-modal .modal-content {
+            top: 2vh;
+            bottom: auto;
+            max-height: 94dvh;
+            border-radius: 22px;
+            transform: translateY(-20px);
+            overflow: hidden;
+        }
+
+        #search-modal .form-group {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        #search-modal .autocomplete-dropdown {
+            position: relative;
+            top: auto;
+            left: auto;
+            max-height: min(58dvh, 470px);
+            margin-top: 4px;
+            flex: 0 1 auto;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            touch-action: pan-y;
+        }
+
+        #search-modal.show .modal-content {
+            transform: translateY(0);
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 7px;
+        }
+
+        .quick-actions .quick-action-btn:last-child {
+            grid-column: 1 / -1;
+        }
+
+        .notes-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .lesson-note {
+            margin-top: 9px;
+            padding: 9px 10px;
+            border-radius: 9px;
+            background: var(--border-color);
+            color: var(--text-primary);
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .lesson-note-label {
+            color: var(--accent);
+            font-weight: 800;
+            margin-right: 4px;
+        }
+
+        .lesson-note-editor {
+            margin-top: 9px;
+            padding: 9px;
+            border-radius: 10px;
+            background: var(--border-color);
+        }
+
+        .lesson-note-editor textarea {
+            width: 100%;
+            min-height: 72px;
+            resize: vertical;
+            background: rgba(0,0,0,.08);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 8px 9px;
+            outline: none;
+            font: inherit;
+            font-size: 12px;
+        }
+
+        .lesson-note-editor-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 7px;
+        }
+
+        .lesson-note-editor-actions .action-btn {
+            flex: 1;
+        }
+
+        @media (max-width: 420px) {
+            .container { padding: 9px; }
+            .header { padding: 13px; border-radius: 16px; }
             .badge-type { padding: 8px 14px; font-size: 15px; }
-            .quick-action-btn { font-size: 10.5px; padding: 9px 5px; }
-            .my-schedule-nav { grid-template-columns: 36px minmax(0, 1fr) 36px auto; gap: 5px; }
-            .my-schedule-today-btn { padding: 0 8px; }
+            .nav-item { font-size: 10.5px; padding: 8px 3px; }
+            .lesson-card { padding: 12px; border-radius: 12px; }
+            .lesson-title { font-size: 14px; }
+        }
+
+        @media (max-width: 420px) {
+            .my-schedule-nav { grid-template-columns: 36px minmax(0,1fr) 36px; }
+            .my-schedule-today { grid-column: 1 / -1; width: 100%; }
+            .my-schedule-date { font-size: 11px; }
+            .quick-action-btn { font-size: 11px; min-height: 36px; }
         }
 
         .my-schedule-source {
@@ -1139,6 +1173,60 @@
             color: var(--text-secondary);
             padding: 24px 10px;
             font-size: 13px;
+        }
+
+        .my-schedule-nav {
+            display: grid;
+            grid-template-columns: 36px minmax(0,1fr) 36px auto;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 9px;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            padding: 2px 0 7px;
+            background: var(--modal-bg);
+        }
+
+        .my-schedule-nav-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 10px;
+            background: var(--border-color);
+            color: var(--text-primary);
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+        .my-schedule-date {
+            min-width: 0;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            font-size: 12px;
+        }
+
+        .my-schedule-date span {
+            color: var(--text-secondary);
+            font-size: 10px;
+        }
+
+        .my-schedule-today {
+            white-space: nowrap;
+            padding: 8px 9px;
+        }
+
+        .lesson-source-badge {
+            display: inline-flex;
+            margin: 2px 0 5px;
+            padding: 3px 7px;
+            border-radius: 6px;
+            background: var(--border-color);
+            color: var(--text-secondary);
+            font-size: 10px;
+            font-weight: 700;
         }
 
         .offline-banner {
@@ -1243,8 +1331,8 @@
 
             <div class="quick-actions">
                 <button class="quick-action-btn" onclick="openMyScheduleModal()">📚 Мои пары</button>
-                <button class="quick-action-btn" onclick="openNotesModal()">📝 Заметки</button>
-                <button class="quick-action-btn" onclick="exportToICS()">📅 .ics</button>
+                <button class="quick-action-btn" onclick="openNotesModal()">📝 Мои заметки</button>
+                <button class="quick-action-btn" onclick="openRemindersModal()">🔔 Мои напоминания</button>
                 <button class="quick-action-btn" onclick="openFreeAudsModal()">🚪 Свободные</button>
                 <button class="quick-action-btn" onclick="forceRefreshCurrentView()">↻ Обновить</button>
             </div>
@@ -1312,7 +1400,6 @@
                 <div id="file-chosen-name" style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Файл не выбран</div>
             </div>
 
-            <button class="btn-primary" onclick="openRemindersModal()">🔔 Мои напоминания</button>
         </div>
     </div>
 
@@ -1336,42 +1423,17 @@
         </div>
     </div>
 
-    <!-- Заметки -->
+    <!-- Мои заметки -->
     <div class="modal" id="notes-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">📝 Заметки</div>
+                <div class="modal-title">📝 Мои заметки</div>
             </div>
-
-            <div class="form-group">
-                <label class="form-label">Тип заметки</label>
-                <select class="subgroup-select" id="note-type" style="width:100%;">
-                    <option value="note">📝 Заметка</option>
-                    <option value="hw">📚 Домашнее задание</option>
-                    <option value="test">✍️ Контрольная</option>
-                    <option value="free">🏃 Освобождение</option>
-                    <option value="other">❓ Другое</option>
-                </select>
+            <div class="notes-toolbar">
+                <span style="font-size:12px;color:var(--text-secondary);">Заметки сохраняются прямо у соответствующих пар.</span>
+                <button class="action-btn" onclick="clearAllNotes()">🗑 Очистить всё</button>
             </div>
-
-            <div class="form-group">
-                <label class="form-label">Предмет / пара</label>
-                <input type="text" class="form-input" id="note-lesson" placeholder="Например: Математика">
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Текст заметки</label>
-                <textarea class="form-input" id="note-text" placeholder="Например: контрольная, освобождение, дз..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Дата (к какой паре относится)</label>
-                <input type="date" class="form-input" id="note-due">
-            </div>
-
-            <button class="btn-primary" onclick="saveNote()">Сохранить заметку</button>
-
-            <div id="notes-list" style="margin-top:15px;"></div>
+            <div id="notes-list" class="modal-scroll"></div>
         </div>
     </div>
 
@@ -1380,6 +1442,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">🔔 Мои напоминания</div>
+            </div>
+            <div class="notes-toolbar">
+                <span style="font-size:12px;color:var(--text-secondary);">Напоминание приходит за 15 минут до пары.</span>
+                <button class="action-btn" onclick="clearAllReminders()">🗑 Очистить всё</button>
             </div>
             <div id="reminders-list" class="modal-scroll"></div>
         </div>
@@ -1454,27 +1520,15 @@ const THEME_MOTTOS = {
     'custom-bg-theme': '🖼 «Фон твой, подпись наша — пока ты не заменишь её»'
 };
 
-// Типы заметок
-const NOTE_TYPES = {
-    note: '📝 Заметка',
-    hw: '📚 ДЗ',
-    test: '✍️ Контрольная',
-    free: '🏃 Освобождение',
-    other: '❓ Другое'
-};
-
 // =====================================================
 // State
 // =====================================================
 
 let currentMode = 'Group';
-let searchMode = 'Group';
 let currentName = '';
 let currentId = '';
 let currentDate = new Date();
 let currentTab = 'day';
-let myScheduleDate = new Date();
-let myScheduleRequestId = 0;
 let currentTheme = 'theme-purple';
 let userSubgroup = '0';
 let favorites = [];
@@ -1496,6 +1550,11 @@ let activeRequestController = null;
 let apiRequestCount = 0;
 let lastApiRequest = null;
 let lastApiError = null;
+let forceNetworkRefresh = false;
+let notesByKey = {};
+let notesLoaded = false;
+let myScheduleDate = new Date();
+let myScheduleRequestId = 0;
 
 let selectedSearchId = '';
 let syncTimer = null;
@@ -1648,7 +1707,23 @@ function getDayCacheTTL(dateStr) {
 
 function getMonthCacheTTL(year, month) {
     const now = new Date();
-    return (now.getFullYear() === year && now.getMonth() === month) ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+    return (now.getFullYear() === year && now.getMonth() === month) ? 15 * 60 * 1000 : 24 * 60 * 60 * 1000;
+}
+
+function pruneMonthLocalCache(maxEntries = 8) {
+    try {
+        const entries = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i) || '';
+            if (!key.startsWith('kgeu_month_cache_')) continue;
+            const raw = localStorage.getItem(key);
+            let at = 0;
+            try { at = JSON.parse(raw || '{}')?.at || 0; } catch (e) {}
+            entries.push({ key, at });
+        }
+        entries.sort((a,b) => b.at - a.at);
+        entries.slice(maxEntries).forEach(x => localStorage.removeItem(x.key));
+    } catch (e) {}
 }
 
 function parseTimeRange(str) {
@@ -1684,94 +1759,59 @@ function openModal(id) {
 }
 
 function closeModals() {
-    activeModalSwipe = null;
-
     document.querySelectorAll('.modal').forEach(modal => {
-        const content = modal.querySelector('.modal-content');
         modal.classList.remove('show');
-        if (content) {
-            content.classList.remove('swiping');
-            content.style.transform = '';
-        }
         setTimeout(() => {
             modal.style.display = 'none';
-        }, 340);
+        }, 300);
     });
 
     document.body.classList.remove('modal-open');
 
     const dropdown = document.getElementById('autocomplete-dropdown');
     if (dropdown) dropdown.classList.remove('active');
-
-    // Закрытие поиска не меняет уже выбранное расписание.
-    searchMode = currentMode;
-    updateSelectionUI();
 }
-
-let activeModalSwipe = null;
 
 function setupModals() {
     document.querySelectorAll('.modal').forEach(modal => {
-        if (modal.dataset.backdropReady !== '1') {
-            modal.dataset.backdropReady = '1';
-            modal.addEventListener('click', e => {
-                if (e.target === modal) closeModals();
-            });
-        }
+        modal.addEventListener('click', e => {
+            if (e.target === modal) closeModals();
+        });
 
-        const content = modal.querySelector('.modal-content');
-        if (!content || content.dataset.swipeReady === '1') return;
-        content.dataset.swipeReady = '1';
+        let startY = null;
+        let startX = null;
+        let startTarget = null;
 
-        content.addEventListener('touchstart', e => {
-            if (e.touches.length !== 1) return;
+        modal.addEventListener('touchstart', e => {
+            if (!e.touches?.length) return;
+            const target = e.target;
+            // Inner lists, form controls and search results must scroll normally.
+            if (target.closest('.modal-scroll, .autocomplete-dropdown, input, textarea, select, button')) return;
+
+            const content = modal.querySelector('.modal-content');
+            if (!content) return;
             const touch = e.touches[0];
             const rect = content.getBoundingClientRect();
-            // Жест закрытия распознаём только у верхней ручки.
-            // Внутри списков остаётся обычная прокрутка.
-            if (touch.clientY > rect.top + 56) return;
-            activeModalSwipe = { content, startY: touch.clientY, currentY: touch.clientY, moved: false };
-        }, { passive: true });
-
-        content.addEventListener('touchmove', e => {
-            if (!activeModalSwipe || activeModalSwipe.content !== content || e.touches.length !== 1) return;
-            const dy = e.touches[0].clientY - activeModalSwipe.startY;
-            if (dy <= 0) return;
-            activeModalSwipe.currentY = e.touches[0].clientY;
-            if (dy > 5) {
-                activeModalSwipe.moved = true;
-                content.classList.add('swiping');
-                content.style.transform = `translateY(${Math.min(dy, content.offsetHeight)}px)`;
+            // Swipe-to-close begins only in the top 56px of the sheet.
+            if (touch.clientY >= rect.top && touch.clientY <= rect.top + 56) {
+                startY = touch.clientY;
+                startX = touch.clientX;
+                startTarget = target;
             }
         }, { passive: true });
 
-        content.addEventListener('touchend', () => {
-            if (!activeModalSwipe || activeModalSwipe.content !== content) return;
-            const dy = activeModalSwipe.currentY - activeModalSwipe.startY;
-            const shouldClose = activeModalSwipe.moved && dy > 85;
-            activeModalSwipe = null;
+        modal.addEventListener('touchend', e => {
+            if (startY === null || !e.changedTouches?.length) return;
+            const touch = e.changedTouches[0];
+            const dy = touch.clientY - startY;
+            const dx = touch.clientX - startX;
+            startY = null;
+            startX = null;
+            startTarget = null;
 
-            if (shouldClose) {
-                content.classList.remove('swiping');
-                content.style.transform = 'translateY(100%)';
-                const modal = content.closest('.modal');
-                if (modal) modal.classList.remove('show');
-                setTimeout(() => {
-                    if (modal) modal.style.display = 'none';
-                    content.style.transform = '';
-                    document.body.classList.remove('modal-open');
-                }, 340);
-            } else {
-                content.classList.remove('swiping');
-                content.style.transform = '';
+            if (dy > 72 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+                closeModals();
             }
-        }, { passive: true });
-
-        content.addEventListener('touchcancel', () => {
-            if (!activeModalSwipe || activeModalSwipe.content !== content) return;
-            activeModalSwipe = null;
-            content.classList.remove('swiping');
-            content.style.transform = '';
         }, { passive: true });
     });
 }
@@ -1791,90 +1831,157 @@ function updateSelectionUI() {
     document.getElementById('star-btn').innerText = isFavorite() ? '★' : '☆';
 }
 
+function normalizeMode(mode) {
+    const value = String(mode || '').trim().toLowerCase();
+    if (value === 'teacher' || value === 'преподаватель' || value === 'tch') return 'Teacher';
+    if (value === 'aud' || value === 'auditorium' || value === 'audline' || value === 'аудитория') return 'Aud';
+    return 'Group';
+}
+
+function listNormalizeValue(value) {
+    return String(value || '').replace(/[.\s\-_]+/g, '').toLowerCase();
+}
+
+function resolveListItem(type, rawName = '', rawId = '') {
+    const mode = normalizeMode(type);
+    const name = String(rawName || '').trim();
+    const id = String(rawId || '').trim();
+    const list = (listsData[mode] || []).map(normalizeListItem).filter(Boolean);
+
+    if (id) {
+        const byId = list.find(item => String(item.id) === id);
+        if (byId) return byId;
+    }
+
+    if (name) {
+        const norm = listNormalizeValue(name);
+        const byName = list.find(item => listNormalizeValue(item.name) === norm);
+        if (byName) return byName;
+    }
+
+    return name ? { name, id: id || name } : null;
+}
+
+function resolveFavoriteAcrossModes(f) {
+    if (!f) return null;
+    const preferred = normalizeMode(f.type);
+    const rawName = String(f.name || '').trim();
+    const rawId = String(f.id || '').trim();
+    if (!rawName && !rawId) return null;
+
+    // The visible name is the strongest signal for repairing stale/wrong favorite type.
+    if (rawName) {
+        const preferredList = (listsData[preferred] || []).map(normalizeListItem).filter(Boolean);
+        const byPreferredName = preferredList.find(x => listNormalizeValue(x.name) === listNormalizeValue(rawName));
+        if (byPreferredName) return { type: preferred, name: byPreferredName.name, id: String(byPreferredName.id || byPreferredName.name) };
+
+        for (const mode of ['Group', 'Teacher', 'Aud']) {
+            if (mode === preferred) continue;
+            const list = (listsData[mode] || []).map(normalizeListItem).filter(Boolean);
+            const foundByName = list.find(x => listNormalizeValue(x.name) === listNormalizeValue(rawName));
+            if (foundByName) return { type: mode, name: foundByName.name, id: String(foundByName.id || foundByName.name) };
+        }
+    }
+
+    // Only when the name is unavailable do we fall back to an exact ID match.
+    if (rawId) {
+        const preferredList = (listsData[preferred] || []).map(normalizeListItem).filter(Boolean);
+        const byPreferredId = preferredList.find(x => String(x.id) === rawId);
+        if (byPreferredId) return { type: preferred, name: byPreferredId.name, id: rawId };
+
+        for (const mode of ['Group', 'Teacher', 'Aud']) {
+            if (mode === preferred) continue;
+            const list = (listsData[mode] || []).map(normalizeListItem).filter(Boolean);
+            const foundById = list.find(x => String(x.id) === rawId);
+            if (foundById) return { type: mode, name: foundById.name, id: rawId };
+        }
+    }
+
+    const fallback = resolveListItem(preferred, rawName, rawId);
+    return fallback?.name ? { type: preferred, name: fallback.name, id: String(fallback.id || fallback.name) } : null;
+}
+
+function normalizeFavorite(f) {
+    return resolveFavoriteAcrossModes(f);
+}
+
 function setCurrentSelection(mode, name, id, save = true) {
-    currentMode = mode;
-    searchMode = mode;
-    currentName = name;
-    currentId = id;
+    const type = normalizeMode(mode);
+    const resolved = resolveListItem(type, name, id);
+
+    currentMode = type;
+    currentName = resolved?.name || String(name || '').trim();
+    currentId = String(resolved?.id || id || currentName || '').trim();
 
     updateSelectionUI();
 
     if (save) {
-        safeSetStorage('kgeu_mode', mode);
-        safeSetStorage('kgeu_name', name);
-        safeSetStorage('kgeu_id', id);
+        safeSetStorage('kgeu_mode', currentMode);
+        safeSetStorage('kgeu_name', currentName);
+        safeSetStorage('kgeu_id', currentId);
         syncCloud();
     }
 }
 
-function updateSearchModeUI(mode) {
-    searchMode = mode || currentMode || 'Group';
-
+function updateSearchModalForMode() {
     const labels = {
         Group: 'Поиск группы',
         Teacher: 'Поиск преподавателя',
         Aud: 'Поиск аудитории'
     };
-
     const placeholders = {
         Group: 'Например: ИПК-1-25...',
         Teacher: 'Например: Саниева А.Д....',
-        Aud: 'Например: Г-302...'
+        Aud: 'Например: А112...'
     };
-
-    const label = labels[searchMode] || 'Выбор';
-    const title = document.getElementById('search-modal-title');
-    const searchLabel = document.getElementById('search-label');
+    const label = labels[currentMode] || 'Поиск';
     const input = document.getElementById('search-input');
-
-    if (title) title.innerText = label;
-    if (searchLabel) searchLabel.innerText = label;
-    if (input) input.placeholder = placeholders[searchMode] || '';
-
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    const activeEl = document.getElementById('nav-' + searchMode);
-    if (activeEl) activeEl.classList.add('active');
+    document.getElementById('search-modal-title').innerText = label;
+    document.getElementById('search-label').innerText = label;
+    if (input) input.placeholder = placeholders[currentMode] || '';
 }
 
 function switchSearchMode(mode) {
-    if (!['Group', 'Teacher', 'Aud'].includes(mode)) return;
-
-    updateSearchModeUI(mode);
+    const nextMode = normalizeMode(mode);
+    currentMode = nextMode;
+    currentName = '';
+    currentId = '';
     selectedSearchId = '';
 
+    safeSetStorage('kgeu_mode', currentMode);
+    safeRemoveStorage('kgeu_name');
+    safeRemoveStorage('kgeu_id');
+
+    clearScheduleCaches();
+    updateSelectionUI();
+    updateSearchModalForMode();
+
     const input = document.getElementById('search-input');
-    if (input) {
-        input.value = '';
-        input.focus();
-    }
-
+    if (input) { input.value = ''; input.focus(); }
     const dropdown = document.getElementById('autocomplete-dropdown');
-    if (dropdown) dropdown.classList.remove('active');
+    if (dropdown) { dropdown.innerHTML = ''; dropdown.classList.remove('active'); }
 
-    // Если окно поиска уже открыто, сразу показываем список выбранного типа.
-    const modal = document.getElementById('search-modal');
-    if (modal?.classList.contains('show')) filterData('');
+    openModal('search-modal');
+    filterData('');
 }
 
 function isFavorite() {
-    return favorites.some(f => f.type === currentMode && (f.id === currentId || f.name === currentName));
+    return favorites.some(f => {
+        const nf = normalizeFavorite(f);
+        return nf && nf.type === currentMode && (nf.id === currentId || nf.name === currentName);
+    });
 }
 
 function toggleFavorite() {
     if (!currentName) return;
 
-    const index = favorites.findIndex(f => f.type === currentMode && (f.id === currentId || f.name === currentName));
+    const normalized = favorites.map(normalizeFavorite).filter(Boolean);
+    const index = normalized.findIndex(f => f.type === currentMode && (f.id === currentId || f.name === currentName));
 
-    if (index >= 0) {
-        favorites.splice(index, 1);
-    } else {
-        favorites.push({
-            type: currentMode,
-            name: currentName,
-            id: currentId
-        });
-    }
+    if (index >= 0) normalized.splice(index, 1);
+    else normalized.push({ type: currentMode, name: currentName, id: currentId });
 
+    favorites = normalized;
     renderFavorites();
     document.getElementById('star-btn').innerText = isFavorite() ? '★' : '☆';
 
@@ -1884,6 +1991,7 @@ function toggleFavorite() {
 
 function renderFavorites() {
     const container = document.getElementById('favorites-container');
+    favorites = favorites.map(normalizeFavorite).filter(Boolean);
 
     if (!favorites.length) {
         container.style.display = 'none';
@@ -1892,12 +2000,21 @@ function renderFavorites() {
     }
 
     container.style.display = 'flex';
-
-    container.innerHTML = favorites.map(f => `
-        <div class="favorite-chip" onclick="jumpToEnc('${enc(f.type)}', '${enc(f.name)}', '${enc(f.id || f.name)}')">
-            ${esc(f.name)}
+    container.innerHTML = favorites.map((f, index) => `
+        <div class="favorite-chip" onclick="jumpToFavorite(${index})">
+            ${esc(f.type === 'Group' ? '👥' : f.type === 'Teacher' ? '👤' : '🚪')} ${esc(f.name)}
         </div>
     `).join('');
+
+    safeSetStorage('kgeu_favorites', JSON.stringify(favorites));
+}
+
+function jumpToFavorite(index) {
+    const favorite = favorites[index];
+    if (!favorite) return;
+    const resolved = normalizeFavorite(favorite);
+    if (!resolved) return;
+    jumpTo(resolved.type, resolved.name, resolved.id);
 }
 
 function jumpToEnc(typeEnc, nameEnc, idEnc) {
@@ -1905,27 +2022,23 @@ function jumpToEnc(typeEnc, nameEnc, idEnc) {
 }
 
 function jumpTo(type, name, id) {
+    const mode = normalizeMode(type);
+    const resolved = resolveListItem(mode, name, id);
+    if (!resolved?.name) return;
+
     closeModals();
-
-    if (currentMode !== type || currentName !== name || currentId !== id) {
-        clearScheduleCaches();
-    }
-
-    setCurrentSelection(type, name, id, true);
-
+    clearScheduleCaches();
+    setCurrentSelection(mode, resolved.name, resolved.id, true);
     navigateView(loadCurrent);
 }
 
 function openSearchModal() {
     selectedSearchId = '';
-    updateSearchModeUI(searchMode || currentMode);
+    updateSearchModalForMode();
     const input = document.getElementById('search-input');
-    if (input) input.value = '';
+    input.value = '';
     openModal('search-modal');
-    setTimeout(() => {
-        if (input) input.focus();
-        filterData('');
-    }, 20);
+    filterData('');
 }
 
 function openSettingsModal() {
@@ -1933,23 +2046,35 @@ function openSettingsModal() {
 }
 
 function openMyScheduleModal() {
-    myScheduleDate = new Date();
+    myScheduleDate = new Date(myScheduleDate || new Date());
     openModal('my-schedule-modal');
     loadMySchedule();
 }
 
-function openNotesModal(lessonTitle = '', dueDate = '') {
-    document.getElementById('note-lesson').value = lessonTitle || '';
-    document.getElementById('note-text').value = '';
-    document.getElementById('note-due').value = dueDate || '';
-    document.getElementById('note-type').value = 'note';
-
+function openNotesModal() {
     openModal('notes-modal');
     loadNotes();
 }
 
-function openNoteEnc(titleEnc, dateEnc) {
-    openNotesModal(dec(titleEnc), dec(dateEnc));
+function openRemindersModal() {
+    openModal('reminders-modal');
+    loadReminders();
+}
+
+function openFreeAudsModal() {
+    const d = new Date();
+
+    document.getElementById('free-date').value = formatDate(d);
+
+    const nowMin = d.getHours() * 60 + d.getMinutes();
+    const startMin = Math.min(nowMin, 23 * 60);
+    const endMin = Math.min(startMin + 90, 23 * 60 + 59);
+
+    document.getElementById('free-start').value = minutesToTime(startMin);
+    document.getElementById('free-end').value = minutesToTime(endMin);
+    document.getElementById('free-auds-result').innerHTML = '';
+
+    openModal('free-auds-modal');
 }
 
 function openRemindersModal() {
@@ -2027,19 +2152,26 @@ async function loadLists() {
 }
 
 function normalizeListItem(item) {
-    if (!item) return null;
+    if (item === null || item === undefined) return null;
 
     if (typeof item === 'string' || typeof item === 'number') {
         const value = String(item).trim();
         return value ? { id: value, name: value } : null;
     }
 
-    if (!item.name) return null;
+    const name = item.name ?? item.Name ?? item.title ?? item.Title ?? item.text ?? item.label ??
+        item.group ?? item.groupName ?? item.teacher ?? item.teacherName ?? item.auditorium ?? item.auditoriumName ??
+        item.Группа ?? item.ФИО ?? item.наименование ?? item.Наименование ?? item.Аудитория ?? item.value;
+    const id = item.id ?? item.Id ?? item.ID ?? item.idGroup ?? item.idTeacher ?? item.idAudLine ?? item.idAud ??
+        item.groupId ?? item.teacherId ?? item.auditoriumId ?? item.audId ?? item.код ?? item.кодГруппы ??
+        item.кодПреподавателя ?? item.кодАудитории ?? item.Код ?? item.code ?? item.Code ?? item.value ?? name;
 
-    return {
-        id: String(item.id ?? item.name).trim(),
-        name: String(item.name).trim()
-    };
+    if (name === undefined || name === null) return null;
+
+    const cleanName = String(name).trim();
+    if (!cleanName) return null;
+
+    return { id: String(id ?? cleanName).trim() || cleanName, name: cleanName };
 }
 
 // =====================================================
@@ -2055,7 +2187,7 @@ function filterData(value) {
     const dropdown = document.getElementById('autocomplete-dropdown');
     const query = String(value || '').trim().toLowerCase();
 
-    const rawList = listsData[searchMode] || [];
+    const rawList = listsData[currentMode] || [];
     let list = rawList.map(normalizeListItem).filter(Boolean);
 
     if (query) {
@@ -2098,7 +2230,7 @@ function applySearchSelection() {
         return;
     }
 
-    const list = (listsData[searchMode] || []).map(normalizeListItem).filter(Boolean);
+    const list = (listsData[currentMode] || []).map(normalizeListItem).filter(Boolean);
 
     let selected = null;
 
@@ -2115,7 +2247,7 @@ function applySearchSelection() {
         return;
     }
 
-    jumpTo(searchMode, selected.name, selected.id);
+    jumpTo(currentMode, selected.name, selected.id);
 }
 
 // =====================================================
@@ -2192,7 +2324,11 @@ function loadCurrent(requestId, signal) {
 }
 
 function forceRefreshCurrentView() {
+    forceNetworkRefresh = true;
     clearScheduleCaches();
+    if (document.getElementById('my-schedule-modal')?.classList.contains('show')) {
+        loadMySchedule();
+    }
     navigateView(loadCurrent);
 }
 
@@ -2212,26 +2348,22 @@ function clearScheduleCaches() {
 // Schedule data helpers
 // =====================================================
 
-function getApiIdentifier() {
-    return currentId || currentName;
+function getApiIdentifier(mode = currentMode) {
+    const resolved = resolveListItem(mode, currentName, currentId);
+    return resolved?.id || currentId || currentName;
 }
 
 function buildScheduleQuery(mode, id) {
-    const map = {
-        Group: 'idGroup',
-        Teacher: 'idTeacher',
-        Aud: 'idAudLine'
-    };
-
-    return `${map[mode]}=${encodeURIComponent(id)}`;
+    const key = normalizeMode(mode) === 'Group' ? 'idGroup' : normalizeMode(mode) === 'Teacher' ? 'idTeacher' : 'idAudLine';
+    return `${key}=${encodeURIComponent(id)}`;
 }
 
 function extractLessonsFromAPIResponse(data) {
     if (!data) return [];
     if (Array.isArray(data)) return data;
-    if (Array.isArray(data.rasp)) return data.rasp;
     if (Array.isArray(data.data?.rasp)) return data.data.rasp;
     if (Array.isArray(data.data)) return data.data;
+    if (Array.isArray(data.rasp)) return data.rasp;
     if (Array.isArray(data.items)) return data.items;
     if (Array.isArray(data.lessons)) return data.lessons;
     if (Array.isArray(data.schedule)) return data.schedule;
@@ -2243,14 +2375,14 @@ function filterLessonsByDate(lessons, dateStr) {
     if (!Array.isArray(lessons)) return [];
 
     return lessons.filter(lesson => {
-        const d = lesson.date || lesson.Date || lesson.day_date || lesson.day || lesson.Дата || lesson.дата;
+        const d = lesson.date || lesson.Date || lesson.day_date || lesson.day || lesson.Дата;
         if (!d) return true;
         return formatDate(new Date(d)) === dateStr;
     });
 }
 
 async function fetchScheduleForDate(query, dateStr, signal, retries = 2) {
-    const url = `${WORKER_URL}/api/rasp?${query}&sdate=${encodeURIComponent(dateStr)}`;
+    const url = `${WORKER_URL}/api/Rasp?${query}&sdate=${encodeURIComponent(dateStr)}${forceNetworkRefresh ? '&fresh=1' : ''}`;
 
     let lastError = null;
 
@@ -2323,62 +2455,119 @@ async function mapWithConcurrency(items, limit, worker) {
 // =====================================================
 
 function extractLessonTitle(l) {
-    return l.subject || l.Subject || l.name || l.Name || l.discipline || l.Дисциплина || l.дисциплина || l.title || 'Без названия';
+    return l.subject || l.Subject || l.discipline || l.Дисциплина || l.дисциплина || l.name || l.Name || l.title || 'Без названия';
 }
 
 function extractLessonTime(l) {
-    if (l.time || l.Time || l.time_range || l.period || l.Время || l.время) return l.time || l.Time || l.time_range || l.period || l.Время || l.время;
-    const start = l.start || l.startTime || l.начало;
-    const end = l.end || l.endTime || l.окончание || l.конец;
-    return (start && end) ? `${start} - ${end}` : '';
+    return l.time || l.Time || l.time_range || l.period || l.Время || l.время || '';
 }
 
 function extractLessonTeacher(l) {
-    return l.teacher || l.Teacher || l.teacherName || l.Преподаватель || l.преподаватель || '';
+    return l.teacher || l.Teacher || l.teacherName || l.преподаватель || l.Преподаватель || l.ФИОПреподавателя || '';
+}
+
+function extractLessonTeacherId(l, teacherName = '') {
+    const direct = l.idTeacher ?? l.teacherId ?? l.teacher_id ?? l.кодПреподавателя ?? l.КодПреподавателя ?? l.id_преподавателя;
+    if (direct !== undefined && direct !== null && String(direct).trim()) return String(direct).trim();
+    return teacherName ? String(getKnownItemId('Teacher', teacherName) || '').trim() : '';
 }
 
 function extractLessonRoom(l) {
-    return l.room || l.Room || l.auditorium || l.aud || l.Аудитория || l.аудитория || '';
+    return l.room || l.Room || l.auditorium || l.aud || l.аудитория || l.Аудитория || l.audLine || l.auditory || '';
+}
+
+function extractLessonRoomId(l, roomName = '') {
+    const direct = l.idAudLine ?? l.idAud ?? l.audId ?? l.aud_id ?? l.auditoriumId ?? l.auditoryId ?? l.кодАудитории ?? l.КодАудитории;
+    if (direct !== undefined && direct !== null && String(direct).trim()) return String(direct).trim();
+    return roomName ? String(getKnownItemId('Aud', roomName) || '').trim() : '';
 }
 
 function getLessonSubgroup(l) {
-    const value = l.subgroup || l.Subgroup || l.sub_group || l.подгруппа || l.номерПодгруппы || '';
-    const num = parseInt(value, 10);
-    return isNaN(num) ? 0 : num;
+    const value = l.subgroup ?? l.Subgroup ?? l.sub_group ?? l.подгруппа ?? l.номерПодгруппы ?? l.подгруппаНомер ?? l['номер_подгруппы'] ?? '';
+    const match = String(value || '').match(/\d+/);
+    return match ? Number(match[0]) : 0;
 }
 
 function getLessonTypeClass(l) {
-    const type = String(l.type || l.Type || l.lesson_type || l.Тип || l.типЗанятия || '').toLowerCase();
-    const title = extractLessonTitle(l).toLowerCase();
+    if (l?.isWindow) return 'type-window';
 
-    if (type.includes('lab') || title.includes('лаб')) return 'type-lab';
-    if (type.includes('prac') || title.includes('прак')) return 'type-practice';
+    const raw = [
+        l.type, l.Type, l.lesson_type, l.Тип, l.тип,
+        l.типЗанятия, l.ТипЗанятия, l.видЗанятия, l.ВидЗанятия, l.вид,
+        l.custom1, l.custom2, l.kind, l.lessonKind, l.lessonType
+    ].filter(v => v !== undefined && v !== null && String(v).trim() !== '').join(' ').toLowerCase();
+
+    const title = String(extractLessonTitle(l) || '').toLowerCase();
+    const source = `${raw} ${title}`;
+
+    // КГЭУ использует сокращения «л», «пр», «лр». Для коротких кодов
+    // сначала проверяем лабораторную, затем практику, иначе лекцию.
+    if (/(?:^|[\s,;()\[\]{}:/-])(?:лр|лабр|лабораторно|лабораторная|лабораторное|лабораторный)(?:$|[\s,;()\[\]{}:/-])/u.test(source) || /лаборатор/u.test(source) || /\blab(?:oratory)?\b/i.test(source)) {
+        return 'type-lab';
+    }
+
+    if (/(?:^|[\s,;()\[\]{}:/-])пр(?:$|[\s,;()\[\]{}:/-])/u.test(raw) ||
+        /(?:^|[\s,;()\[\]{}:/-])практи(?:ка|ческ|ческое|ческая|ческие)?(?:$|[\s,;()\[\]{}:/-])/iu.test(source) ||
+        /семинар|practice|seminar/iu.test(source)) {
+        return 'type-practice';
+    }
+
     return 'type-lecture';
 }
 
 function extractLessonGroups(l) {
-    let groups = l.groups || l.Groups || l.group || l.Group || l.группа || '';
+    const raw = l.groups ?? l.Groups ?? l.groupNames ?? l.group_names ?? l.group ?? l.Group ??
+        l.группы ?? l.группа ?? l.Группа ?? l.groupName ?? l.group_name ?? l['группы строкой'] ??
+        l.списокГрупп ?? l.ГруппаСтрокой ?? '';
 
-    if (!groups) return [];
+    const out = [];
+    const seen = new Set();
 
-    if (Array.isArray(groups)) {
-        return groups.map(g => {
-            if (typeof g === 'object') {
-                const name = g.name || g.Name || String(g.id || '');
-                const id = g.id || g.Id || name;
-                return { name: String(name), id: String(id) };
+    const push = (name, id = '') => {
+        const clean = String(name || '').trim();
+        if (!clean) return;
+        const norm = listNormalizeValue(clean);
+        if (!norm || seen.has(norm)) return;
+        const resolved = resolveListItem('Group', clean, id);
+        out.push({ name: resolved?.name || clean, id: String(resolved?.id || id || clean) });
+        seen.add(norm);
+    };
+
+    if (Array.isArray(raw)) {
+        raw.forEach(item => {
+            if (!item) return;
+            if (typeof item === 'object') {
+                push(item.name ?? item.Name ?? item.title ?? item.Группа ?? item.group ?? item.groupName ?? item.наименование ?? item.text, item.id ?? item.Id ?? item.idGroup ?? item.groupId ?? item.кодГруппы ?? item.код);
+            } else {
+                push(item);
             }
-
-            const name = String(g).trim();
-            return { name, id: name };
-        }).filter(g => g.name);
+        });
+        return out;
     }
 
-    return String(groups)
-        .split(/,|;/)
-        .map(s => s.trim())
-        .filter(Boolean)
-        .map(name => ({ name, id: name }));
+    const text = String(raw || '').trim();
+    if (!text) return out;
+
+    // Prefer exact known group names when the API packs several groups into one string.
+    const known = (listsData.Group || []).map(normalizeListItem).filter(Boolean).sort((a,b) => b.name.length - a.name.length);
+    const covered = [];
+    for (const item of known) {
+        const pattern = new RegExp(`(^|[^\p{L}\p{N}])${String(item.name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\p{L}\p{N}])`, 'iu');
+        if (pattern.test(text)) {
+            push(item.name, item.id);
+            covered.push(item.name);
+        }
+    }
+
+    const parts = text.split(/[,;\n|]+|\s+\/\s+|\s+и\s+/i).map(s => s.trim()).filter(Boolean);
+    parts.forEach(part => {
+        const n = part.match(/^(.+?)(?:\s*\(.*\))?$/)?.[1]?.trim() || part;
+        if (n) push(n);
+    });
+
+    // Fallback to explicit idGroup if no names were parsed.
+    if (!out.length && (l.idGroup || l.кодГруппы)) push(text, l.idGroup || l.кодГруппы);
+    return out;
 }
 
 function filterLessonBySubgroup(lessons) {
@@ -2394,9 +2583,12 @@ function addWindowsToLessons(lessons) {
     if (!lessons || lessons.length < 2) return lessons || [];
 
     const items = lessons
+        .filter(l => !l?.isWindow)
         .map(l => ({ l, time: parseTimeRange(extractLessonTime(l)) }))
         .filter(x => x.time)
         .sort((a, b) => a.time.start - b.time.start);
+
+    if (items.length < 2) return lessons || [];
 
     const result = [];
 
@@ -2406,7 +2598,8 @@ function addWindowsToLessons(lessons) {
         if (i < items.length - 1) {
             const gap = items[i + 1].time.start - items[i].time.end;
 
-            if (gap >= 15) {
+            // Ровно 30 минут — обычный межпарный интервал, отдельный блок не показываем.
+            if (gap > 30) {
                 const start = items[i].time.end;
                 const end = items[i + 1].time.start;
 
@@ -2424,8 +2617,8 @@ function addWindowsToLessons(lessons) {
 }
 
 function getKnownItemId(type, name) {
-    const item = (listsData[type] || []).find(x => x.name === name);
-    return item?.id || name;
+    const resolved = resolveListItem(type, name, '');
+    return resolved?.id || name;
 }
 
 // =====================================================
@@ -2507,36 +2700,53 @@ function getLessonLiveInfo(l, lessonDateStr, isNextLesson = false) {
     return '';
 }
 
-function renderLessonHtml(l, lessonDateStr = '', isNextLesson = false) {
+function buildLessonNoteKey(dateStr, title, timeStr, room, subgroup = 0, teacher = '', groups = [], teacherId = '') {
+    const groupPart = (Array.isArray(groups) ? groups.map(g => g?.id || g?.name || '').filter(Boolean) : []).join(',');
+    return ['v2', dateStr, title, timeStr, room, subgroup, teacherId || teacher, groupPart]
+        .map(v => String(v || '').trim()).join('\x1f');
+}
+
+function buildLegacyLessonNoteKey(dateStr, title, timeStr, room, subgroup = 0) {
+    return [dateStr, title, timeStr, room, subgroup].map(v => String(v || '').trim()).join('\x1f');
+}
+
+function noteDomToken(key) {
+    return enc(key).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 120);
+}
+
+function renderLessonHtml(l, lessonDateStr = '', isNextLesson = false, sourceLabel = '') {
     const timeStr = extractLessonTime(l);
     const title = extractLessonTitle(l);
     const teacher = extractLessonTeacher(l);
     const room = extractLessonRoom(l);
     const groups = extractLessonGroups(l);
-
     const typeClass = getLessonTypeClass(l);
     const subgroup = getLessonSubgroup(l);
     const subgroupBadge = subgroup > 0 ? `<span class="lesson-subgroup-badge">п/г ${subgroup}</span>` : '';
     const progress = checkIsCurrentLesson(timeStr, lessonDateStr);
     const currentClass = progress !== null ? 'current-lesson' : '';
+    const liveBadge = getLessonLiveInfo(l, lessonDateStr, isNextLesson);
 
     if (l.isWindow) {
         return `
             <div class="lesson-card type-window ${currentClass}" style="text-align:center; padding:12px; border-style:dashed;">
-                <div style="font-size:14px; font-weight:700; color:#3a86ff; margin-bottom:4px;">${esc(l.title)}</div>
+                <div style="font-size:14px; font-weight:700; color:var(--text-secondary); margin-bottom:4px;">${esc(l.title)}</div>
                 <div style="font-size:13px; color:var(--text-secondary);">🕒 ${esc(timeStr)} (${esc(l.duration)})</div>
-                ${progress !== null ? `<div class="live-progress" style="width:${progress}%; background:#3a86ff;"></div>` : ''}
-            </div>
-        `;
+                ${progress !== null ? `<div class="live-progress" style="width:${progress}%; background:var(--text-secondary);"></div>` : ''}
+            </div>`;
     }
 
-    const teacherId = teacher ? getKnownItemId('Teacher', teacher) : '';
-    const roomId = room ? getKnownItemId('Aud', room) : '';
+    const teacherId = extractLessonTeacherId(l, teacher);
+    const roomId = extractLessonRoomId(l, room);
+    const noteKey = buildLessonNoteKey(lessonDateStr, title, timeStr, room, subgroup, teacher, groups, teacherId);
+    const legacyNoteKey = buildLegacyLessonNoteKey(lessonDateStr, title, timeStr, room, subgroup);
+    const note = notesByKey[noteKey] || notesByKey[legacyNoteKey];
+    const token = noteDomToken(noteKey);
 
     const groupBlock = groups.length ? `
         <div class="lesson-groups">
             👥 ${groups.map(g => `
-                <span class="lesson-group-link" onclick="jumpToEnc('${enc('Group')}', '${enc(g.name)}', '${enc(g.id)}')">${esc(g.name)}</span>
+                <span class="lesson-group-link" onclick="jumpToEnc('${enc('Group')}', '${enc(g.name)}', '${enc(g.id || getKnownItemId('Group', g.name))}')">${esc(g.name)}</span>
             `).join(', ')}
         </div>
     ` : '';
@@ -2555,28 +2765,29 @@ function renderLessonHtml(l, lessonDateStr = '', isNextLesson = false) {
         </div>
     ` : `<div style="color:var(--text-secondary);">📍 Ауд. не указана</div>`;
 
-    const liveBadge = getLessonLiveInfo(l, lessonDateStr, isNextLesson);
+    const sourceBlock = sourceLabel ? `<div class="lesson-source-badge">${esc(sourceLabel)}</div>` : '';
+    const noteBlock = note ? `
+        <div class="lesson-note" id="lesson-note-display-${token}"><span class="lesson-note-label">📝</span>${esc(note.task_text)} <button class="action-btn" style="margin-left:6px;" onclick="toggleLessonNoteEditor('${enc(noteKey)}','${enc(title)}','${enc(lessonDateStr)}','${enc(timeStr)}','${enc(room)}','${enc(String(subgroup))}','${enc(teacher)}','${enc(teacherId)}','${enc(JSON.stringify(groups))}')">Изменить</button></div>
+    ` : '';
+
+    const noteArgs = `'${enc(noteKey)}','${enc(title)}','${enc(lessonDateStr)}','${enc(timeStr)}','${enc(room)}','${enc(String(subgroup))}','${enc(teacher)}','${enc(teacherId)}','${enc(JSON.stringify(groups))}'`;
 
     return `
         <div class="lesson-card ${typeClass} ${currentClass}">
-            <div class="lesson-title">
-                📖 ${esc(title)} ${subgroupBadge} ${liveBadge}
-            </div>
-
+            <div class="lesson-title">📖 ${esc(title)} ${subgroupBadge} ${liveBadge}</div>
+            ${sourceBlock}
             ${groupBlock}
-
             <div class="lesson-info">
                 <span>🕒 ${esc(timeStr)}</span>
                 ${roomBlock}
             </div>
-
             ${teacherBlock}
-
+            ${noteBlock}
             <div class="lesson-actions">
-                <button class="action-btn" onclick="openNoteEnc('${enc(title)}', '${enc(lessonDateStr)}')">📝 Заметка</button>
+                <button class="action-btn" onclick="toggleLessonNoteEditor(${noteArgs})">📝 ${note ? 'Заметка' : 'Добавить заметку'}</button>
                 <button class="action-btn" onclick="remindEnc('${enc(title)}', '${enc(lessonDateStr)}', '${enc(timeStr)}', '${enc(room)}')">⏰ Напомнить</button>
             </div>
-
+            <div id="lesson-note-editor-${token}"></div>
             ${progress !== null ? `<div class="live-progress" style="width:${progress}%;"></div>` : ''}
         </div>
     `;
@@ -2621,9 +2832,12 @@ async function loadSchedule(requestId = viewRequestId, signal = activeRequestCon
             dayLessonsCacheAt[cacheKey] = Date.now();
 
             renderLessons(lessons, container, dateStr);
+            forceNetworkRefresh = false;
         } catch (e) {
             if (e.name === 'AbortError') return;
             renderErrorState(container, 'Не удалось загрузить расписание.', lastApiError);
+        } finally {
+            forceNetworkRefresh = false;
         }
 
         return;
@@ -2636,7 +2850,7 @@ async function loadSchedule(requestId = viewRequestId, signal = activeRequestCon
         const weekKey = `${currentMode}_${identifier}_${formatDate(monday)}`;
         const cached = weekCache[weekKey];
 
-        if (cached && cacheFresh(cached.at, 15 * 60 * 1000)) {
+        if (!forceNetworkRefresh && cached && cacheFresh(cached.at, 15 * 60 * 1000)) {
             lastWeekData = cached.data;
             renderWeekSchedule(cached.data, container);
             return;
@@ -2676,9 +2890,12 @@ async function loadSchedule(requestId = viewRequestId, signal = activeRequestCon
 
             lastWeekData = weekData;
             renderWeekSchedule(weekData, container);
+            forceNetworkRefresh = false;
         } catch (e) {
             if (e.name === 'AbortError') return;
             renderErrorState(container, 'Не удалось загрузить неделю.', lastApiError);
+        } finally {
+            forceNetworkRefresh = false;
         }
     }
 }
@@ -2738,37 +2955,46 @@ async function loadMonthView(requestId = viewRequestId, signal = activeRequestCo
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const identifier = getApiIdentifier();
-
     if (!identifier) return;
 
     document.getElementById('date-label').innerText = `${MONTH_NAMES[month]} ${year} г.`;
     document.getElementById('global-search-input').value = '';
     updateTodayButtonVisibility();
 
-    const cacheKey = `${currentMode}_${identifier}_${year}-${String(month + 1).padStart(2, '0')}`;
+    const monthId = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const cacheKey = `${currentMode}_${identifier}_${monthId}`;
+    const ttl = getMonthCacheTTL(year, month);
 
-    if (
-        monthLessonsCacheKey === cacheKey &&
-        Object.keys(monthLessonsCache).length &&
-        cacheFresh(monthLessonsCacheAt, getMonthCacheTTL(year, month))
-    ) {
+    if (!forceNetworkRefresh && monthLessonsCacheKey === cacheKey && Object.keys(monthLessonsCache).length && cacheFresh(monthLessonsCacheAt, ttl)) {
         renderMonthGrid(year, month, false);
         return;
+    }
+
+    if (!forceNetworkRefresh) {
+        const local = safeGetStorage(`kgeu_month_cache_${cacheKey}`);
+        if (local) {
+            try {
+                const parsed = JSON.parse(local);
+                if (parsed?.at && cacheFresh(parsed.at, ttl) && parsed.data) {
+                    monthLessonsCache = parsed.data;
+                    monthLessonsCacheKey = cacheKey;
+                    monthLessonsCacheAt = parsed.at;
+                    monthErrors = parsed.errors || {};
+                    renderMonthGrid(year, month, false);
+                    return;
+                }
+            } catch (e) {}
+        }
     }
 
     renderMonthGrid(year, month, true);
 
     const totalDays = new Date(year, month + 1, 0).getDate();
-
-    const dates = Array.from({ length: totalDays }, (_, i) => {
-        return `${year}-${String(month + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
-    });
-
+    const dates = Array.from({ length: totalDays }, (_, i) => `${year}-${String(month + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`);
     const query = buildScheduleQuery(currentMode, identifier);
 
     try {
         monthErrors = {};
-
         const results = await mapWithConcurrency(dates, 4, async dateStr => {
             try {
                 return [dateStr, await fetchScheduleForDate(query, dateStr, signal, 1)];
@@ -2784,13 +3010,20 @@ async function loadMonthView(requestId = viewRequestId, signal = activeRequestCo
         monthLessonsCache = Object.fromEntries(results);
         monthLessonsCacheAt = Date.now();
         monthLessonsCacheKey = cacheKey;
+        safeSetStorage(`kgeu_month_cache_${cacheKey}`, JSON.stringify({
+            at: monthLessonsCacheAt,
+            data: monthLessonsCache,
+            errors: monthErrors
+        }));
+        pruneMonthLocalCache();
 
         renderMonthGrid(year, month, false);
     } catch (e) {
         if (e.name === 'AbortError') return;
-
         const container = document.getElementById('schedule-container');
         renderErrorState(container, 'Не удалось загрузить месяц.', lastApiError);
+    } finally {
+        forceNetworkRefresh = false;
     }
 }
 
@@ -2899,50 +3132,46 @@ function getFavoriteSources() {
     const sources = [];
 
     const push = (type, name, id) => {
-        if (!name) return;
+        const mode = normalizeMode(type);
+        const resolved = resolveListItem(mode, name, id);
+        if (!resolved?.name) return;
 
-        const key = `${type}:${id || name}`;
-
+        const key = `${mode}:${resolved.id || resolved.name}`;
         if (!sources.some(s => s.key === key)) {
-            sources.push({ type, name, id, key });
+            sources.push({ type: mode, name: resolved.name, id: resolved.id, key });
         }
     };
 
-    favorites.forEach(f => push(f.type, f.name, f.id || ''));
+    favorites.forEach(f => {
+        const nf = normalizeFavorite(f);
+        if (nf) push(nf.type, nf.name, nf.id);
+    });
 
-    if (currentName) {
-        push(currentMode, currentName, currentId);
-    }
+    if (currentName) push(currentMode, currentName, currentId);
 
     return sources;
 }
 
 function getMyScheduleDayLabel(date) {
-    const today = formatDate(new Date());
+    const today = new Date();
     const dateStr = formatDate(date);
-    if (dateStr === today) return 'Сегодня';
+    const todayStr = formatDate(today);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (dateStr === todayStr) return 'Сегодня';
     if (dateStr === formatDate(tomorrow)) return 'Завтра';
-
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
     if (dateStr === formatDate(yesterday)) return 'Вчера';
-
     return `${date.getDate()} ${MONTH_NAMES_GENITIVE[date.getMonth()]}`;
 }
 
 function renderMyScheduleNavigation() {
     const label = getMyScheduleDayLabel(myScheduleDate);
-    const fullDate = `${label}, ${myScheduleDate.getDate()} ${MONTH_NAMES_GENITIVE[myScheduleDate.getMonth()]}`;
-    const isToday = formatDate(myScheduleDate) === formatDate(new Date());
-
     return `<div class="my-schedule-nav">
-        <button type="button" class="my-schedule-nav-btn" onclick="changeMyScheduleDay(-1)" title="Предыдущий день">‹</button>
-        <div class="my-schedule-date">${esc(fullDate)}</div>
-        <button type="button" class="my-schedule-nav-btn" onclick="changeMyScheduleDay(1)" title="Следующий день">›</button>
-        <button type="button" class="my-schedule-nav-btn my-schedule-today-btn" onclick="goMyScheduleToday()" ${isToday ? 'style="display:none;"' : ''}>↩ Сегодня</button>
+        <button type="button" class="my-schedule-nav-btn" onclick="changeMyScheduleDay(-1)">‹</button>
+        <div class="my-schedule-date"><strong>${esc(label)}</strong><span>${myScheduleDate.getDate()} ${MONTH_NAMES_GENITIVE[myScheduleDate.getMonth()]}</span></div>
+        <button type="button" class="my-schedule-nav-btn" onclick="changeMyScheduleDay(1)">›</button>
+        <button type="button" class="action-btn my-schedule-today" onclick="goMyScheduleToday()">↩ Сегодня</button>
     </div>`;
 }
 
@@ -2962,16 +3191,11 @@ async function loadMySchedule() {
     if (!content) return;
 
     const requestId = ++myScheduleRequestId;
-    const sources = getFavoriteSources();
+    const sources = getFavoriteSources().map(s => ({ ...s, type: normalizeMode(s.type) }));
     const dateStr = formatDate(myScheduleDate);
 
-    content.innerHTML = renderMyScheduleNavigation() + (sources.length
-        ? '<div class="loading">⌛ Собираю расписание...</div>'
-        : '<div class="my-schedule-empty">Добавьте группы, преподавателей или аудитории в избранное.</div>');
-
+    content.innerHTML = renderMyScheduleNavigation() + (sources.length ? '<div class="loading">⌛ Собираю расписание...</div>' : '<div class="my-schedule-empty">Добавьте группы, преподавателей или аудитории в избранное — здесь соберутся их пары.</div>');
     if (!sources.length) return;
-
-    const controller = new AbortController();
 
     try {
         const results = await mapWithConcurrency(sources, 4, async source => {
@@ -2981,46 +3205,36 @@ async function loadMySchedule() {
 
             try {
                 let lessons = dayLessonsCache[cacheKey];
-
-                if (!lessons || !cacheFresh(dayLessonsCacheAt[cacheKey], getDayCacheTTL(dateStr))) {
-                    lessons = await fetchScheduleForDate(query, dateStr, controller.signal, 1);
+                if (!lessons || !cacheFresh(dayLessonsCacheAt[cacheKey], getDayCacheTTL(dateStr)) || forceNetworkRefresh) {
+                    lessons = await fetchScheduleForDate(query, dateStr, null, 1);
                     dayLessonsCache[cacheKey] = lessons;
                     dayLessonsCacheAt[cacheKey] = Date.now();
                 }
-
-                return {
-                    source,
-                    lessons: filterLessonBySubgroup(lessons || []),
-                    error: null
-                };
+                return { source, lessons: filterLessonBySubgroup(lessons || []), error: null };
             } catch (e) {
-                return {
-                    source,
-                    lessons: [],
-                    error: e.message || 'ошибка'
-                };
+                return { source, lessons: [], error: e.message || 'ошибка' };
             }
         });
+
+        if (requestId !== myScheduleRequestId) return;
 
         const combined = [];
         const errors = [];
         const seen = new Set();
 
         results.forEach(result => {
-            if (result.error) {
-                errors.push(`${result.source.name}: ${result.error}`);
-            }
+            if (result.error) errors.push(`${result.source.name}: ${result.error}`);
 
-            result.lessons
-                .filter(l => !l.isWindow)
-                .forEach(lesson => {
-                    const key = `${extractLessonTitle(lesson)}|${extractLessonTime(lesson)}|${extractLessonRoom(lesson)}`;
-
-                    if (!seen.has(key)) {
-                        seen.add(key);
-                        combined.push({ lesson, source: result.source });
-                    }
-                });
+            result.lessons.filter(l => !l.isWindow).forEach(lesson => {
+                const groups = extractLessonGroups(lesson);
+                const teacher = extractLessonTeacher(lesson);
+                const teacherId = extractLessonTeacherId(lesson, teacher);
+                const key = `${extractLessonTitle(lesson)}|${extractLessonTime(lesson)}|${extractLessonRoom(lesson)}|${teacherId}|${groups.map(g => g.id || g.name).join(',')}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    combined.push({ lesson, source: result.source });
+                }
+            });
         });
 
         combined.sort((a, b) => {
@@ -3030,54 +3244,33 @@ async function loadMySchedule() {
         });
 
         let html = renderMyScheduleNavigation();
-        html += `
-            <div class="summary-card">
-                <div class="summary-title">${esc(getMyScheduleDayLabel(myScheduleDate))} · ${combined.length} пар</div>
-                <div class="summary-meta">
-                    <span>Источников: ${sources.length}</span>
-                </div>
-            </div>
-        `;
-
-        if (errors.length) {
-            html += `<div class="error-card">⚠️ Часть источников не загрузилась:<br>${errors.map(e => `• ${esc(e)}`).join('<br>')}</div>`;
-        }
+        html += `<div class="summary-card"><div class="summary-title">${esc(getMyScheduleDayLabel(myScheduleDate))} · ${combined.length} пар</div><div class="summary-meta"><span>Источников: ${sources.length}</span></div></div>`;
+        if (errors.length) html += `<div class="error-card">⚠️ Часть источников не загрузилась:<br>${errors.map(e => `• ${esc(e)}`).join('<br>')}</div>`;
 
         if (!combined.length) {
-            html += `<div class="my-schedule-empty">На ${esc(getMyScheduleDayLabel(myScheduleDate).toLowerCase())} пар нет или данные не загрузились.</div>`;
+            html += '<div class="my-schedule-empty">На этот день пар нет или данные не загрузились.</div>';
         } else {
             let lastTime = '';
-
             combined.forEach(({ lesson, source }) => {
                 const time = extractLessonTime(lesson);
-
                 if (time !== lastTime) {
                     html += `<div class="my-schedule-source">${esc(time)}</div>`;
                     lastTime = time;
                 }
-
-                html += `
-                    <div class="lesson-card ${getLessonTypeClass(lesson)}" style="margin-bottom:7px;">
-                        <div class="lesson-title">📖 ${esc(extractLessonTitle(lesson))}</div>
-                        <div class="lesson-info">
-                            <span>📍 ${esc(extractLessonRoom(lesson) || 'Ауд. не указана')}</span>
-                            <span>${source.type === 'Group' ? '👥' : source.type === 'Teacher' ? '👤' : '🚪'} ${esc(source.name)}</span>
-                        </div>
-                    </div>
-                `;
+                const sourceLabel = `${source.type === 'Group' ? '👥' : source.type === 'Teacher' ? '👤' : '🚪'} ${source.name}`;
+                const next = getNextLessonForToday([lesson], dateStr) === lesson;
+                html += renderLessonHtml(lesson, dateStr, next, sourceLabel);
             });
         }
 
-        if (requestId !== myScheduleRequestId) return;
         content.innerHTML = html;
     } catch (e) {
-        if (requestId !== myScheduleRequestId) return;
-        content.innerHTML = renderMyScheduleNavigation() + '<div class="error-card">⚠️ Не удалось собрать «Мои пары».</div>';
+        if (requestId === myScheduleRequestId) content.innerHTML = renderMyScheduleNavigation() + '<div class="error-card">⚠️ Не удалось собрать «Мои пары».</div>';
+    } finally {
+        forceNetworkRefresh = false;
     }
 }
 
-// =====================================================
-// Global filter
 // =====================================================
 
 function debouncedGlobalFilter(value) {
@@ -3282,17 +3475,17 @@ async function loadCloud() {
             try {
                 const parsed = JSON.parse(data.favorites_json);
                 if (Array.isArray(parsed) && parsed.length) {
-                    favorites = parsed;
+                    favorites = parsed.map(normalizeFavorite).filter(Boolean);
                     renderFavorites();
                 }
             } catch (e) {}
         }
 
         if (data.selected_name) {
-            currentMode = data.selected_type || 'Group';
-            searchMode = currentMode;
-            currentName = data.selected_name;
-            currentId = data.selected_id || '';
+            const resolved = resolveFavoriteAcrossModes({ type: data.selected_type || 'Group', name: data.selected_name, id: data.selected_id || '' });
+            currentMode = resolved?.type || normalizeMode(data.selected_type || 'Group');
+            currentName = resolved?.name || data.selected_name;
+            currentId = resolved?.id || data.selected_id || currentName;
             updateSelectionUI();
         }
     } catch (e) {
@@ -3304,68 +3497,185 @@ async function loadCloud() {
 // Notes
 // =====================================================
 
-async function saveNote() {
-    const type = document.getElementById('note-type').value;
-    const lesson = document.getElementById('note-lesson').value.trim();
-    const text = document.getElementById('note-text').value.trim();
-    const due = document.getElementById('note-due').value;
+function getLocalNotes() {
+    try {
+        const userKey = getLocalTelegramId() || 'guest';
+        const raw = safeGetStorage(`kgeu_notes_local_${userKey}`) || (userKey === 'guest' ? safeGetStorage('kgeu_notes_local') : null);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        return [];
+    }
+}
 
+function saveLocalNotes(list) {
+    const userKey = getLocalTelegramId() || 'guest';
+    safeSetStorage(`kgeu_notes_local_${userKey}`, JSON.stringify(list));
+    safeSetStorage('kgeu_notes_local', JSON.stringify(list));
+}
+
+async function loadNotesIndex() {
+    if (notesLoaded) return;
+
+    try {
+        let notes = [];
+        if (getInitData()) notes = await apiFetch('/api/tasks');
+        if (!Array.isArray(notes)) notes = [];
+
+        const local = getLocalNotes();
+        const merged = [...local];
+        notes.forEach(remote => {
+            const idx = merged.findIndex(n => n.note_key && n.note_key === remote.note_key);
+            if (idx >= 0) merged[idx] = remote;
+            else merged.push(remote);
+        });
+
+        notesByKey = {};
+        merged.forEach(n => { if (n?.note_key) notesByKey[n.note_key] = n; });
+        notesLoaded = true;
+    } catch (e) {
+        notesByKey = {};
+        getLocalNotes().forEach(n => { if (n?.note_key) notesByKey[n.note_key] = n; });
+        notesLoaded = true;
+    }
+}
+
+function toggleLessonNoteEditor(keyEnc, titleEnc, dateEnc, timeEnc, roomEnc, subgroupEnc, teacherEnc = '', teacherIdEnc = '', groupsEnc = '') {
+    const key = dec(keyEnc);
+    const token = noteDomToken(key);
+    const box = document.getElementById(`lesson-note-editor-${token}`);
+    if (!box) return;
+
+    if (box.innerHTML) {
+        box.innerHTML = '';
+        return;
+    }
+
+    const existingNote = notesByKey[key] || notesByKey[buildLegacyLessonNoteKey(dec(dateEnc), dec(titleEnc), dec(timeEnc), dec(roomEnc), Number(dec(subgroupEnc) || 0))];
+    const existing = existingNote?.task_text || '';
+    box.innerHTML = `
+        <div class="lesson-note-editor">
+            <textarea id="lesson-note-input-${token}" placeholder="Напишите заметку к этой паре..."></textarea>
+            <div class="lesson-note-editor-actions">
+                <button class="action-btn" onclick="saveLessonNote('${keyEnc}','${titleEnc}','${dateEnc}','${timeEnc}','${roomEnc}','${subgroupEnc}','${teacherEnc}','${teacherIdEnc}','${groupsEnc}')">💾 Сохранить</button>
+                ${existing ? `<button class="action-btn" onclick="deleteLessonNote('${keyEnc}')">🗑 Удалить</button>` : ''}
+            </div>
+        </div>`;
+
+    const input = document.getElementById(`lesson-note-input-${token}`);
+    if (input) {
+        input.value = existing;
+        setTimeout(() => input.focus(), 20);
+    }
+}
+
+async function saveLessonNote(keyEnc, titleEnc, dateEnc, timeEnc, roomEnc, subgroupEnc, teacherEnc = '', teacherIdEnc = '', groupsEnc = '') {
+    const key = dec(keyEnc);
+    const token = noteDomToken(key);
+    const input = document.getElementById(`lesson-note-input-${token}`);
+    const text = input?.value.trim() || '';
     if (!text) {
         alert('Введите текст заметки.');
         return;
     }
 
-    try {
-        await apiFetch('/api/tasks', {
-            method: 'POST',
-            body: JSON.stringify({
-                note_type: type,
-                lesson_title: lesson,
-                task_text: text,
-                due_date: due
-            })
-        });
+    let groups = [];
+    try { groups = JSON.parse(dec(groupsEnc || '')) || []; } catch (e) {}
 
-        document.getElementById('note-text').value = '';
-        loadNotes();
+    const payload = {
+        note_key: key,
+        lesson_title: dec(titleEnc),
+        task_text: text,
+        due_date: dec(dateEnc),
+        lesson_time: dec(timeEnc),
+        lesson_room: dec(roomEnc),
+        lesson_subgroup: Number(dec(subgroupEnc) || 0),
+        lesson_teacher: dec(teacherEnc),
+        lesson_teacher_id: dec(teacherIdEnc),
+        lesson_groups_json: JSON.stringify(groups),
+        note_type: 'note'
+    };
+
+    try {
+        const res = await apiFetch('/api/tasks', { method: 'POST', body: JSON.stringify(payload) });
+        const saved = res?.note || { ...payload, id: res?.id || `local-${Date.now()}`, note_key: key };
+        notesByKey[key] = { ...saved, ...payload };
+
+        const local = getLocalNotes().filter(n => n.note_key !== key);
+        local.push(notesByKey[key]);
+        saveLocalNotes(local);
+        notesLoaded = true;
+        refreshVisibleScheduleNotes();
     } catch (e) {
-        alert('Ошибка сохранения. Открой приложение в Telegram.');
+        const local = getLocalNotes().filter(n => n.note_key !== key);
+        const saved = { ...payload, id: `local-${Date.now()}`, note_key: key };
+        local.push(saved);
+        saveLocalNotes(local);
+        notesByKey[key] = saved;
+        notesLoaded = true;
+        refreshVisibleScheduleNotes();
     }
+}
+
+async function deleteLessonNote(keyEnc) {
+    const key = dec(keyEnc);
+    const note = notesByKey[key];
+    if (!note) return;
+
+    try {
+        if (Number.isFinite(Number(note.id))) {
+            await apiFetch(`/api/tasks?id=${Number(note.id)}`, { method: 'DELETE' });
+        }
+    } catch (e) {}
+
+    delete notesByKey[key];
+    saveLocalNotes(getLocalNotes().filter(n => n.note_key !== key));
+    refreshVisibleScheduleNotes();
+}
+
+function refreshVisibleScheduleNotes() {
+    if (!currentName) return;
+    loadCurrent(viewRequestId, activeRequestController?.signal);
 }
 
 async function loadNotes() {
     const list = document.getElementById('notes-list');
+    if (!list) return;
 
     try {
-        const notes = await apiFetch('/api/tasks');
+        notesLoaded = false;
+        await loadNotesIndex();
+        const notes = Object.values(notesByKey).sort((a, b) => String(b.due_date || '').localeCompare(String(a.due_date || '')));
 
-        if (!Array.isArray(notes) || !notes.length) {
-            list.innerHTML = '<div class="my-schedule-empty">Заметок пока нет.</div>';
+        if (!notes.length) {
+            list.innerHTML = '<div class="my-schedule-empty">Заметок пока нет. Добавьте заметку прямо в карточке пары.</div>';
             return;
         }
 
         list.innerHTML = notes.map(n => `
             <div class="lesson-card" style="margin-bottom:8px;">
-                <div class="lesson-title">${esc(NOTE_TYPES[n.note_type] || '📝 Заметка')}${n.lesson_title ? ': ' + esc(n.lesson_title) : ''}</div>
-                <div class="lesson-info" style="display:block; white-space:pre-wrap;">${esc(n.task_text)}</div>
-                <div class="lesson-info" style="margin-top:6px;">
-                    <span>${n.due_date ? '📅 ' + esc(n.due_date) : ''}</span>
-                    <button class="action-btn" onclick="deleteNote(${n.id})">🗑 Удалить</button>
-                </div>
+                <div class="lesson-title">📖 ${esc(n.lesson_title || 'Пара')}</div>
+                <div class="lesson-info" style="display:block;">${n.due_date ? '📅 ' + esc(n.due_date) + (n.lesson_time ? ' · ' + esc(n.lesson_time) : '') : (n.lesson_time ? '🕒 ' + esc(n.lesson_time) : '')}</div>
+                <div class="lesson-note" style="margin-top:7px;">${esc(n.task_text || '')}</div>
+                <div class="lesson-actions"><button class="action-btn" onclick="deleteLessonNote('${enc(n.note_key || '')}')">🗑 Удалить</button></div>
             </div>
         `).join('');
     } catch (e) {
-        list.innerHTML = '<div class="error-card">Не удалось загрузить заметки. Открой приложение в Telegram.</div>';
+        list.innerHTML = '<div class="error-card">Не удалось загрузить заметки.</div>';
     }
 }
 
-async function deleteNote(id) {
+async function clearAllNotes() {
+    if (!confirm('Удалить все заметки?')) return;
+
     try {
-        await apiFetch(`/api/tasks?id=${id}`, { method: 'DELETE' });
-        loadNotes();
-    } catch (e) {
-        alert('Ошибка удаления.');
-    }
+        await apiFetch('/api/tasks?all=1', { method: 'DELETE' });
+    } catch (e) {}
+
+    notesByKey = {};
+    saveLocalNotes([]);
+    await loadNotes();
+    refreshVisibleScheduleNotes();
 }
 
 // =====================================================
@@ -3446,6 +3756,17 @@ async function deleteReminder(id) {
     }
 }
 
+async function clearAllReminders() {
+    if (!confirm('Удалить все активные напоминания?')) return;
+
+    try {
+        await apiFetch('/api/reminders?all=1', { method: 'DELETE' });
+        loadReminders();
+    } catch (e) {
+        alert('Не удалось очистить напоминания.');
+    }
+}
+
 function formatDateTime(ms) {
     const d = new Date(ms);
 
@@ -3498,138 +3819,6 @@ async function searchFreeAuds() {
 
         box.innerHTML = `<div class="error-card">⚠️ ${esc(msg)}</div>`;
     }
-}
-
-// =====================================================
-// Export ICS
-// =====================================================
-
-function icsEscape(value) {
-    return String(value ?? '')
-        .replace(/\\/g, '\\\\')
-        .replace(/;/g, '\\;')
-        .replace(/,/g, '\\,')
-        .replace(/\n/g, '\\n');
-}
-
-async function exportToICS() {
-    if (currentTab === 'month') {
-        alert('Экспорт работает только во вкладках «День» и «Неделя».');
-        return;
-    }
-
-    const identifier = getApiIdentifier();
-
-    if (!identifier) {
-        alert('Сначала выберите группу, преподавателя или аудиторию.');
-        return;
-    }
-
-    let events = [];
-
-    if (currentTab === 'day') {
-        const dateStr = formatDate(currentDate);
-        const key = `${currentMode}_${identifier}_${dateStr}`;
-
-        const lessons = dayLessonsCache[key];
-
-        if (!lessons) {
-            alert('Сначала загрузите день.');
-            return;
-        }
-
-        events = collectEvents(dateStr, lessons);
-    } else {
-        if (!lastWeekData) {
-            alert('Сначала загрузите неделю.');
-            return;
-        }
-
-        for (const [dateStr, lessons] of Object.entries(lastWeekData)) {
-            if (lessons) {
-                events = events.concat(collectEvents(dateStr, lessons));
-            }
-        }
-    }
-
-    if (!events.length) {
-        alert('Нет пар для экспорта.');
-        return;
-    }
-
-    let ics = [
-        'BEGIN:VCALENDAR',
-        'VERSION:2.0',
-        'PRODID:-//KGEU Schedule Bot//RU',
-        'CALSCALE:GREGORIAN'
-    ];
-
-    events.forEach(event => {
-        ics.push(
-            'BEGIN:VEVENT',
-            `UID:${event.uid}`,
-            `DTSTAMP:${event.stamp}`,
-            `DTSTART:${event.start}`,
-            `DTEND:${event.end}`,
-            `SUMMARY:${icsEscape(event.title)}`,
-            `LOCATION:${icsEscape(event.location)}`,
-            `DESCRIPTION:${icsEscape(event.description)}`,
-            'END:VEVENT'
-        );
-    });
-
-    ics.push('END:VCALENDAR');
-
-    downloadBlob(`kgeu_${currentName || 'schedule'}.ics`, ics.join('\r\n'), 'text/calendar;charset=utf-8');
-}
-
-function collectEvents(dateStr, rawLessons) {
-    const lessons = filterLessonBySubgroup(rawLessons || []).filter(l => !l.isWindow);
-    const events = [];
-
-    lessons.forEach(l => {
-        const time = parseTimeRange(extractLessonTime(l));
-        if (!time) return;
-
-        const date = new Date(dateStr + 'T00:00:00');
-
-        const start = new Date(date);
-        start.setMinutes(time.start);
-
-        const end = new Date(date);
-        end.setMinutes(time.end);
-
-        events.push({
-            uid: `${dateStr}-${time.start}-${extractLessonTitle(l)}@kgeu-bot`,
-            stamp: toICSDate(new Date()),
-            start: toICSDate(start),
-            end: toICSDate(end),
-            title: extractLessonTitle(l),
-            location: extractLessonRoom(l) || '',
-            description: extractLessonTeacher(l) || ''
-        });
-    });
-
-    return events;
-}
-
-function toICSDate(date) {
-    return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-}
-
-function downloadBlob(filename, content, type) {
-    const blob = new Blob([content], { type });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    URL.revokeObjectURL(url);
 }
 
 // =====================================================
@@ -3742,6 +3931,11 @@ async function loadAdminPanel() {
                 <button class="admin-btn" onclick="adminAction('clearLogs')">🗑 Очистить логи</button>
                 <button class="admin-btn" onclick="adminBroadcast()">📢 Рассылка пользователям</button>
                 <button class="admin-btn danger" onclick="adminBan()">🚫 Бан / разбан</button>
+                <div class="admin-user-tools">
+                    <div class="form-label">Управление пользователями</div>
+                    <input id="admin-user-search" class="global-search-input" placeholder="@username, имя или Telegram ID" oninput="debouncedAdminUserSearch(this.value)">
+                    <div id="admin-user-results"></div>
+                </div>
             </div>
 
             ${renderTopGroups(stats.topGroups || [])}
@@ -3765,6 +3959,59 @@ function renderTopGroups(topGroups) {
             `).join('')}
         </div>
     `;
+}
+
+let adminUserSearchTimer = null;
+
+function debouncedAdminUserSearch(value) {
+    clearTimeout(adminUserSearchTimer);
+    adminUserSearchTimer = setTimeout(() => searchAdminUsers(value), 250);
+}
+
+async function searchAdminUsers(value) {
+    const q = String(value || '').trim();
+    const box = document.getElementById('admin-user-results');
+    if (!box) return;
+    if (!q) { box.innerHTML = ''; return; }
+
+    box.innerHTML = '<div class="loading" style="padding:15px 0;">⌛ Ищу пользователя...</div>';
+    try {
+        const users = await apiFetch(`/api/admin/users?q=${encodeURIComponent(q)}`);
+        if (!Array.isArray(users) || !users.length) {
+            box.innerHTML = '<div class="my-schedule-empty">Пользователи не найдены.</div>';
+            return;
+        }
+        box.innerHTML = users.map(u => {
+            const display = [u.first_name, u.last_name].filter(Boolean).join(' ') || 'Без имени';
+            const username = u.username ? `@${u.username}` : '';
+            const selected = u.selected_name ? `${u.selected_type || 'Group'}: ${u.selected_name}` : '';
+            const action = Number(u.banned) ? 'Разбанить' : 'Забанить';
+            return `<div class="admin-user-row">
+                <div class="admin-user-meta">
+                    <div class="admin-user-name">${esc(display)}</div>
+                    <div class="admin-user-sub">${esc(username || 'ID ' + u.telegram_id)}${selected ? ' · ' + esc(selected) : ''}</div>
+                </div>
+                <button class="action-btn ${Number(u.banned) ? '' : 'danger'}" onclick="adminSetBan(${Number(u.telegram_id)}, ${Number(u.banned) ? 0 : 1})">${action}</button>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        box.innerHTML = `<div class="error-card">Не удалось найти пользователя: ${esc(e.message || 'ошибка')}</div>`;
+    }
+}
+
+async function adminSetBan(targetId, banned) {
+    try {
+        const res = await apiFetch('/api/admin/ban', {
+            method: 'POST',
+            body: JSON.stringify({ target_id: Number(targetId), banned: Number(banned) })
+        });
+        alert(res.message || 'Готово');
+        const search = document.getElementById('admin-user-search');
+        await searchAdminUsers(search?.value || String(targetId));
+        await loadAdminPanel();
+    } catch (e) {
+        alert('Ошибка: ' + e.message);
+    }
 }
 
 async function adminAction(action) {
@@ -3895,10 +4142,10 @@ function loadLocal() {
     const id = safeGetStorage('kgeu_id');
 
     if (mode && name) {
-        currentMode = mode;
-        searchMode = mode;
-        currentName = name;
-        currentId = id || '';
+        const resolved = resolveListItem(mode, name, id || '');
+        currentMode = normalizeMode(mode);
+        currentName = resolved?.name || name;
+        currentId = resolved?.id || id || currentName;
         updateSelectionUI();
     }
 
@@ -3912,7 +4159,7 @@ function loadLocal() {
     if (favRaw) {
         try {
             const parsed = JSON.parse(favRaw);
-            if (Array.isArray(parsed)) favorites = parsed;
+            if (Array.isArray(parsed)) favorites = parsed.map(normalizeFavorite).filter(Boolean);
         } catch (e) {}
     }
 
@@ -3940,7 +4187,7 @@ async function init() {
 
     await loadLists();
     await loadCloud();
-    updateSearchModeUI(currentMode);
+    await loadNotesIndex();
 
     if (currentName) {
         navigateView(loadCurrent);
