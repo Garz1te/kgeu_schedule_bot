@@ -10,6 +10,34 @@ const ALLOWED_PROXY_PATHS = new Set([
   '/aud'
 ]);
 
+// Free-plan protection / deduplication. These maps live only for the lifetime
+// of a Worker isolate, so they add no D1 writes and automatically reset.
+const proxyInflight = new Map();
+const refreshGate = new Map();
+const logGate = new Map();
+const userRateGate = new Map();
+const listInflight = new Map();
+let schemaPromise = null;
+
+const EDGE_TTLS = {
+  scheduleToday: 5 * 60,
+  scheduleOther: 30 * 60,
+  scheduleRangeToday: 5 * 60,
+  scheduleRangeOther: 30 * 60,
+  lists: 6 * 60 * 60,
+  freeAuds: 60
+};
+
+const MAX_D1_CACHE_BYTES = 400_000;
+const MAX_LOG_PER_KEY_MS = 5 * 60 * 1000;
+const FORCE_REFRESH_COOLDOWN_MS = 15 * 1000;
+const SCHEDULE_USER_LIMIT = 30;
+const RANGE_USER_LIMIT = 10;
+const FREE_AUD_USER_LIMIT = 10;
+const USER_SYNC_WRITE_LIMIT = 6;
+const TASK_WRITE_LIMIT = 30;
+const REMINDER_WRITE_LIMIT = 20;
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -46,10 +74,20 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(ensureSchema(env));
-    ctx.waitUntil(processReminders(env));
-    ctx.waitUntil(cleanupDatabase(env));
-    ctx.waitUntil(buildLists(env, false));
+    // Free-tier cadence: one background wake-up every 5 minutes.
+    // Reminder lead times are validated in 5-minute steps, so this cadence is
+    // consistent with the UI and leaves a large safety margin on Free.
+    ctx.waitUntil((async () => {
+      try {
+        await ensureSchemaOnce(env);
+        const jobs = [processReminders(env), processBroadcastQueue(env)];
+        // Maintenance stays hourly, piggybacking on the existing trigger.
+        if (new Date().getUTCMinutes() === 0) jobs.push(cleanupDatabase(env));
+        await Promise.allSettled(jobs);
+      } catch (e) {
+        console.error('scheduled error:', e);
+      }
+    })());
   }
 };
 
@@ -72,7 +110,7 @@ function getAllowedOrigin(env, origin) {
     }
   } catch (e) {}
 
-  if (allowed.some(item => origin.startsWith(item))) {
+  if (allowed.includes(origin)) {
     return origin;
   }
 
@@ -85,7 +123,7 @@ function handleCors(corsOrigin) {
     headers: {
       'Access-Control-Allow-Origin': corsOrigin,
       'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data',
+      'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, X-Telegram-Bot-Api-Secret-Token',
       'Access-Control-Max-Age': '86400'
     }
   });
@@ -140,6 +178,10 @@ async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 10000) {
   const res = await fetchWithTimeout(url, options, timeoutMs);
   const text = await res.text();
 
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} from ${url}`);
+  }
+
   try {
     return JSON.parse(text);
   } catch (e) {
@@ -147,12 +189,47 @@ async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 10000) {
   }
 }
 
+function takeUserRateSlot(userId, bucket, limit, windowMs = 60 * 1000) {
+  const key = `${String(userId)}:${bucket}`;
+  const now = Date.now();
+  let state = userRateGate.get(key);
+
+  if (!state || now - state.startedAt >= windowMs) {
+    state = { startedAt: now, count: 0 };
+    userRateGate.set(key, state);
+  }
+
+  if (state.count >= limit) return false;
+  state.count += 1;
+
+  // Prevent an unbounded in-memory map when many Telegram users hit one isolate.
+  if (userRateGate.size > 5000) {
+    const cutoff = now - windowMs * 2;
+    for (const [entryKey, entry] of userRateGate) {
+      if (entry.startedAt < cutoff) userRateGate.delete(entryKey);
+      if (userRateGate.size <= 3500) break;
+    }
+  }
+
+  return true;
+}
+
 async function safeLog(env, type, payload) {
+  const message = String(payload || '').slice(0, 1000);
+  const key = `${type}:${message.slice(0, 180)}`;
+  const now = Date.now();
+  const last = logGate.get(key) || 0;
+
+  // During an upstream outage, logging every failed request would itself
+  // create thousands of D1 writes. Keep console logging, sample D1 logs.
+  if (now - last < MAX_LOG_PER_KEY_MS) return;
+  logGate.set(key, now);
+
   try {
     await env.DB.prepare(
       `INSERT INTO system_logs (event_type, payload) VALUES (?, ?)`
     )
-      .bind(type, String(payload || '').slice(0, 1000))
+      .bind(type, message)
       .run();
   } catch (e) {
     console.error('safeLog error:', e);
@@ -171,6 +248,10 @@ async function logAdmin(env, adminId, action, payload = '') {
   }
 }
 
+function sleepServer(ms) {
+  return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
 function parseHM(v) {
   const m = String(v || '').match(/^(\d{1,2}):(\d{2})$/);
   if (!m) return null;
@@ -182,33 +263,187 @@ function parseHM(v) {
 
 function parseTimeServer(str) {
   if (!str) return null;
-  const m = String(str).match(/(\d{1,2})[:.](\d{2})\s*[-–—]\s*(\d{1,2})[:.](\d{2})/);
-  if (!m) return null;
-  return {
-    start: parseInt(m[1], 10) * 60 + parseInt(m[2], 10),
-    end: parseInt(m[3], 10) * 60 + parseInt(m[4], 10)
-  };
+  const raw = String(str).trim();
+  const ranges = raw.match(/(\d{1,2})[:.](\d{2})\s*[-–—]\s*(\d{1,2})[:.](\d{2})/);
+  if (ranges) {
+    const start = parseInt(ranges[1], 10) * 60 + parseInt(ranges[2], 10);
+    const end = parseInt(ranges[3], 10) * 60 + parseInt(ranges[4], 10);
+    if (start < 1440 && end <= 1440 && end > start) return { start, end };
+  }
+
+  const times = raw.match(/\d{1,2}[:.]\d{2}/g) || [];
+  if (times.length >= 2) {
+    const a = times[0].match(/(\d{1,2})[:.](\d{2})/);
+    const b = times[1].match(/(\d{1,2})[:.](\d{2})/);
+    if (a && b) {
+      const start = parseInt(a[1], 10) * 60 + parseInt(a[2], 10);
+      const end = parseInt(b[1], 10) * 60 + parseInt(b[2], 10);
+      if (start < 1440 && end <= 1440 && end > start) return { start, end };
+    }
+  }
+  return null;
 }
 
 function extractLessonsServer(data) {
-  if (!data) return [];
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data.data?.rasp)) return data.data.rasp;
-  if (Array.isArray(data.rasp)) return data.rasp;
-  for (const k of ['data', 'items', 'lessons', 'schedule', 'result']) {
-    if (Array.isArray(data[k])) return data[k];
+  if (!data || typeof data !== 'object') return [];
+
+  // Accept both a plain lesson array and nested day/wrapper arrays.
+  const queue = [{ node: data, depth: 0 }];
+  const seen = new WeakSet();
+  const lessons = [];
+
+  while (queue.length && lessons.length < 5000) {
+    const { node, depth } = queue.shift();
+    if (!node || typeof node !== 'object' || depth > 8 || seen.has(node)) continue;
+    seen.add(node);
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        if (!item || typeof item !== 'object') continue;
+        if (isLessonLikeServer(item)) lessons.push(item);
+        else queue.push({ node: item, depth: depth + 1 });
+      }
+      continue;
+    }
+    if (isLessonLikeServer(node)) lessons.push(node);
+    for (const value of Object.values(node)) {
+      if (value && typeof value === 'object') queue.push({ node: value, depth: depth + 1 });
+    }
   }
-  return [];
+  return lessons.length ? lessons : (isLessonLikeServer(data) ? [data] : []);
+}
+
+function isLessonLikeServer(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const keys = Object.keys(value);
+  const hasContent = keys.some(k => /^(subject|Subject|discipline|Дисциплина|дисциплина|subjectName|disciplineName|nameDiscipline|disciplineTitle|НаименованиеДисциплины|name|Name|title|Title|название)$/u.test(k));
+  const hasScheduleField = keys.some(k => /^(time|Time|time_range|timeRange|period|periodTime|pairTime|pair_time|lessonTime|LessonTime|времяПарыНомер|Время|время|времяПары|времяЗанятия|start|Start|startTime|StartTime|timeStart|TimeStart|begin|Begin|начало|Начало|ВремяНачала|времяНачала|датаНачала|DateStart|lessonStart|end|End|endTime|EndTime|timeEnd|TimeEnd|finish|Finish|конец|Конец|ВремяОкончания|времяОкончания|датаОкончания|DateEnd|lessonEnd|teacher|Teacher|teacherName|teacher_name|teacherFio|teacher_fio|ФИОПреподавателя|фИоПреподавателя|преподаватель|Преподаватель|room|Room|auditorium|aud|Аудитория|аудитория|audLine|audLineName|audName|аудиторияНомер|номерАудитории|type|Type|lesson_type|lessonType|типЗанятия|ТипЗанятия|видЗанятия|kind|Kind|дата|Дата|date|Date|lessonDate|lesson_date|day_date|day|pair|Pair|пара|номерПары|номер_пары|pairNumber|lessonNumber|№пары|subgroup|Subgroup|подгруппа|номерПодгруппы|group|Group|groupString|groupNames|groups|Groups|группа|Группа|группы|Группы|ГруппыСтрокой)$/u.test(k));
+  return hasContent && hasScheduleField;
+}
+
+
+function normalizeServerDate(value) {
+  if (value === null || value === undefined) return '';
+  const raw = String(value).trim();
+  if (!raw) return '';
+
+  let m = raw.match(/(?:^|\b)(20\d{2})[-.](\d{1,2})[-.](\d{1,2})(?:\b|T|\s)/);
+  if (m) return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+
+  m = raw.match(/\b(\d{1,2})[./-](\d{1,2})[./-](20\d{2})\b/);
+  if (m) return `${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+  return '';
+}
+
+function serverLessonDate(l) {
+  const candidates = [
+    l?.дата, l?.Дата, l?.date, l?.Date, l?.lessonDate, l?.lesson_date,
+    l?.day_date, l?.day, l?.датаНачала, l?.датаОкончания,
+    l?.DateStart, l?.dateStart, l?.startDate, l?.start_date
+  ];
+  for (const value of candidates) {
+    const normalized = normalizeServerDate(value);
+    if (normalized) return normalized;
+  }
+  return '';
+}
+
+function filterLessonsByDateServer(lessons, dateStr) {
+  if (!Array.isArray(lessons) || !lessons.length) return [];
+  const dates = lessons.map(serverLessonDate);
+  const hasRecognizedDates = dates.some(Boolean);
+  // For /Rasp?sdate=... the endpoint is already date-scoped. When a record's
+  // date format is unknown, keep it rather than silently dropping a valid pair.
+  return hasRecognizedDates
+    ? lessons.filter((lesson, index) => !dates[index] || dates[index] === dateStr)
+    : lessons.slice();
 }
 
 function serverLessonTime(l) {
-  return l.time || l.Time || l.time_range || l.period || l.Время || l.время || l['датаНачала'] || '';
+  const direct = l?.часы ?? l?.Часы ?? l?.hours ?? l?.lessonHours ?? l?.time ?? l?.Time ?? l?.time_range ?? l?.timeRange ?? l?.period ??
+    l?.Время ?? l?.время ?? l?.времяПары ?? l?.времяЗанятия ?? l?.lessonTime ?? '';
+  if (typeof direct === 'object') {
+    const s = extractTimeTokenServer(direct.start ?? direct.Start ?? direct.from ?? direct.begin ?? direct.начало);
+    const e = extractTimeTokenServer(direct.end ?? direct.End ?? direct.to ?? direct.finish ?? direct.конец);
+    if (s && e) return `${s} - ${e}`;
+  }
+  if (direct) {
+    const raw = String(direct).trim();
+    if (/\d{1,2}[:.]\d{2}/.test(raw)) return raw;
+  }
 
+  const start = [l?.start, l?.startTime, l?.timeStart, l?.TimeStart, l?.начало, l?.Начало, l?.ВремяНачала, l?.времяНачала, l?.датаНачала, l?.DateStart, l?.from];
+  const end = [l?.end, l?.endTime, l?.timeEnd, l?.TimeEnd, l?.конец, l?.Конец, l?.ВремяОкончания, l?.времяОкончания, l?.датаОкончания, l?.DateEnd, l?.to];
+  for (let i = 0; i < start.length; i++) {
+    const s = extractTimeTokenServer(start[i]);
+    const e = extractTimeTokenServer(end[i]);
+    if (s && e) return `${s} - ${e}`;
+  }
+
+  const pairNumber = extractPairNumberServer(l);
+  if (pairNumber && KGEU_PAIR_TIME_RANGES[pairNumber]) return KGEU_PAIR_TIME_RANGES[pairNumber];
+
+  // Last-resort shallow scan: useful for API variants that renamed the fields.
+  const rawJson = safeJsonStringify(l, 8000);
+  const matches = rawJson.match(/\d{1,2}[:.]\d{2}/g) || [];
+  if (matches.length >= 2) return `${matches[0]} - ${matches[1]}`;
+  return rawJson.match(/\d{1,2}[:.]\d{2}/)?.[0] || '';
+}
+
+function extractPairNumberServer(l) {
+  const candidates = [
+    l?.pair, l?.Pair, l?.пара, l?.номерПары, l?.номер_пары, l?.pairNumber,
+    l?.lessonNumber, l?.['№пары'], l?.номерЗанятия, l?.номер_занятия, l?.periodNumber, l?.period_no
+  ];
+  for (const value of candidates) {
+    if (value === null || value === undefined || value === '') continue;
+    const m = String(value).match(/\b([1-8])\b/);
+    if (m) return Number(m[1]);
+  }
+  return 0;
+}
+
+const KGEU_PAIR_TIME_RANGES = {
+  1: '08:00 - 09:30', 2: '09:40 - 11:10', 3: '11:40 - 13:10', 4: '13:20 - 14:50',
+  5: '15:00 - 16:30', 6: '16:40 - 18:10', 7: '18:20 - 19:50', 8: '20:00 - 21:30'
+};
+
+function extractTimeTokenServer(value) {
+  if (value === null || value === undefined) return '';
+  const m = String(value).match(/(?:^|T|\s)(\d{1,2})[:.](\d{2})(?::\d{2})?/);
+  if (!m) return '';
+  const h = Number(m[1]), mm = Number(m[2]);
+  if (h > 23 || mm > 59) return '';
+  return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}
+
+function safeJsonStringify(value, max = 8000) {
+  try { return JSON.stringify(value).slice(0, max); } catch (e) { return ''; }
 }
 
 function serverRoom(l) {
-  return l.room || l.Room || l.auditorium || l.aud || l.Аудитория || l.аудитория || '';
+  const value = l?.room ?? l?.Room ?? l?.auditorium ?? l?.aud ?? l?.аудитория ?? l?.Аудитория ?? l?.audLine ?? l?.audLineName ?? l?.audName ?? l?.аудиторияНомер ?? l?.номерАудитории ?? '';
+  if (value && typeof value === 'object') return value.name ?? value.Name ?? value.title ?? value.аудитория ?? '';
+  return value;
+}
 
+async function sha256Hex(value) {
+  const bytes = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(String(value || ''))
+  );
+  return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function getWebhookSecret(env) {
+  // Explicit secret wins when configured. Otherwise derive a stable secret from
+  // the existing BOT_TOKEN so no additional secret is required for this deployment.
+  const explicit = String(env.WEBHOOK_SECRET || '').trim();
+  if (explicit) return explicit;
+  if (!env.BOT_TOKEN) return '';
+  return sha256Hex(`${env.BOT_TOKEN}:kgeu-webhook`);
 }
 
 // =====================================================
@@ -226,7 +461,8 @@ async function verifyTelegramInitData(env, initData) {
     params.delete('hash');
 
     const authDate = parseInt(params.get('auth_date') || '0', 10);
-    if (authDate && (Date.now() / 1000 - authDate) > 86400) {
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (authDate && (nowSec - authDate > 86400 || authDate - nowSec > 300)) {
       return null;
     }
 
@@ -267,11 +503,17 @@ async function verifyTelegramInitData(env, initData) {
       encoder.encode(dataCheckString)
     );
 
-    const hex = [...new Uint8Array(signature)]
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    const expectedHash = hash.toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(expectedHash)) return null;
+    const providedHash = new Uint8Array(expectedHash.match(/.{2}/g).map(byte => parseInt(byte, 16)));
+    const valid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      providedHash,
+      encoder.encode(dataCheckString)
+    );
 
-    if (hex !== hash) return null;
+    if (!valid) return null;
 
     const userRaw = params.get('user');
     if (!userRaw) return null;
@@ -286,21 +528,55 @@ async function verifyTelegramInitData(env, initData) {
   }
 }
 
+function banCacheRequest(userId) {
+  return new Request(`https://kgeu-internal.invalid/ban/${encodeURIComponent(userId)}`);
+}
+
+async function isUserBanned(env, userId) {
+  const key = banCacheRequest(userId);
+  try {
+    const cached = await caches.default.match(key);
+    if (cached) {
+      const data = await cached.json();
+      return !!data.banned;
+    }
+  } catch (e) {}
+
+  let banned = false;
+  try {
+    const row = await env.DB.prepare(
+      `SELECT banned FROM app_users WHERE telegram_id = ?`
+    )
+      .bind(userId)
+      .first();
+    banned = !!row?.banned;
+  } catch (e) {}
+
+  try {
+    await caches.default.put(
+      key,
+      new Response(JSON.stringify({ banned }), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=60'
+        }
+      })
+    );
+  } catch (e) {}
+
+  return banned;
+}
+
+async function clearUserBanCache(userId) {
+  try { await caches.default.delete(banCacheRequest(userId)); } catch (e) {}
+}
+
 async function requireUser(request, env) {
   const initData = request.headers.get('X-Telegram-Init-Data') || '';
   const user = await verifyTelegramInitData(env, initData);
   if (!user?.id) return null;
 
-  try {
-    const row = await env.DB.prepare(
-      `SELECT banned FROM app_users WHERE telegram_id = ?`
-    )
-      .bind(user.id)
-      .first();
-
-    if (row?.banned) return null;
-  } catch (e) {}
-
+  if (await isUserBanned(env, user.id)) return null;
   return user;
 }
 
@@ -317,8 +593,14 @@ async function requireAdmin(request, env) {
 
 async function handleTelegramWebhook(request, env, ctx) {
   try {
-    const update = await request.json();
+    const expected = await getWebhookSecret(env);
+    const provided = request.headers.get('X-Telegram-Bot-Api-Secret-Token') || '';
+    if (!expected || provided !== expected) {
+      return textResponse('Unauthorized', '*', 401);
+    }
 
+    await ensureSchemaOnce(env);
+    const update = await request.json();
     const from = update?.message?.from;
     const text = update?.message?.text || '';
 
@@ -328,36 +610,21 @@ async function handleTelegramWebhook(request, env, ctx) {
 
     if (text.trim().startsWith('/start') && update?.message?.chat?.id) {
       const userId = from?.id;
-
       let banned = 0;
       if (userId) {
         const row = await env.DB.prepare(
           `SELECT banned FROM app_users WHERE telegram_id = ?`
-        )
-          .bind(userId)
-          .first()
-          .catch(() => null);
-
+        ).bind(userId).first().catch(() => null);
         banned = row?.banned || 0;
       }
 
-      if (!banned) {
+      if (!banned && env.BOT_TOKEN) {
         const webAppUrl = env.WEBAPP_URL || 'https://garz1te.github.io/kgeu_schedule_bot';
-
         await sendTelegramMessage(
           env.BOT_TOKEN,
           update.message.chat.id,
           'Привет! Открой расписание КГЭУ ниже 👇',
-          {
-            inline_keyboard: [
-              [
-                {
-                  text: '📅 Открыть расписание',
-                  web_app: { url: webAppUrl }
-                }
-              ]
-            ]
-          }
+          { inline_keyboard: [[{ text: '📅 Открыть расписание', web_app: { url: webAppUrl } }]] }
         );
       }
     }
@@ -371,6 +638,12 @@ async function handleTelegramWebhook(request, env, ctx) {
 
 async function upsertUserFromTelegram(env, from) {
   try {
+    const telegramId = Number(from?.id || 0);
+    if (!telegramId) return;
+    const username = String(from.username || '').slice(0, 100);
+    const firstName = String(from.first_name || '').slice(0, 120);
+    const lastName = String(from.last_name || '').slice(0, 120);
+
     await env.DB.prepare(
       `INSERT INTO app_users (
         telegram_id, username, first_name, last_name, updated_at
@@ -379,14 +652,12 @@ async function upsertUserFromTelegram(env, from) {
         username = excluded.username,
         first_name = excluded.first_name,
         last_name = excluded.last_name,
-        updated_at = CURRENT_TIMESTAMP`
+        updated_at = CURRENT_TIMESTAMP
+      WHERE app_users.username IS NOT excluded.username
+         OR app_users.first_name IS NOT excluded.first_name
+         OR app_users.last_name IS NOT excluded.last_name`
     )
-      .bind(
-        from.id,
-        from.username || '',
-        from.first_name || '',
-        from.last_name || ''
-      )
+      .bind(telegramId, username, firstName, lastName)
       .run();
   } catch (e) {
     console.error('upsertUserFromTelegram error:', e);
@@ -408,8 +679,9 @@ async function sendTelegramMessage(token, chatId, text, replyMarkup = null) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
-    }, 10000);
+    }, 5000);
 
+    try { await res.text(); } catch (e) {}
     return res.ok;
   } catch (e) {
     console.error('sendTelegramMessage error:', e);
@@ -422,6 +694,12 @@ async function sendTelegramMessage(token, chatId, text, replyMarkup = null) {
 // =====================================================
 
 async function handleApi(request, env, ctx, url, corsOrigin) {
+  try {
+    await ensureSchemaOnce(env);
+  } catch (e) {
+    console.error('Schema unavailable:', e);
+  }
+
   const subPath = url.pathname.replace(/^\/api/, '') || '/';
   const forceFresh = url.searchParams.get('fresh') === '1';
 
@@ -442,11 +720,15 @@ async function handleApi(request, env, ctx, url, corsOrigin) {
   }
 
   if (subPath === '/free-auds') {
-    return await handleFreeAuds(env, url, corsOrigin);
+    return await handleFreeAuds(request, env, url, corsOrigin);
   }
 
   if (subPath === '/lists') {
-    return await handleLists(request, env, ctx, corsOrigin, forceFresh);
+    return await handleLists(request, env, ctx, corsOrigin, false);
+  }
+
+  if (subPath === '/schedule-range') {
+    return await handleScheduleRange(request, env, ctx, url, corsOrigin, forceFresh);
   }
 
   if (ALLOWED_PROXY_PATHS.has(subPath) || subPath.toLowerCase() === '/rasp') {
@@ -460,12 +742,15 @@ async function handleApi(request, env, ctx, url, corsOrigin) {
 // Free classrooms
 // =====================================================
 
-async function handleFreeAuds(env, url, corsOrigin) {
+async function handleFreeAuds(request, env, url, corsOrigin) {
+  const user = await requireUser(request, env);
+  if (!user) return jsonResponse({ ok: false, error: 'UNAUTHORIZED' }, 401, corsOrigin);
+
   const date = url.searchParams.get('date') || '';
   const start = url.searchParams.get('start') || '';
   const end = url.searchParams.get('end') || '';
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  if (!validateISODate(date)) {
     return jsonResponse({ ok: false, error: 'BAD_DATE' }, 400, corsOrigin);
   }
 
@@ -477,87 +762,122 @@ async function handleFreeAuds(env, url, corsOrigin) {
   }
 
   const cacheKey = `/api/free-auds?date=${date}&start=${start}&end=${end}`;
-
-  const fresh = await env.DB.prepare(
-    `SELECT schedule_data FROM schedule_cache
-     WHERE cache_key = ? AND updated_at >= datetime('now', '-90 seconds')`
-  )
-    .bind(cacheKey)
-    .first()
-    .catch(() => null);
-
-  if (fresh?.schedule_data) {
-    try {
-      return jsonResponse(JSON.parse(fresh.schedule_data), 200, corsOrigin);
-    } catch (e) {}
-  }
-
-  const lists = await buildLists(env, false);
-  const auds = lists.Aud || [];
-
-  if (!auds.length) {
-    return jsonResponse({ ok: false, error: 'NO_AUDS' }, 502, corsOrigin);
-  }
-
-  let lessons = [];
+  const edgeKey = new Request(`https://kgeu-cache.invalid${cacheKey}`);
 
   try {
-    const data = await fetchJsonWithTimeout(
-      `${env.KABINET_API}/Rasp?date=${encodeURIComponent(date)}`,
-      {
+    const cached = await caches.default.match(edgeKey);
+    if (cached) return withCors(cached, corsOrigin);
+  } catch (e) {}
+
+  if (!takeUserRateSlot(user.id, 'free-auds', FREE_AUD_USER_LIMIT)) {
+    return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
+  }
+
+  const started = Date.now();
+  try {
+    const existing = proxyInflight.get(`free:${cacheKey}`);
+    if (existing) {
+      const result = await existing;
+      return new Response(result.text, {
+        status: result.status,
         headers: {
-          'Accept': 'application/json, text/plain, */*',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Referer': 'https://kabinet.kgeu.ru/'
+          'Content-Type': 'application/json; charset=utf-8',
+          'Access-Control-Allow-Origin': corsOrigin,
+          'Cache-Control': `public, max-age=${EDGE_TTLS.freeAuds}`
         }
-      },
-      15000
-    );
-
-    lessons = extractLessonsServer(data);
-  } catch (e) {
-    console.error('free-auds external error:', e);
-    return jsonResponse({
-      ok: false,
-      error: 'EXTERNAL_API_UNAVAILABLE'
-    }, 502, corsOrigin);
-  }
-
-  const busyNames = new Set();
-  const busyIds = new Set();
-
-  for (const l of lessons) {
-    const t = parseTimeServer(serverLessonTime(l));
-    if (!t) continue;
-
-    if (t.start < endMin && t.end > startMin) {
-      const room = String(serverRoom(l) || '').trim();
-      if (room) busyNames.add(room.toLowerCase());
-
-      const roomId = l.audId ?? l.aud_id ?? l.idAud ?? null;
-      if (roomId !== null && roomId !== undefined) busyIds.add(String(roomId));
+      });
     }
+
+    const promise = (async () => {
+      const lists = await buildLists(env, false);
+      const auds = lists.Aud || [];
+      if (!auds.length) throw new Error('NO_AUDS');
+
+      const data = await fetchJsonWithTimeout(
+        `${env.KABINET_API}/Rasp?date=${encodeURIComponent(date)}`,
+        {
+          headers: {
+            'Accept': 'application/json, text/plain, */*',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Referer': 'https://kabinet.kgeu.ru/'
+          }
+        },
+        12000
+      );
+
+      const lessons = extractLessonsServer(data);
+      const busyNames = new Set();
+      const busyIds = new Set();
+
+      for (const l of lessons) {
+        const t = parseTimeServer(serverLessonTime(l));
+        if (!t) continue;
+
+        if (t.start < endMin && t.end > startMin) {
+          const room = String(serverRoom(l) || '').trim();
+          if (room) busyNames.add(room.toLowerCase());
+
+          const roomId = l.audId ?? l.aud_id ?? l.idAud ?? l.idAudLine ?? l.auditoriumId ?? l.кодАудитории ?? null;
+          if (roomId !== null && roomId !== undefined) busyIds.add(String(roomId));
+        }
+      }
+
+      const free = auds.filter(a => {
+        const name = String(a.name || '').trim().toLowerCase();
+        const id = String(a.id || '');
+        return !busyNames.has(name) && !busyIds.has(id);
+      });
+
+      return {
+        status: 200,
+        text: JSON.stringify({
+          ok: true,
+          date,
+          start,
+          end,
+          total: auds.length,
+          busy: auds.length - free.length,
+          free: free.slice(0, 100)
+        })
+      };
+    })();
+
+    proxyInflight.set(`free:${cacheKey}`, promise);
+    const result = await promise;
+    proxyInflight.delete(`free:${cacheKey}`);
+
+    const response = new Response(result.text, {
+      status: result.status,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': corsOrigin,
+        'Cache-Control': `public, max-age=${EDGE_TTLS.freeAuds}`
+      }
+    });
+
+    try { cachePutText(edgeKey, result.text, 'application/json; charset=utf-8', EDGE_TTLS.freeAuds); } catch (e) {}
+    return response;
+  } catch (e) {
+    proxyInflight.delete(`free:${cacheKey}`);
+    console.error('free-auds external error:', e);
+    await safeLog(env, 'ERROR', `free-auds ${date}: ${e?.message || e}`);
+
+    // Preserve compatibility with the old D1 cache as a stale fallback.
+    const stale = await getCache(env, cacheKey);
+    if (stale) {
+      return new Response(stale, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Access-Control-Allow-Origin': corsOrigin,
+          'Cache-Control': 'public, max-age=30'
+        }
+      });
+    }
+
+    const code = e?.message === 'NO_AUDS' ? 'NO_AUDS' : 'EXTERNAL_API_UNAVAILABLE';
+    return jsonResponse({ ok: false, error: code, ms: Date.now() - started }, 502, corsOrigin);
   }
-
-  const free = auds.filter(a => {
-    const name = String(a.name || '').trim().toLowerCase();
-    const id = String(a.id || '');
-    return !busyNames.has(name) && !busyIds.has(id);
-  });
-
-  const result = {
-    ok: true,
-    date,
-    start,
-    end,
-    total: auds.length,
-    busy: auds.length - free.length,
-    free: free.slice(0, 100)
-  };
-
-  await saveCache(env, cacheKey, JSON.stringify(result));
-
-  return jsonResponse(result, 200, corsOrigin);
 }
 
 // =====================================================
@@ -565,9 +885,30 @@ async function handleFreeAuds(env, url, corsOrigin) {
 // =====================================================
 
 async function handleLists(request, env, ctx, corsOrigin, forceFresh) {
+  const edgeKey = new Request('https://kgeu-cache.invalid/api/lists');
+
+  forceFresh = false;
+
+  if (!forceFresh) {
+    try {
+      const cached = await caches.default.match(edgeKey);
+      if (cached) return withCors(cached, corsOrigin);
+    } catch (e) {}
+  }
+
   try {
     const data = await buildLists(env, forceFresh);
-    return jsonResponse(data, 200, corsOrigin);
+    const text = JSON.stringify(data);
+    const response = new Response(text, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': corsOrigin,
+        'Cache-Control': `public, max-age=${EDGE_TTLS.lists}`
+      }
+    });
+    cachePutText(edgeKey, text, 'application/json; charset=utf-8', EDGE_TTLS.lists);
+    return response;
   } catch (e) {
     console.error('Lists error:', e);
     await safeLog(env, 'ERROR', `lists: ${e?.message || e}`);
@@ -585,40 +926,51 @@ async function handleLists(request, env, ctx, corsOrigin, forceFresh) {
 
 async function buildLists(env, forceFresh = false) {
   const cacheKey = '/api/lists';
+  const flightKey = forceFresh ? 'force' : 'normal';
+  const existing = listInflight.get(flightKey);
+  if (existing) return await existing;
 
-  if (!forceFresh) {
-    const row = await env.DB.prepare(
-      `SELECT schedule_data FROM schedule_cache
-       WHERE cache_key = ? AND updated_at >= datetime('now', '-6 hours')`
-    )
-      .bind(cacheKey)
-      .first()
-      .catch(() => null);
+  const promise = (async () => {
+    if (!forceFresh) {
+      const row = await env.DB.prepare(
+        `SELECT schedule_data FROM schedule_cache
+         WHERE cache_key = ? AND updated_at >= datetime('now', '-6 hours')`
+      )
+        .bind(cacheKey)
+        .first()
+        .catch(() => null);
 
-    if (row?.schedule_data) {
-      try {
-        return JSON.parse(row.schedule_data);
-      } catch (e) {}
+      if (row?.schedule_data) {
+        try {
+          return JSON.parse(row.schedule_data);
+        } catch (e) {}
+      }
     }
+
+    const yearParam = getAcademicYearParam();
+    const [groupsRes, teachersRes, audsRes] = await Promise.allSettled([
+      fetchJsonWithTimeout(`${env.KABINET_API}/raspGrouplist?${yearParam}`),
+      fetchJsonWithTimeout(`${env.KABINET_API}/raspTeacherlist?${yearParam}`),
+      fetchJsonWithTimeout(`${env.KABINET_API}/raspAudlist?${yearParam}`)
+    ]);
+
+    const result = {
+      Group: normalizeList(groupsRes.status === 'fulfilled' ? groupsRes.value : []),
+      Teacher: normalizeList(teachersRes.status === 'fulfilled' ? teachersRes.value : []),
+      Aud: normalizeList(audsRes.status === 'fulfilled' ? audsRes.value : [])
+    };
+
+    const payload = JSON.stringify(result);
+    await saveCache(env, cacheKey, payload);
+    return result;
+  })();
+
+  listInflight.set(flightKey, promise);
+  try {
+    return await promise;
+  } finally {
+    listInflight.delete(flightKey);
   }
-
-  const yearParam = getAcademicYearParam();
-
-  const [groupsRes, teachersRes, audsRes] = await Promise.allSettled([
-    fetchJsonWithTimeout(`${env.KABINET_API}/raspGrouplist?${yearParam}`),
-    fetchJsonWithTimeout(`${env.KABINET_API}/raspTeacherlist?${yearParam}`),
-    fetchJsonWithTimeout(`${env.KABINET_API}/raspAudlist?${yearParam}`)
-  ]);
-
-  const result = {
-    Group: normalizeList(groupsRes.status === 'fulfilled' ? groupsRes.value : []),
-    Teacher: normalizeList(teachersRes.status === 'fulfilled' ? teachersRes.value : []),
-    Aud: normalizeList(audsRes.status === 'fulfilled' ? audsRes.value : [])
-  };
-
-  await saveCache(env, cacheKey, JSON.stringify(result));
-
-  return result;
 }
 
 function normalizeList(raw) {
@@ -703,92 +1055,448 @@ async function handleProxy(request, env, ctx, url, subPath, corsOrigin, forceFre
   incoming.delete('fresh');
 
   let targetPath = subPath;
-
   if (subPath.toLowerCase() === '/rasp') {
     targetPath = '/Rasp';
-
     const legacyMap = [
       ['group', 'idGroup'],
       ['teacher', 'idTeacher'],
       ['aud', 'idAudLine'],
       ['date', 'sdate']
     ];
-
     for (const [from, to] of legacyMap) {
-      if (!incoming.has(to) && incoming.has(from)) {
-        incoming.set(to, incoming.get(from) || '');
-      }
+      if (!incoming.has(to) && incoming.has(from)) incoming.set(to, incoming.get(from) || '');
       incoming.delete(from);
+    }
+  }
+
+  const targetLower = targetPath.toLowerCase();
+  const isScheduleRequest = targetLower === '/rasp';
+  const isLegacyScheduleAlias = ['/group','/teacher','/aud'].includes(targetLower);
+  const isPublicListAlias = ['/raspgrouplist','/raspteacherlist','/raspaudlist'].includes(targetLower);
+  let user = null;
+  if (isScheduleRequest || isLegacyScheduleAlias) {
+    user = await requireUser(request, env);
+    if (!user) return jsonResponse({ ok: false, error: 'UNAUTHORIZED' }, 401, corsOrigin);
+
+    const id = incoming.get('idGroup') || incoming.get('idTeacher') || incoming.get('idAudLine') || '';
+    const date = incoming.get('sdate') || '';
+    if (!id || !validateISODate(date)) {
+      return jsonResponse({ ok: false, error: 'BAD_REQUEST' }, 400, corsOrigin);
     }
   }
 
   const targetSearch = incoming.toString();
   const cacheKey = `/api${targetPath}${targetSearch ? `?${targetSearch}` : ''}`;
+  const edgeKey = new Request(`https://kgeu-cache.invalid${cacheKey}`);
+  const ttl = isScheduleRequest
+    ? getScheduleEdgeTtl(incoming.get('sdate'))
+    : EDGE_TTLS.lists;
 
+  // Edge cache is deliberately checked BEFORE D1. This is the main Free-plan
+  // optimization: normal schedule hits do not touch D1 at all.
   if (!forceFresh) {
-    const fresh = await env.DB.prepare(
-      `SELECT schedule_data FROM schedule_cache
-       WHERE cache_key = ? AND updated_at >= datetime('now', '-90 seconds')`
-    )
-      .bind(cacheKey)
-      .first()
-      .catch(() => null);
+    try {
+      const cached = await caches.default.match(edgeKey);
+      if (cached) return withCors(cached, corsOrigin);
+    } catch (e) {}
+  } else {
+    const last = refreshGate.get(cacheKey) || 0;
+    if (Date.now() - last < FORCE_REFRESH_COOLDOWN_MS) {
+      try {
+        const cached = await caches.default.match(edgeKey);
+        if (cached) return withCors(cached, corsOrigin);
+      } catch (e) {}
+      forceFresh = false;
+    }
+    if (forceFresh) refreshGate.set(cacheKey, Date.now());
+  }
 
-    if (fresh?.schedule_data) {
-      return new Response(fresh.schedule_data, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': corsOrigin,
-          'Cache-Control': 'public, max-age=60'
-        }
-      });
+  if ((isScheduleRequest || isLegacyScheduleAlias) && !takeUserRateSlot(user.id, 'schedule', SCHEDULE_USER_LIMIT)) {
+    return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
+  }
+
+  // /api/Rasp is the canonical day endpoint. Use the same helper as the
+  // range endpoint so Day / Week / Month share one upstream contract, one edge
+  // cache key and the same stale-D1 fallback behaviour.
+  if (isScheduleRequest) {
+    const scheduleType = incoming.has('idTeacher') ? 'Teacher' : incoming.has('idAudLine') ? 'Aud' : 'Group';
+    const scheduleId = incoming.get(scheduleIdParam(scheduleType)) || '';
+    const scheduleDate = incoming.get('sdate') || '';
+    try {
+      const result = await fetchScheduleDayResult(env, scheduleType, scheduleId, scheduleDate, forceFresh);
+      return makeProxyResponse(result, corsOrigin, getScheduleEdgeTtl(scheduleDate));
+    } catch (e) {
+      await safeLog(env, 'ERROR', `proxy /Rasp ${scheduleType}:${scheduleId}:${scheduleDate}: ${e?.message || e}`);
+      return jsonResponse({ ok: false, error: 'EXTERNAL_API_UNAVAILABLE' }, 502, corsOrigin);
     }
   }
 
+  const flightKey = `${forceFresh ? 'force' : 'normal'}:${cacheKey}`;
+  const existing = proxyInflight.get(flightKey);
+  if (existing) {
+    const result = await existing;
+    return makeProxyResponse(result, corsOrigin, ttl);
+  }
+
   const targetUrl = `${env.KABINET_API}${targetPath}${targetSearch ? `?${targetSearch}` : ''}`;
+  const promise = (async () => {
+    try {
+      const res = await fetchWithTimeout(targetUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': 'https://kabinet.kgeu.ru/'
+        }
+      }, 12000);
 
-  try {
-    const res = await fetchWithTimeout(targetUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json, text/plain, */*',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': 'https://kabinet.kgeu.ru/'
+      const text = await res.text();
+      const result = {
+        status: res.status,
+        text,
+        contentType: res.headers.get('Content-Type') || 'application/json; charset=utf-8'
+      };
+
+      if (res.ok) {
+        await cachePutText(edgeKey, text, result.contentType, ttl);
+      } else {
+        throw new Error(`HTTP ${res.status}`);
       }
-    }, 12000);
 
-    const text = await res.text();
-
-    if (res.ok) {
-      await saveCache(env, cacheKey, text);
+      return result;
+    } catch (e) {
+      console.error('Proxy error:', e);
+      await safeLog(env, 'ERROR', `proxy ${targetPath}: ${e?.message || e}`);
+      const stale = await getCache(env, cacheKey);
+      if (stale) {
+        return { status: 200, text: stale, contentType: 'application/json; charset=utf-8', stale: true };
+      }
+      return {
+        status: 502,
+        text: JSON.stringify({ ok: false, error: 'EXTERNAL_API_UNAVAILABLE' }),
+        contentType: 'application/json; charset=utf-8',
+        error: true
+      };
     }
+  })();
 
-    return new Response(text, {
-      status: res.status,
+  proxyInflight.set(flightKey, promise);
+  try {
+    const result = await promise;
+    return makeProxyResponse(result, corsOrigin, ttl);
+  } finally {
+    proxyInflight.delete(flightKey);
+  }
+}
+
+function makeProxyResponse(result, corsOrigin, ttl) {
+  return new Response(result.text, {
+    status: result.status,
+    headers: {
+      'Content-Type': result.contentType,
+      'Access-Control-Allow-Origin': corsOrigin,
+      'Cache-Control': `public, max-age=${Math.max(1, ttl)}`
+    }
+  });
+}
+
+function withCors(response, corsOrigin) {
+  const out = new Response(response.body, response);
+  out.headers.set('Access-Control-Allow-Origin', corsOrigin);
+  return out;
+}
+
+function cachePutText(cacheKeyRequest, text, contentType, ttlSeconds) {
+  try {
+    const response = new Response(text, {
       headers: {
-        'Content-Type': res.headers.get('Content-Type') || 'application/json; charset=utf-8',
-        'Access-Control-Allow-Origin': corsOrigin,
-        'Cache-Control': 'public, max-age=60'
+        'Content-Type': contentType,
+        'Cache-Control': `public, max-age=${Math.max(1, ttlSeconds)}`
       }
     });
+    return caches.default.put(cacheKeyRequest, response).catch(() => {});
   } catch (e) {
-    console.error('Proxy error:', e);
-    await safeLog(env, 'ERROR', `proxy ${targetPath}: ${e?.message || e}`);
+    return Promise.resolve();
+  }
+}
 
-    const stale = await getCache(env, cacheKey);
-    if (stale) {
-      return new Response(stale, {
-        status: 200,
+function getScheduleEdgeTtl(dateStr) {
+  if (!dateStr) return EDGE_TTLS.scheduleOther;
+  const today = new Date().toISOString().slice(0, 10);
+  return dateStr === today ? EDGE_TTLS.scheduleToday : EDGE_TTLS.scheduleOther;
+}
+
+function validateISODate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
+
+function normalizeScheduleModeServer(value) {
+  const v = String(value || '').trim().toLowerCase();
+  if (v === 'teacher' || v === 'преподаватель' || v === 'tch') return 'Teacher';
+  if (v === 'aud' || v === 'auditorium' || v === 'audline' || v === 'аудитория') return 'Aud';
+  return 'Group';
+}
+
+function scheduleIdParam(type) {
+  return type === 'Group' ? 'idGroup' : type === 'Teacher' ? 'idTeacher' : 'idAudLine';
+}
+
+
+function buildScheduleDayCacheKey(type, id, dateStr) {
+  const params = new URLSearchParams();
+  params.set(scheduleIdParam(type), String(id));
+  params.set('sdate', String(dateStr));
+  return `/api/Rasp?${params.toString()}`;
+}
+
+function buildScheduleDayEdgeKey(type, id, dateStr) {
+  return new Request(`https://kgeu-cache.invalid${buildScheduleDayCacheKey(type, id, dateStr)}`);
+}
+
+async function fetchScheduleDayResult(env, type, id, dateStr, forceFresh = false) {
+  const cacheKey = buildScheduleDayCacheKey(type, id, dateStr);
+  const edgeKey = buildScheduleDayEdgeKey(type, id, dateStr);
+  const ttl = getScheduleEdgeTtl(dateStr);
+
+  // Day, week and month all use exactly the same per-day cache pipeline.
+  // This prevents the range endpoint from silently bypassing the day endpoint's
+  // edge cache and D1 stale fallback.
+  if (!forceFresh) {
+    try {
+      const cached = await caches.default.match(edgeKey);
+      if (cached) {
+        return {
+          status: cached.status || 200,
+          text: await cached.text(),
+          contentType: cached.headers.get('Content-Type') || 'application/json; charset=utf-8',
+          fromCache: true
+        };
+      }
+    } catch (e) {}
+  }
+
+  const flightKey = `${forceFresh ? 'force' : 'normal'}:${cacheKey}`;
+  const existing = proxyInflight.get(flightKey);
+  if (existing) return await existing;
+
+  const promise = (async () => {
+    const targetPath = '/Rasp';
+    const targetSearch = new URLSearchParams();
+    targetSearch.set(scheduleIdParam(type), String(id));
+    targetSearch.set('sdate', String(dateStr));
+    const targetUrl = `${env.KABINET_API}${targetPath}?${targetSearch.toString()}`;
+
+    try {
+      const res = await fetchWithTimeout(targetUrl, {
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': corsOrigin,
-          'Cache-Control': 'public, max-age=60'
+          'Accept': 'application/json, text/plain, */*',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': 'https://kabinet.kgeu.ru/'
         }
-      });
-    }
+      }, 12000);
 
-    return jsonResponse({ ok: false, error: 'EXTERNAL_API_UNAVAILABLE' }, 502, corsOrigin);
+      const text = await res.text();
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const contentType = res.headers.get('Content-Type') || 'application/json; charset=utf-8';
+      await cachePutText(edgeKey, text, contentType, ttl);
+
+      return { status: 200, text, contentType, fromCache: false };
+    } catch (e) {
+      console.error('Schedule day proxy error:', e);
+
+      // Legacy D1 schedule_cache is the last-resort stale fallback only.
+      // Successful new schedule responses continue to live only at the edge.
+      // Accept both the canonical /api/Rasp key and the lowercase form used by
+      // an older build, so an existing database remains useful after upgrade.
+      const legacyKeys = [
+        cacheKey,
+        cacheKey.replace('/api/Rasp?', '/api/rasp?')
+      ];
+      let stale = null;
+      for (const legacyKey of legacyKeys) {
+        stale = await getCache(env, legacyKey);
+        if (stale) break;
+      }
+      if (stale) {
+        return {
+          status: 200,
+          text: stale,
+          contentType: 'application/json; charset=utf-8',
+          stale: true
+        };
+      }
+
+      throw e;
+    }
+  })();
+
+  proxyInflight.set(flightKey, promise);
+  try {
+    return await promise;
+  } finally {
+    proxyInflight.delete(flightKey);
+  }
+}
+
+async function handleScheduleRange(request, env, ctx, url, corsOrigin, forceFresh) {
+  if (request.method !== 'GET') {
+    return jsonResponse({ ok: false, error: 'METHOD_NOT_ALLOWED' }, 405, corsOrigin);
+  }
+
+  const user = await requireUser(request, env);
+  if (!user) return jsonResponse({ ok: false, error: 'UNAUTHORIZED' }, 401, corsOrigin);
+
+  const type = normalizeScheduleModeServer(url.searchParams.get('type') || 'Group');
+  const id = String(url.searchParams.get('id') || '').trim();
+  const start = String(url.searchParams.get('start') || '').trim();
+  const daysRaw = Number(url.searchParams.get('days') || 7);
+  const days = Math.max(1, Math.min(7, daysRaw));
+
+  if (!id || !validateISODate(start) || !Number.isInteger(daysRaw)) {
+    return jsonResponse({ ok: false, error: 'BAD_REQUEST' }, 400, corsOrigin);
+  }
+
+  const dateList = Array.from({ length: days }, (_, index) => {
+    const d = new Date(`${start}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + index);
+    return d.toISOString().slice(0, 10);
+  });
+
+  const cacheKey = `/api/schedule-range?v=4&type=${type}&id=${encodeURIComponent(id)}&start=${start}&days=${days}`;
+  const edgeKey = new Request(`https://kgeu-cache.invalid${cacheKey}`);
+  const today = new Date().toISOString().slice(0, 10);
+  const ttl = dateList.includes(today) ? EDGE_TTLS.scheduleRangeToday : EDGE_TTLS.scheduleRangeOther;
+
+  if (!forceFresh) {
+    try {
+      const cached = await caches.default.match(edgeKey);
+      if (cached) return withCors(cached, corsOrigin);
+    } catch (e) {}
+  } else {
+    const last = refreshGate.get(cacheKey) || 0;
+    if (Date.now() - last < FORCE_REFRESH_COOLDOWN_MS) {
+      try {
+        const cached = await caches.default.match(edgeKey);
+        if (cached) return withCors(cached, corsOrigin);
+      } catch (e) {}
+      forceFresh = false;
+    }
+    if (forceFresh) refreshGate.set(cacheKey, Date.now());
+  }
+
+  if (!takeUserRateSlot(user.id, 'range', RANGE_USER_LIMIT)) {
+    return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
+  }
+
+  const flightKey = `${forceFresh ? 'force' : 'normal'}:${cacheKey}`;
+  const existing = proxyInflight.get(flightKey);
+  if (existing) {
+    const shared = await existing;
+    return new Response(shared.text, {
+      status: shared.status || 200,
+      headers: {
+        'Content-Type': shared.contentType || 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': corsOrigin,
+        'Cache-Control': shared.cacheControl || `public, max-age=${ttl}, must-revalidate`
+      }
+    });
+  }
+
+  const promise = (async () => {
+    const result = {};
+    const failures = {};
+    const staleDates = {};
+    const queue = [...dateList];
+
+    // Keep upstream fan-out conservative on Free. The range endpoint still
+    // produces one Worker request for 1–7 dates, while only 4 KGEU requests can
+    // be in flight at once.
+    const workers = Array.from({ length: Math.min(4, queue.length) }, async () => {
+      while (queue.length) {
+        const dateStr = queue.shift();
+        try {
+          let day = null;
+          let lastError = null;
+
+          for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+              day = await fetchScheduleDayResult(env, type, id, dateStr, forceFresh);
+              lastError = null;
+              break;
+            } catch (e) {
+              lastError = e;
+              if (attempt === 0) await sleepServer(250);
+            }
+          }
+
+          if (!day) throw (lastError || new Error('SCHEDULE_DAY_UNAVAILABLE'));
+          try {
+            result[dateStr] = JSON.parse(day.text);
+          } catch (e) {
+            throw new Error(`INVALID_JSON_${dateStr}`);
+          }
+          if (day.stale) staleDates[dateStr] = true;
+        } catch (e) {
+          failures[dateStr] = true;
+        }
+      }
+    });
+
+    await Promise.all(workers);
+
+    const payload = JSON.stringify({
+      ok: true,
+      format: 'raw-api-v4',
+      type,
+      id,
+      start,
+      days,
+      data: result,
+      errors: failures,
+      stale: staleDates
+    });
+
+    const isPartial = Object.keys(failures).length > 0;
+
+    // Only a complete range is persisted as a range cache entry. Individual
+    // days were already cached by fetchScheduleDayResult(), so a partial range
+    // never poisons the range cache.
+    if (!isPartial) await cachePutText(edgeKey, payload, 'application/json; charset=utf-8', ttl);
+
+    return {
+      status: 200,
+      text: payload,
+      contentType: 'application/json; charset=utf-8',
+      cacheControl: `public, max-age=${isPartial ? 0 : ttl}, must-revalidate`
+    };
+  })().catch(async e => {
+    console.error('schedule-range error:', e);
+    await safeLog(env, 'ERROR', `schedule-range ${type}:${id}:${start}: ${e?.message || e}`);
+    return {
+      status: 502,
+      text: JSON.stringify({ ok: false, error: 'EXTERNAL_API_UNAVAILABLE' }),
+      contentType: 'application/json; charset=utf-8',
+      cacheControl: 'no-store'
+    };
+  });
+
+  proxyInflight.set(flightKey, promise);
+  try {
+    const shared = await promise;
+    return new Response(shared.text, {
+      status: shared.status || 200,
+      headers: {
+        'Content-Type': shared.contentType || 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': corsOrigin,
+        'Cache-Control': shared.cacheControl || `public, max-age=${ttl}, must-revalidate`
+      }
+    });
+  } finally {
+    proxyInflight.delete(flightKey);
   }
 }
 
@@ -811,6 +1519,12 @@ async function getCache(env, key) {
 }
 
 async function saveCache(env, key, data) {
+  if (typeof data !== 'string') data = JSON.stringify(data);
+  if (data.length > MAX_D1_CACHE_BYTES) {
+    console.warn(`D1 cache skipped for ${key}: ${data.length} bytes`);
+    return;
+  }
+
   try {
     await env.DB.prepare(
       `INSERT OR REPLACE INTO schedule_cache (cache_key, schedule_data, updated_at)
@@ -845,13 +1559,12 @@ async function handleUserSync(request, env, corsOrigin) {
   }
 
   if (request.method === 'POST') {
+    if (!takeUserRateSlot(user.id, 'user-sync', USER_SYNC_WRITE_LIMIT)) {
+      return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
+    }
     try {
       const body = await request.json();
       const settings = body?.settings || {};
-
-      // Гарантируем миграцию selections_json непосредственно перед первым сохранением,
-      // даже если cron ещё не успел выполнить ensureSchema после деплоя.
-      await ensureSchema(env);
 
       await env.DB.prepare(
         `INSERT INTO app_users (
@@ -880,20 +1593,30 @@ async function handleUserSync(request, env, corsOrigin) {
           subgroup = excluded.subgroup,
           favorites_json = excluded.favorites_json,
           selections_json = excluded.selections_json,
-          updated_at = CURRENT_TIMESTAMP`
+          updated_at = CURRENT_TIMESTAMP
+        WHERE username IS NOT excluded.username
+           OR first_name IS NOT excluded.first_name
+           OR last_name IS NOT excluded.last_name
+           OR selected_id IS NOT excluded.selected_id
+           OR selected_name IS NOT excluded.selected_name
+           OR selected_type IS NOT excluded.selected_type
+           OR theme IS NOT excluded.theme
+           OR subgroup IS NOT excluded.subgroup
+           OR favorites_json IS NOT excluded.favorites_json
+           OR selections_json IS NOT excluded.selections_json`
       )
         .bind(
           user.id,
           user.username || '',
           user.first_name || '',
           user.last_name || '',
-          String(settings.selected_id || ''),
-          String(settings.selected_name || ''),
-          String(settings.selected_type || 'Group'),
-          String(settings.theme || 'theme-purple'),
-          String(settings.subgroup || '0'),
-          String(settings.favorites_json || '[]'),
-          String(settings.selections_json || '{}')
+          String(settings.selected_id || '').slice(0, 100),
+          String(settings.selected_name || '').slice(0, 200),
+          String(settings.selected_type || 'Group').slice(0, 20),
+          String(settings.theme || 'theme-purple').slice(0, 80),
+          String(settings.subgroup || '0').slice(0, 10),
+          String(settings.favorites_json || '[]').slice(0, 30000),
+          String(settings.selections_json || '{}').slice(0, 10000)
         )
         .run();
 
@@ -929,6 +1652,9 @@ async function handleTasks(request, env, url, corsOrigin) {
   }
 
   if (request.method === 'POST') {
+    if (!takeUserRateSlot(user.id, 'task-write', TASK_WRITE_LIMIT)) {
+      return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
+    }
     try {
       const body = await request.json();
 
@@ -1024,6 +1750,9 @@ async function handleTasks(request, env, url, corsOrigin) {
   }
 
   if (request.method === 'DELETE') {
+    if (!takeUserRateSlot(user.id, 'task-write', TASK_WRITE_LIMIT)) {
+      return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
+    }
     if (url.searchParams.get('all') === '1') {
       await env.DB.prepare(`DELETE FROM tasks WHERE telegram_id = ?`).bind(user.id).run().catch(() => {});
       return jsonResponse({ ok: true }, 200, corsOrigin);
@@ -1063,56 +1792,97 @@ async function handleReminders(request, env, url, corsOrigin) {
        WHERE telegram_id = ? AND sent = 0
        ORDER BY remind_at ASC
        LIMIT 200`
-    )
-      .bind(user.id)
-      .all()
-      .catch(() => ({ results: [] }));
-
+    ).bind(user.id).all().catch(() => ({ results: [] }));
     return jsonResponse(rows.results || [], 200, corsOrigin);
   }
 
   if (request.method === 'POST') {
+    if (!takeUserRateSlot(user.id, 'reminder-write', REMINDER_WRITE_LIMIT)) {
+      return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
+    }
     try {
       const body = await request.json();
-
-      const remindAt = Number(body.remind_at || 0);
+      const clientRemindAt = Number(body.remind_at || 0);
+      const lessonStartAt = Number(body.lesson_start_at || 0);
+      const leadMinutes = Number(body.lead_minutes ?? 15);
       const message = String(body.message || '').slice(0, 500);
+      const reminderKey = String(body.reminder_key || '').slice(0, 500);
 
-      if (!remindAt || !message.trim()) {
+      if (!Number.isFinite(clientRemindAt) || clientRemindAt <= 0 || !message.trim()) {
         return jsonResponse({ ok: false, error: 'BAD_REQUEST' }, 400, corsOrigin);
       }
+      if (!Number.isInteger(leadMinutes) || leadMinutes < 0 || leadMinutes > 1440 || leadMinutes % 5 !== 0) {
+        return jsonResponse({ ok: false, error: 'BAD_LEAD_MINUTES' }, 400, corsOrigin);
+      }
+      const nowMs = Date.now();
+      if (!Number.isFinite(lessonStartAt) || lessonStartAt <= 0) {
+        return jsonResponse({ ok: false, error: 'BAD_LESSON_TIME' }, 400, corsOrigin);
+      }
+      if (lessonStartAt < nowMs) {
+        return jsonResponse({ ok: false, error: 'LESSON_ALREADY_STARTED' }, 400, corsOrigin);
+      }
 
-      await env.DB.prepare(
-        `INSERT INTO reminders (telegram_id, remind_at, message)
-         VALUES (?, ?, ?)`
-      )
-        .bind(user.id, remindAt, message)
-        .run();
+      // The authoritative reminder timestamp is calculated server-side from the
+      // lesson start and the selected 5-minute lead time.
+      const remindAt = Math.round(lessonStartAt - leadMinutes * 60 * 1000);
+      if (!Number.isFinite(remindAt) || remindAt <= 0 || remindAt < nowMs - 60 * 1000) {
+        return jsonResponse({ ok: false, error: 'REMINDER_IN_PAST' }, 400, corsOrigin);
+      }
+      if (Math.abs(remindAt - clientRemindAt) > 2 * 60 * 1000) {
+        return jsonResponse({ ok: false, error: 'REMINDER_TIME_MISMATCH' }, 400, corsOrigin);
+      }
+      if (remindAt > nowMs + 180 * 24 * 60 * 60 * 1000) {
+        return jsonResponse({ ok: false, error: 'REMINDER_TOO_FAR' }, 400, corsOrigin);
+      }
 
-      return jsonResponse({ ok: true }, 200, corsOrigin);
+      // Atomic duplicate protection: check + insert is one SQLite statement,
+      // so simultaneous taps cannot create duplicate pending reminders.
+      const insert = await env.DB.prepare(
+        `INSERT INTO reminders (
+          telegram_id, remind_at, message, sent, attempts,
+          lesson_start_at, lead_minutes, reminder_key, locked_at
+        )
+        SELECT ?, ?, ?, 0, 0, ?, ?, ?, 0
+        WHERE NOT EXISTS (
+          SELECT 1 FROM reminders
+          WHERE telegram_id = ? AND reminder_key = ? AND sent = 0
+        )`
+      ).bind(
+        user.id, Math.round(remindAt), message,
+        lessonStartAt ? Math.round(lessonStartAt) : 0,
+        leadMinutes, reminderKey, user.id, reminderKey
+      ).run();
+
+      const changes = Number(insert?.meta?.changes ?? insert?.changes ?? 0);
+      if (!changes) {
+        const duplicate = await env.DB.prepare(
+          `SELECT id FROM reminders
+           WHERE telegram_id = ? AND reminder_key = ? AND sent = 0
+           ORDER BY id ASC LIMIT 1`
+        ).bind(user.id, reminderKey).first().catch(() => null);
+        return jsonResponse({ ok: true, duplicate: true, id: duplicate?.id || null }, 200, corsOrigin);
+      }
+
+      return jsonResponse({ ok: true, id: insert?.meta?.last_row_id ?? insert?.lastRowId ?? null }, 200, corsOrigin);
     } catch (e) {
+      console.error('Reminder save error:', e);
       return jsonResponse({ ok: false, error: 'BAD_REQUEST' }, 400, corsOrigin);
     }
   }
 
   if (request.method === 'DELETE') {
+    if (!takeUserRateSlot(user.id, 'reminder-write', REMINDER_WRITE_LIMIT)) {
+      return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
+    }
     if (url.searchParams.get('all') === '1') {
       await env.DB.prepare(`DELETE FROM reminders WHERE telegram_id = ? AND sent = 0`).bind(user.id).run().catch(() => {});
       return jsonResponse({ ok: true }, 200, corsOrigin);
     }
 
     const id = Number(url.searchParams.get('id') || 0);
-    if (!id) {
-      return jsonResponse({ ok: false, error: 'BAD_REQUEST' }, 400, corsOrigin);
-    }
+    if (!id) return jsonResponse({ ok: false, error: 'BAD_REQUEST' }, 400, corsOrigin);
 
-    await env.DB.prepare(
-      `DELETE FROM reminders WHERE id = ? AND telegram_id = ?`
-    )
-      .bind(id, user.id)
-      .run()
-      .catch(() => {});
-
+    await env.DB.prepare(`DELETE FROM reminders WHERE id = ? AND telegram_id = ?`).bind(id, user.id).run().catch(() => {});
     return jsonResponse({ ok: true }, 200, corsOrigin);
   }
 
@@ -1122,61 +1892,145 @@ async function handleReminders(request, env, url, corsOrigin) {
 async function processReminders(env) {
   try {
     const now = Date.now();
-
+    const staleLock = now - 10 * 60 * 1000;
     const due = await env.DB.prepare(
       `SELECT r.*
        FROM reminders r
        LEFT JOIN app_users u ON u.telegram_id = r.telegram_id
-       WHERE r.sent = 0
+       WHERE (r.sent = 0 OR (r.sent = -1 AND r.locked_at < ?))
          AND r.attempts < 3
          AND r.remind_at <= ?
          AND IFNULL(u.banned, 0) = 0
        ORDER BY r.remind_at ASC
+       LIMIT 25`
+    ).bind(staleLock, now).all().catch(() => ({ results: [] }));
+
+    let rows = due.results || [];
+    if (!rows.length) return;
+
+    // Claim rows before sending so overlapping cron invocations cannot send the
+    // same reminder twice. A stale claim is automatically reclaimable after 10m.
+    const claimed = [];
+    for (const row of rows) {
+      const result = await env.DB.prepare(
+        `UPDATE reminders SET sent = -1, locked_at = ?
+         WHERE id = ? AND (sent = 0 OR (sent = -1 AND locked_at < ?))`
+      ).bind(now, row.id, staleLock).run().catch(() => null);
+      if (result?.meta?.changes || result?.changes) claimed.push(row);
+    }
+    rows = claimed;
+    if (!rows.length) return;
+
+    const results = await mapServerWithConcurrency(rows, 5, async row => {
+      if (!env.BOT_TOKEN) return { id: row.id, ok: false };
+      const ok = await sendTelegramMessage(env.BOT_TOKEN, row.telegram_id, row.message);
+      return { id: row.id, ok };
+    });
+
+    const sentIds = results.filter(r => r.ok).map(r => r.id);
+    const failedIds = results.filter(r => !r.ok).map(r => r.id);
+    const statements = [];
+
+    if (sentIds.length) {
+      const marks = sentIds.map(() => '?').join(',');
+      statements.push(env.DB.prepare(
+        `UPDATE reminders SET sent = 1, locked_at = 0 WHERE id IN (${marks}) AND sent = -1`
+      ).bind(...sentIds));
+    }
+    if (failedIds.length) {
+      const marks = failedIds.map(() => '?').join(',');
+      statements.push(env.DB.prepare(
+        `UPDATE reminders
+         SET attempts = attempts + 1,
+             sent = CASE WHEN attempts + 1 >= 3 THEN 2 ELSE 0 END,
+             locked_at = 0
+         WHERE id IN (${marks}) AND sent = -1`
+      ).bind(...failedIds));
+    }
+    if (statements.length) await env.DB.batch(statements);
+  } catch (e) {
+    console.error('processReminders error:', e);
+  }
+}
+
+async function mapServerWithConcurrency(items, limit, workerFn) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function runner() {
+    while (true) {
+      const index = next++;
+      if (index >= items.length) return;
+      results[index] = await workerFn(items[index], index);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, runner));
+  return results;
+}
+
+async function processBroadcastQueue(env) {
+  try {
+    const rowsResult = await env.DB.prepare(
+      `SELECT q.id, q.job_id, q.telegram_id, q.attempts, j.message
+       FROM broadcast_queue q
+       JOIN broadcast_jobs j ON j.id = q.job_id
+       WHERE q.sent = 0 AND q.attempts < 3 AND j.status IN ('queued', 'sending')
+       ORDER BY q.id ASC
        LIMIT 20`
     )
-      .bind(now)
       .all()
       .catch(() => ({ results: [] }));
 
-    const rows = due.results || [];
+    const rows = rowsResult.results || [];
+    if (!rows.length || !env.BOT_TOKEN) return;
 
-    for (const row of rows) {
-      if (!env.BOT_TOKEN) {
-        await env.DB.prepare(
-          `UPDATE reminders SET sent = 1 WHERE id = ?`
-        )
-          .bind(row.id)
-          .run()
-          .catch(() => {});
-        continue;
-      }
+    await env.DB.prepare(`UPDATE broadcast_jobs SET status = 'sending' WHERE id = ?`).bind(rows[0].job_id).run().catch(() => {});
 
-      const ok = await sendTelegramMessage(
-        env.BOT_TOKEN,
-        row.telegram_id,
-        row.message
+    const results = await mapServerWithConcurrency(rows, 5, async row => {
+      const ok = await sendTelegramMessage(env.BOT_TOKEN, row.telegram_id, row.message);
+      return { id: row.id, jobId: row.job_id, ok };
+    });
+
+    const sentIds = results.filter(r => r.ok).map(r => r.id);
+    const failedIds = results.filter(r => !r.ok).map(r => r.id);
+
+    const statements = [];
+    if (sentIds.length) {
+      const marks = sentIds.map(() => '?').join(',');
+      statements.push(
+        env.DB.prepare(`UPDATE broadcast_queue SET sent = 1, sent_at = CURRENT_TIMESTAMP WHERE id IN (${marks})`).bind(...sentIds)
       );
+    }
+    if (failedIds.length) {
+      const marks = failedIds.map(() => '?').join(',');
+      statements.push(
+        env.DB.prepare(`UPDATE broadcast_queue SET attempts = attempts + 1 WHERE id IN (${marks})`).bind(...failedIds)
+      );
+    }
+    if (statements.length) await env.DB.batch(statements);
 
-      if (ok) {
+    const jobIds = [...new Set(results.map(r => r.jobId))];
+    for (const jobId of jobIds) {
+      const pending = await env.DB.prepare(
+        `SELECT\n           SUM(CASE WHEN sent = 1 THEN 1 ELSE 0 END) AS sent_count,\n           SUM(CASE WHEN sent = 0 AND attempts >= 3 THEN 1 ELSE 0 END) AS failed_count,\n           SUM(CASE WHEN sent = 0 AND attempts < 3 THEN 1 ELSE 0 END) AS pending_count\n         FROM broadcast_queue WHERE job_id = ?`
+      ).bind(jobId).first().catch(() => null);
+
+      const sentCount = Number(pending?.sent_count || 0);
+      const failedCount = Number(pending?.failed_count || 0);
+      const pendingCount = Number(pending?.pending_count || 0);
+
+      if (pendingCount === 0) {
+        const status = failedCount ? 'finished_with_errors' : 'finished';
         await env.DB.prepare(
-          `UPDATE reminders SET sent = 1 WHERE id = ?`
-        )
-          .bind(row.id)
-          .run()
-          .catch(() => {});
+          `UPDATE broadcast_jobs SET status = ?, sent = ?, failed = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?`
+        ).bind(status, sentCount, failedCount, jobId).run().catch(() => {});
       } else {
         await env.DB.prepare(
-          `UPDATE reminders SET attempts = attempts + 1 WHERE id = ?`
-        )
-          .bind(row.id)
-          .run()
-          .catch(() => {});
+          `UPDATE broadcast_jobs SET sent = ?, failed = ? WHERE id = ?`
+        ).bind(sentCount, failedCount, jobId).run().catch(() => {});
       }
-
-      await new Promise(resolve => setTimeout(resolve, 50));
     }
   } catch (e) {
-    console.error('processReminders error:', e);
+    console.error('processBroadcastQueue error:', e);
   }
 }
 
@@ -1243,31 +2097,6 @@ async function handleAdmin(request, env, subPath, corsOrigin) {
     }
   }
 
-  if (subPath === '/admin/users' && request.method === 'GET') {
-    const qRaw = String(new URL(request.url).searchParams.get('q') || '').trim().replace(/^@/, '');
-    const q = qRaw.toLowerCase();
-    const like = `%${q}%`;
-
-    const rows = await env.DB.prepare(
-      `SELECT telegram_id, username, first_name, last_name, selected_name, selected_type, banned, updated_at
-       FROM app_users
-       WHERE (? = ''
-          OR CAST(telegram_id AS TEXT) LIKE ?
-          OR LOWER(COALESCE(username, '')) LIKE ?
-          OR LOWER(COALESCE(first_name, '')) LIKE ?
-          OR LOWER(COALESCE(last_name, '')) LIKE ?
-          OR LOWER(TRIM(COALESCE(first_name, '') || ' ' || COALESCE(last_name, ''))) LIKE ?
-          OR LOWER(COALESCE(selected_name, '')) LIKE ?)
-       ORDER BY banned DESC, updated_at DESC
-       LIMIT 30`
-    )
-      .bind(q, like, like, like, like, like, like)
-      .all()
-      .catch(() => ({ results: [] }));
-
-    return jsonResponse({ ok: true, users: rows.results || [] }, 200, corsOrigin);
-  }
-
   if (request.method === 'POST') {
     let body = {};
 
@@ -1277,7 +2106,9 @@ async function handleAdmin(request, env, subPath, corsOrigin) {
 
     if (subPath === '/admin/clearOldCache') {
       await env.DB.prepare(
-        `DELETE FROM schedule_cache WHERE updated_at < datetime('now', '-14 days')`
+        `DELETE FROM schedule_cache
+         WHERE cache_key <> '/api/lists'
+           AND updated_at < datetime('now', '-14 days')`
       ).run().catch(() => {});
 
       await logAdmin(env, admin.id, 'clearOldCache');
@@ -1326,6 +2157,7 @@ async function handleAdmin(request, env, subPath, corsOrigin) {
         .run()
         .catch(() => {});
 
+      await clearUserBanCache(targetId);
       await logAdmin(env, admin.id, banned ? 'ban' : 'unban', { targetId });
 
       return jsonResponse({
@@ -1345,24 +2177,46 @@ async function handleAdmin(request, env, subPath, corsOrigin) {
         `SELECT telegram_id
          FROM app_users
          WHERE banned = 0 AND updated_at >= datetime('now', '-30 days')
-         LIMIT 500`
+         ORDER BY telegram_id ASC
+         LIMIT 1000`
       )
         .all()
         .catch(() => ({ results: [] }));
 
-      let sent = 0;
-
-      for (const row of users.results || []) {
-        const ok = await sendTelegramMessage(env.BOT_TOKEN, row.telegram_id, message);
-        if (ok) sent++;
-        await new Promise(resolve => setTimeout(resolve, 50));
+      const recipients = users.results || [];
+      if (!recipients.length) {
+        return jsonResponse({ ok: true, message: 'Нет активных пользователей для рассылки' }, 200, corsOrigin);
       }
 
-      await logAdmin(env, admin.id, 'broadcast', { sent, length: message.length });
+      const job = await env.DB.prepare(
+        `INSERT INTO broadcast_jobs (admin_id, message, total, status)
+         VALUES (?, ?, ?, 'queued')`
+      )
+        .bind(admin.id, message, recipients.length)
+        .run();
+
+      const jobId = Number(job?.meta?.last_row_id || job?.lastRowId || 0);
+      if (!jobId) {
+        return jsonResponse({ ok: false, message: 'Не удалось создать задачу рассылки' }, 500, corsOrigin);
+      }
+
+      for (let i = 0; i < recipients.length; i += 100) {
+        const chunk = recipients.slice(i, i + 100);
+        const statements = chunk.map(row =>
+          env.DB.prepare(
+            `INSERT INTO broadcast_queue (job_id, telegram_id) VALUES (?, ?)`
+          ).bind(jobId, row.telegram_id)
+        );
+        await env.DB.batch(statements);
+      }
+
+      await logAdmin(env, admin.id, 'broadcast_queued', { jobId, total: recipients.length, length: message.length });
 
       return jsonResponse({
         ok: true,
-        message: `Отправлено: ${sent}`
+        message: `Рассылка поставлена в очередь: ${recipients.length} пользователей. Отправка продолжится автоматически.`,
+        jobId,
+        total: recipients.length
       }, 200, corsOrigin);
     }
   }
@@ -1394,6 +2248,29 @@ async function countWhere(env, table, where) {
 
 async function ensureSchema(env) {
   const statements = [
+    `CREATE TABLE IF NOT EXISTS users (
+      telegram_id INTEGER PRIMARY KEY,
+      selected_id TEXT DEFAULT '14456',
+      selected_name TEXT DEFAULT 'ИПК-1-25',
+      selected_type TEXT DEFAULT 'group',
+      theme TEXT DEFAULT 'glass_dark',
+      custom_bg_url TEXT,
+      accent_color TEXT DEFAULT '#3b82f6',
+      favorites_json TEXT DEFAULT '[]',
+      tasks_json TEXT DEFAULT '[]',
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS schedule_cache (
+      cache_key TEXT PRIMARY KEY,
+      schedule_data TEXT NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS system_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_type TEXT,
+      payload TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
     `CREATE TABLE IF NOT EXISTS app_users (
       telegram_id INTEGER PRIMARY KEY,
       username TEXT,
@@ -1430,6 +2307,10 @@ async function ensureSchema(env) {
       message TEXT NOT NULL,
       sent INTEGER DEFAULT 0,
       attempts INTEGER DEFAULT 0,
+      lesson_start_at INTEGER DEFAULT 0,
+      lead_minutes INTEGER DEFAULT 15,
+      reminder_key TEXT DEFAULT '',
+      locked_at INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
     `CREATE TABLE IF NOT EXISTS admin_events (
@@ -1439,39 +2320,81 @@ async function ensureSchema(env) {
       payload TEXT DEFAULT '',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
+    `CREATE TABLE IF NOT EXISTS broadcast_jobs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      admin_id INTEGER NOT NULL,
+      message TEXT NOT NULL,
+      total INTEGER DEFAULT 0,
+      sent INTEGER DEFAULT 0,
+      failed INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'queued',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      finished_at TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS broadcast_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      job_id INTEGER NOT NULL,
+      telegram_id INTEGER NOT NULL,
+      sent INTEGER DEFAULT 0,
+      attempts INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      sent_at TIMESTAMP
+    )`,
     `CREATE INDEX IF NOT EXISTS idx_tasks_user ON tasks(telegram_id)`,
     `CREATE INDEX IF NOT EXISTS idx_tasks_note_key ON tasks(telegram_id, note_key)`,
     `CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders(sent, remind_at)`,
-    `CREATE INDEX IF NOT EXISTS idx_app_users_updated ON app_users(updated_at)`
+    `CREATE INDEX IF NOT EXISTS idx_reminders_key ON reminders(telegram_id, reminder_key, sent)`,
+    `CREATE INDEX IF NOT EXISTS idx_reminders_user ON reminders(telegram_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_app_users_updated ON app_users(updated_at)`,
+    `CREATE INDEX IF NOT EXISTS idx_app_users_selected ON app_users(selected_type, selected_name)`,
+    `CREATE INDEX IF NOT EXISTS idx_cache_updated ON schedule_cache(updated_at)`,
+    `CREATE INDEX IF NOT EXISTS idx_schedule_cache_key_updated ON schedule_cache(cache_key, updated_at)`,
+    `CREATE INDEX IF NOT EXISTS idx_logs_created ON system_logs(created_at)`,
+    `CREATE INDEX IF NOT EXISTS idx_admin_events_created ON admin_events(created_at)`,
+    `CREATE INDEX IF NOT EXISTS idx_broadcast_queue_pending ON broadcast_queue(sent, attempts, id)`,
+    `CREATE INDEX IF NOT EXISTS idx_broadcast_queue_job ON broadcast_queue(job_id, sent)`,
+    `CREATE INDEX IF NOT EXISTS idx_broadcast_queue_created ON broadcast_queue(created_at, sent, attempts)`,
+    `CREATE INDEX IF NOT EXISTS idx_broadcast_jobs_status ON broadcast_jobs(status, created_at)`
   ];
 
   for (const sql of statements) {
-    try {
-      await env.DB.prepare(sql).run();
-    } catch (e) {}
+    try { await env.DB.prepare(sql).run(); } catch (e) {}
   }
 
-  try { await env.DB.prepare(`ALTER TABLE app_users ADD COLUMN selections_json TEXT DEFAULT '{}'`).run(); } catch (e) {}
-
-  // Авто-миграция старой БД: добавляем колонку типа заметки, если её нет
-  try {
-    await env.DB.prepare(`ALTER TABLE tasks ADD COLUMN note_type TEXT DEFAULT 'note'`).run();
-  } catch (e) {}
-  for (const [column, ddl] of [
-    ['note_key', `ALTER TABLE tasks ADD COLUMN note_key TEXT DEFAULT ''`],
-    ['lesson_time', `ALTER TABLE tasks ADD COLUMN lesson_time TEXT DEFAULT ''`],
-    ['lesson_room', `ALTER TABLE tasks ADD COLUMN lesson_room TEXT DEFAULT ''`],
-    ['lesson_subgroup', `ALTER TABLE tasks ADD COLUMN lesson_subgroup TEXT DEFAULT '0'`]
+  for (const ddl of [
+    `ALTER TABLE tasks ADD COLUMN note_type TEXT DEFAULT 'note'`,
+    `ALTER TABLE tasks ADD COLUMN note_key TEXT DEFAULT ''`,
+    `ALTER TABLE tasks ADD COLUMN lesson_time TEXT DEFAULT ''`,
+    `ALTER TABLE tasks ADD COLUMN lesson_room TEXT DEFAULT ''`,
+    `ALTER TABLE tasks ADD COLUMN lesson_subgroup TEXT DEFAULT '0'`,
+    `ALTER TABLE app_users ADD COLUMN selections_json TEXT DEFAULT '{}'`,
+    `ALTER TABLE reminders ADD COLUMN lesson_start_at INTEGER DEFAULT 0`,
+    `ALTER TABLE reminders ADD COLUMN lead_minutes INTEGER DEFAULT 15`,
+    `ALTER TABLE reminders ADD COLUMN reminder_key TEXT DEFAULT ''`,
+    `ALTER TABLE reminders ADD COLUMN locked_at INTEGER DEFAULT 0`
   ]) {
     try { await env.DB.prepare(ddl).run(); } catch (e) {}
   }
-  try { await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_tasks_note_key ON tasks(telegram_id, note_key)`).run(); } catch (e) {}
+}
+
+async function ensureSchemaOnce(env) {
+  if (!schemaPromise) {
+    schemaPromise = ensureSchema(env).catch(e => {
+      schemaPromise = null;
+      throw e;
+    });
+  }
+  return schemaPromise;
 }
 
 async function cleanupDatabase(env) {
   try {
+    // Schedule responses are now stored in Workers Cache, not D1. These deletes
+    // gradually remove legacy schedule-cache rows after the new version is live.
     await env.DB.prepare(
-      `DELETE FROM schedule_cache WHERE updated_at < datetime('now', '-14 days')`
+      `DELETE FROM schedule_cache
+       WHERE cache_key <> '/api/lists'
+         AND updated_at < datetime('now', '-12 hours')`
     ).run().catch(() => {});
 
     await env.DB.prepare(
@@ -1483,7 +2406,18 @@ async function cleanupDatabase(env) {
     ).run().catch(() => {});
 
     await env.DB.prepare(
-      `DELETE FROM reminders WHERE sent = 1 AND created_at < datetime('now', '-7 days')`
+      `DELETE FROM reminders WHERE sent != 0 AND sent != -1 AND created_at < datetime('now', '-7 days')`
+    ).run().catch(() => {});
+
+    await env.DB.prepare(
+      `DELETE FROM broadcast_queue
+       WHERE (sent = 1 OR attempts >= 3)
+         AND created_at < datetime('now', '-7 days')`
+    ).run().catch(() => {});
+
+    await env.DB.prepare(
+      `DELETE FROM broadcast_jobs
+       WHERE finished_at IS NOT NULL AND finished_at < datetime('now', '-30 days')`
     ).run().catch(() => {});
   } catch (e) {
     console.error('cleanupDatabase error:', e);
