@@ -531,10 +531,10 @@ async function handleFreeAuds(env, url, corsOrigin) {
     if (!t) continue;
 
     if (t.start < endMin && t.end > startMin) {
-      const room = String(serverRoom(l) || l.audLine || l.Аудитория || '').trim();
+      const room = String(serverRoom(l) || '').trim();
       if (room) busyNames.add(room.toLowerCase());
 
-      const roomId = l.idAudLine ?? l.audId ?? l.aud_id ?? l.idAud ?? l.auditoriumId ?? l.кодАудитории ?? null;
+      const roomId = l.audId ?? l.aud_id ?? l.idAud ?? null;
       if (roomId !== null && roomId !== undefined) busyIds.add(String(roomId));
     }
   }
@@ -655,14 +655,27 @@ function normalizeListItem(item) {
   }
 
   const name =
-    item.name ?? item.Name ?? item.title ?? item.Title ?? item.text ?? item.label ??
-    item.group ?? item.groupName ?? item.teacher ?? item.teacherName ?? item.auditorium ?? item.auditoriumName ??
-    item.Группа ?? item.наименование ?? item.Наименование ?? item.ФИО ?? item.Аудитория ?? item.value;
+    item.name ??
+    item.Name ??
+    item.title ??
+    item.label ??
+    item.value ??
+    item.Группа ??
+    item.наименование ??
+    item.ФИО ??
+    item.Аудитория;
 
   const id =
-    item.id ?? item.Id ?? item.ID ?? item.idGroup ?? item.idTeacher ?? item.idAudLine ?? item.idAud ??
-    item.groupId ?? item.teacherId ?? item.auditoriumId ?? item.audId ?? item.код ?? item.кодГруппы ??
-    item.кодПреподавателя ?? item.кодАудитории ?? item.Код ?? item.code ?? item.Code ?? item.value ?? name;
+    item.id ??
+    item.Id ??
+    item.ID ??
+    item.idGroup ??
+    item.idTeacher ??
+    item.idAud ??
+    item.код ??
+    item.code ??
+    item.value ??
+    name;
 
   if (!name) return null;
 
@@ -836,6 +849,10 @@ async function handleUserSync(request, env, corsOrigin) {
       const body = await request.json();
       const settings = body?.settings || {};
 
+      // Гарантируем миграцию selections_json непосредственно перед первым сохранением,
+      // даже если cron ещё не успел выполнить ensureSchema после деплоя.
+      await ensureSchema(env);
+
       await env.DB.prepare(
         `INSERT INTO app_users (
           telegram_id,
@@ -848,9 +865,10 @@ async function handleUserSync(request, env, corsOrigin) {
           theme,
           subgroup,
           favorites_json,
+          selections_json,
           banned,
           updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
         ON CONFLICT(telegram_id) DO UPDATE SET
           username = excluded.username,
           first_name = excluded.first_name,
@@ -861,6 +879,7 @@ async function handleUserSync(request, env, corsOrigin) {
           theme = excluded.theme,
           subgroup = excluded.subgroup,
           favorites_json = excluded.favorites_json,
+          selections_json = excluded.selections_json,
           updated_at = CURRENT_TIMESTAMP`
       )
         .bind(
@@ -873,7 +892,8 @@ async function handleUserSync(request, env, corsOrigin) {
           String(settings.selected_type || 'Group'),
           String(settings.theme || 'theme-purple'),
           String(settings.subgroup || '0'),
-          String(settings.favorites_json || '[]')
+          String(settings.favorites_json || '[]'),
+          String(settings.selections_json || '{}')
         )
         .run();
 
@@ -1201,30 +1221,6 @@ async function handleAdmin(request, env, subPath, corsOrigin) {
     }, 200, corsOrigin);
   }
 
-  if (subPath === '/admin/users' && request.method === 'GET') {
-    const q = String(new URL(request.url).searchParams.get('q') || '').trim().slice(0, 120);
-    if (!q) return jsonResponse([], 200, corsOrigin);
-
-    const like = `%${q.replace(/[%_]/g, '\\$&')}%`;
-    const numericId = /^\d+$/.test(q) ? Number(q) : 0;
-
-    const rows = await env.DB.prepare(
-      `SELECT telegram_id, username, first_name, last_name, selected_id, selected_name, selected_type, banned, updated_at
-       FROM app_users
-       WHERE telegram_id = ?
-          OR username LIKE ? ESCAPE '\\'
-          OR first_name LIKE ? ESCAPE '\\'
-          OR last_name LIKE ? ESCAPE '\\'
-       ORDER BY updated_at DESC
-       LIMIT 50`
-    )
-      .bind(numericId, like, like, like)
-      .all()
-      .catch(() => ({ results: [] }));
-
-    return jsonResponse(rows.results || [], 200, corsOrigin);
-  }
-
   if (subPath === '/admin/test' && request.method === 'GET') {
     const started = Date.now();
 
@@ -1245,6 +1241,31 @@ async function handleAdmin(request, env, subPath, corsOrigin) {
         error: String(e?.message || e)
       }, 500, corsOrigin);
     }
+  }
+
+  if (subPath === '/admin/users' && request.method === 'GET') {
+    const qRaw = String(new URL(request.url).searchParams.get('q') || '').trim().replace(/^@/, '');
+    const q = qRaw.toLowerCase();
+    const like = `%${q}%`;
+
+    const rows = await env.DB.prepare(
+      `SELECT telegram_id, username, first_name, last_name, selected_name, selected_type, banned, updated_at
+       FROM app_users
+       WHERE (? = ''
+          OR CAST(telegram_id AS TEXT) LIKE ?
+          OR LOWER(COALESCE(username, '')) LIKE ?
+          OR LOWER(COALESCE(first_name, '')) LIKE ?
+          OR LOWER(COALESCE(last_name, '')) LIKE ?
+          OR LOWER(TRIM(COALESCE(first_name, '') || ' ' || COALESCE(last_name, ''))) LIKE ?
+          OR LOWER(COALESCE(selected_name, '')) LIKE ?)
+       ORDER BY banned DESC, updated_at DESC
+       LIMIT 30`
+    )
+      .bind(q, like, like, like, like, like, like)
+      .all()
+      .catch(() => ({ results: [] }));
+
+    return jsonResponse({ ok: true, users: rows.results || [] }, 200, corsOrigin);
   }
 
   if (request.method === 'POST') {
@@ -1384,6 +1405,7 @@ async function ensureSchema(env) {
       theme TEXT DEFAULT 'theme-purple',
       subgroup TEXT DEFAULT '0',
       favorites_json TEXT DEFAULT '[]',
+      selections_json TEXT DEFAULT '{}',
       banned INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -1428,6 +1450,8 @@ async function ensureSchema(env) {
       await env.DB.prepare(sql).run();
     } catch (e) {}
   }
+
+  try { await env.DB.prepare(`ALTER TABLE app_users ADD COLUMN selections_json TEXT DEFAULT '{}'`).run(); } catch (e) {}
 
   // Авто-миграция старой БД: добавляем колонку типа заметки, если её нет
   try {
