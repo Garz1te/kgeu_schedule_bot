@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS app_users (
     theme TEXT DEFAULT 'theme-purple',
     subgroup TEXT DEFAULT '0',
     favorites_json TEXT DEFAULT '[]',
+    selections_json TEXT DEFAULT '{}',
     banned INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -47,6 +48,10 @@ CREATE TABLE IF NOT EXISTS tasks (
     task_text TEXT NOT NULL,
     due_date TEXT DEFAULT '',
     note_type TEXT DEFAULT 'note',
+    note_key TEXT DEFAULT '',
+    lesson_time TEXT DEFAULT '',
+    lesson_room TEXT DEFAULT '',
+    lesson_subgroup TEXT DEFAULT '0',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -73,6 +78,7 @@ CREATE INDEX IF NOT EXISTS idx_app_users_selected ON app_users(selected_type, se
 CREATE INDEX IF NOT EXISTS idx_cache_updated ON schedule_cache(updated_at);
 CREATE INDEX IF NOT EXISTS idx_logs_created ON system_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_tasks_user ON tasks(telegram_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_note_key ON tasks(telegram_id, note_key);
 CREATE INDEX IF NOT EXISTS idx_reminders_user ON reminders(telegram_id);
 CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders(sent, remind_at);
 CREATE INDEX IF NOT EXISTS idx_admin_events_created ON admin_events(created_at);
