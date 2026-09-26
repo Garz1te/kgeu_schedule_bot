@@ -2,7 +2,6 @@ const ADMIN_IDS = [1116707989];
 
 const ALLOWED_PROXY_PATHS = new Set([
   '/rasp',
-  '/Rasp',
   '/raspGrouplist',
   '/raspTeacherlist',
   '/raspAudlist',
@@ -194,9 +193,8 @@ function parseTimeServer(str) {
 function extractLessonsServer(data) {
   if (!data) return [];
   if (Array.isArray(data)) return data;
-  if (Array.isArray(data.rasp)) return data.rasp;
   if (Array.isArray(data.data?.rasp)) return data.data.rasp;
-
+  if (Array.isArray(data.rasp)) return data.rasp;
   for (const k of ['data', 'items', 'lessons', 'schedule', 'result']) {
     if (Array.isArray(data[k])) return data[k];
   }
@@ -204,15 +202,13 @@ function extractLessonsServer(data) {
 }
 
 function serverLessonTime(l) {
-  const direct = l.time || l.Time || l.time_range || l.period || l.Время || l.время || '';
-  if (direct) return direct;
-  const start = l.start || l.startTime || l.начало;
-  const end = l.end || l.endTime || l.окончание || l.конец;
-  return (start && end) ? `${start} - ${end}` : '';
+  return l.time || l.Time || l.time_range || l.period || l.Время || l.время || l['датаНачала'] || '';
+
 }
 
 function serverRoom(l) {
   return l.room || l.Room || l.auditorium || l.aud || l.Аудитория || l.аудитория || '';
+
 }
 
 // =====================================================
@@ -453,7 +449,7 @@ async function handleApi(request, env, ctx, url, corsOrigin) {
     return await handleLists(request, env, ctx, corsOrigin, forceFresh);
   }
 
-  if (ALLOWED_PROXY_PATHS.has(subPath)) {
+  if (ALLOWED_PROXY_PATHS.has(subPath) || subPath.toLowerCase() === '/rasp') {
     return await handleProxy(request, env, ctx, url, subPath, corsOrigin, forceFresh);
   }
 
@@ -507,7 +503,7 @@ async function handleFreeAuds(env, url, corsOrigin) {
 
   try {
     const data = await fetchJsonWithTimeout(
-      `${env.KABINET_API}/Rasp?date=${date}`,
+      `${env.KABINET_API}/Rasp?date=${encodeURIComponent(date)}`,
       {
         headers: {
           'Accept': 'application/json, text/plain, */*',
@@ -535,10 +531,10 @@ async function handleFreeAuds(env, url, corsOrigin) {
     if (!t) continue;
 
     if (t.start < endMin && t.end > startMin) {
-      const room = String(serverRoom(l) || '').trim();
+      const room = String(serverRoom(l) || l.audLine || l.Аудитория || '').trim();
       if (room) busyNames.add(room.toLowerCase());
 
-      const roomId = l.audId ?? l.aud_id ?? l.idAud ?? null;
+      const roomId = l.idAudLine ?? l.audId ?? l.aud_id ?? l.idAud ?? l.auditoriumId ?? l.кодАудитории ?? null;
       if (roomId !== null && roomId !== undefined) busyIds.add(String(roomId));
     }
   }
@@ -659,27 +655,14 @@ function normalizeListItem(item) {
   }
 
   const name =
-    item.name ??
-    item.Name ??
-    item.title ??
-    item.label ??
-    item.value ??
-    item.Группа ??
-    item.наименование ??
-    item.ФИО ??
-    item.Аудитория;
+    item.name ?? item.Name ?? item.title ?? item.Title ?? item.text ?? item.label ??
+    item.group ?? item.groupName ?? item.teacher ?? item.teacherName ?? item.auditorium ?? item.auditoriumName ??
+    item.Группа ?? item.наименование ?? item.Наименование ?? item.ФИО ?? item.Аудитория ?? item.value;
 
   const id =
-    item.id ??
-    item.Id ??
-    item.ID ??
-    item.idGroup ??
-    item.idTeacher ??
-    item.idAud ??
-    item.код ??
-    item.code ??
-    item.value ??
-    name;
+    item.id ?? item.Id ?? item.ID ?? item.idGroup ?? item.idTeacher ?? item.idAudLine ?? item.idAud ??
+    item.groupId ?? item.teacherId ?? item.auditoriumId ?? item.audId ?? item.код ?? item.кодГруппы ??
+    item.кодПреподавателя ?? item.кодАудитории ?? item.Код ?? item.code ?? item.Code ?? item.value ?? name;
 
   if (!name) return null;
 
@@ -703,35 +686,31 @@ async function handleProxy(request, env, ctx, url, subPath, corsOrigin, forceFre
     return jsonResponse({ ok: false, error: 'METHOD_NOT_ALLOWED' }, 405, corsOrigin);
   }
 
-  // Нормализуем внутренний формат фронта к официальному API КГЭУ.
-  // Поддерживаем и старые запросы group/teacher/aud + date, чтобы старые
-  // развернутые версии фронта не ломались после обновления Worker.
-  const upstreamPath = (subPath === '/rasp' || subPath === '/Rasp') ? '/Rasp' : subPath;
-  const upstreamParams = new URLSearchParams(url.search);
-  upstreamParams.delete('fresh');
+  const incoming = new URLSearchParams(url.search);
+  incoming.delete('fresh');
 
-  if (upstreamPath === '/Rasp') {
-    if (!upstreamParams.has('idGroup') && upstreamParams.has('group')) {
-      upstreamParams.set('idGroup', upstreamParams.get('group'));
-    }
-    if (!upstreamParams.has('idTeacher') && upstreamParams.has('teacher')) {
-      upstreamParams.set('idTeacher', upstreamParams.get('teacher'));
-    }
-    if (!upstreamParams.has('idAudLine') && upstreamParams.has('aud')) {
-      upstreamParams.set('idAudLine', upstreamParams.get('aud'));
-    }
-    if (!upstreamParams.has('sdate') && upstreamParams.has('date')) {
-      upstreamParams.set('sdate', upstreamParams.get('date'));
-    }
+  let targetPath = subPath;
 
-    upstreamParams.delete('group');
-    upstreamParams.delete('teacher');
-    upstreamParams.delete('aud');
-    upstreamParams.delete('date');
+  if (subPath.toLowerCase() === '/rasp') {
+    targetPath = '/Rasp';
+
+    const legacyMap = [
+      ['group', 'idGroup'],
+      ['teacher', 'idTeacher'],
+      ['aud', 'idAudLine'],
+      ['date', 'sdate']
+    ];
+
+    for (const [from, to] of legacyMap) {
+      if (!incoming.has(to) && incoming.has(from)) {
+        incoming.set(to, incoming.get(from) || '');
+      }
+      incoming.delete(from);
+    }
   }
 
-  const normalizedSearch = upstreamParams.toString();
-  const cacheKey = `/api${upstreamPath}${normalizedSearch ? `?${normalizedSearch}` : ''}`;
+  const targetSearch = incoming.toString();
+  const cacheKey = `/api${targetPath}${targetSearch ? `?${targetSearch}` : ''}`;
 
   if (!forceFresh) {
     const fresh = await env.DB.prepare(
@@ -754,7 +733,7 @@ async function handleProxy(request, env, ctx, url, subPath, corsOrigin, forceFre
     }
   }
 
-  const targetUrl = `${env.KABINET_API}${upstreamPath}${normalizedSearch ? `?${normalizedSearch}` : ''}`;
+  const targetUrl = `${env.KABINET_API}${targetPath}${targetSearch ? `?${targetSearch}` : ''}`;
 
   try {
     const res = await fetchWithTimeout(targetUrl, {
@@ -782,7 +761,7 @@ async function handleProxy(request, env, ctx, url, subPath, corsOrigin, forceFre
     });
   } catch (e) {
     console.error('Proxy error:', e);
-    await safeLog(env, 'ERROR', `proxy ${subPath}: ${e?.message || e}`);
+    await safeLog(env, 'ERROR', `proxy ${targetPath}: ${e?.message || e}`);
 
     const stale = await getCache(env, cacheKey);
     if (stale) {
@@ -920,7 +899,7 @@ async function handleTasks(request, env, url, corsOrigin) {
 
   if (request.method === 'GET') {
     const rows = await env.DB.prepare(
-      `SELECT * FROM tasks WHERE telegram_id = ? ORDER BY created_at DESC LIMIT 200`
+      `SELECT * FROM tasks WHERE telegram_id = ? ORDER BY created_at DESC LIMIT 500`
     )
       .bind(user.id)
       .all()
@@ -936,36 +915,100 @@ async function handleTasks(request, env, url, corsOrigin) {
       const lessonTitle = String(body.lesson_title || '').slice(0, 200);
       const taskText = String(body.task_text || '').slice(0, 1000);
       const dueDate = String(body.due_date || '').slice(0, 20);
-      const noteType = String(body.note_type || 'note').slice(0, 10);
+      const noteKey = String(body.note_key || '').slice(0, 500);
+      const lessonTime = String(body.lesson_time || '').slice(0, 50);
+      const lessonRoom = String(body.lesson_room || '').slice(0, 100);
+      const lessonSubgroup = String(body.lesson_subgroup || '0').slice(0, 10);
+      const noteType = 'note';
 
       if (!taskText.trim()) {
         return jsonResponse({ ok: false, error: 'EMPTY_TASK' }, 400, corsOrigin);
       }
 
+      let row = null;
+      if (noteKey) {
+        row = await env.DB.prepare(
+          `SELECT id FROM tasks WHERE telegram_id = ? AND note_key = ? LIMIT 1`
+        )
+          .bind(user.id, noteKey)
+          .first()
+          .catch(() => null);
+      }
+
+      if (row?.id) {
+        try {
+          await env.DB.prepare(
+            `UPDATE tasks
+             SET lesson_title = ?, task_text = ?, due_date = ?, note_type = ?,
+                 lesson_time = ?, lesson_room = ?, lesson_subgroup = ?
+             WHERE id = ? AND telegram_id = ?`
+          )
+            .bind(lessonTitle, taskText, dueDate, noteType, lessonTime, lessonRoom, lessonSubgroup, row.id, user.id)
+            .run();
+        } catch (e) {
+          await env.DB.prepare(
+            `UPDATE tasks
+             SET lesson_title = ?, task_text = ?, due_date = ?, note_type = ?
+             WHERE id = ? AND telegram_id = ?`
+          )
+            .bind(lessonTitle, taskText, dueDate, noteType, row.id, user.id)
+            .run();
+        }
+
+        return jsonResponse({ ok: true, id: row.id, note: { id: row.id, note_key: noteKey, lesson_title: lessonTitle, task_text: taskText, due_date: dueDate, lesson_time: lessonTime, lesson_room: lessonRoom, lesson_subgroup: lessonSubgroup } }, 200, corsOrigin);
+      }
+
+      let result;
       try {
-        await env.DB.prepare(
+        result = await env.DB.prepare(
+          `INSERT INTO tasks (telegram_id, lesson_title, task_text, due_date, note_type, note_key, lesson_time, lesson_room, lesson_subgroup)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+          .bind(user.id, lessonTitle, taskText, dueDate, noteType, noteKey, lessonTime, lessonRoom, lessonSubgroup)
+          .run();
+      } catch (e) {
+        // Совместимость со старой БД до авто-миграции всех новых колонок.
+        result = await env.DB.prepare(
           `INSERT INTO tasks (telegram_id, lesson_title, task_text, due_date, note_type)
            VALUES (?, ?, ?, ?, ?)`
         )
           .bind(user.id, lessonTitle, taskText, dueDate, noteType)
           .run();
-      } catch (e) {
-        // Фолбэк: если колонка note_type ещё не создана в старой БД
-        await env.DB.prepare(
-          `INSERT INTO tasks (telegram_id, lesson_title, task_text, due_date)
-           VALUES (?, ?, ?, ?)`
-        )
-          .bind(user.id, lessonTitle, taskText, dueDate)
-          .run();
       }
 
-      return jsonResponse({ ok: true }, 200, corsOrigin);
+      let savedRow = null;
+      if (noteKey) {
+        savedRow = await env.DB.prepare(
+          `SELECT * FROM tasks WHERE telegram_id = ? AND note_key = ? ORDER BY id DESC LIMIT 1`
+        ).bind(user.id, noteKey).first().catch(() => null);
+      }
+
+      return jsonResponse({
+        ok: true,
+        id: savedRow?.id || result?.meta?.last_row_id || result?.lastRowId || null,
+        note: savedRow || {
+          id: result?.meta?.last_row_id || null,
+          note_key: noteKey,
+          lesson_title: lessonTitle,
+          task_text: taskText,
+          due_date: dueDate,
+          lesson_time: lessonTime,
+          lesson_room: lessonRoom,
+          lesson_subgroup: lessonSubgroup
+        }
+      }, 200, corsOrigin);
     } catch (e) {
+      console.error('Task save error:', e);
       return jsonResponse({ ok: false, error: 'BAD_REQUEST' }, 400, corsOrigin);
     }
   }
 
   if (request.method === 'DELETE') {
+    if (url.searchParams.get('all') === '1') {
+      await env.DB.prepare(`DELETE FROM tasks WHERE telegram_id = ?`).bind(user.id).run().catch(() => {});
+      return jsonResponse({ ok: true }, 200, corsOrigin);
+    }
+
     const id = Number(url.searchParams.get('id') || 0);
     if (!id) {
       return jsonResponse({ ok: false, error: 'BAD_REQUEST' }, 400, corsOrigin);
@@ -1033,6 +1076,11 @@ async function handleReminders(request, env, url, corsOrigin) {
   }
 
   if (request.method === 'DELETE') {
+    if (url.searchParams.get('all') === '1') {
+      await env.DB.prepare(`DELETE FROM reminders WHERE telegram_id = ? AND sent = 0`).bind(user.id).run().catch(() => {});
+      return jsonResponse({ ok: true }, 200, corsOrigin);
+    }
+
     const id = Number(url.searchParams.get('id') || 0);
     if (!id) {
       return jsonResponse({ ok: false, error: 'BAD_REQUEST' }, 400, corsOrigin);
@@ -1151,6 +1199,30 @@ async function handleAdmin(request, env, subPath, corsOrigin) {
       logsCount,
       topGroups: topGroups.results || []
     }, 200, corsOrigin);
+  }
+
+  if (subPath === '/admin/users' && request.method === 'GET') {
+    const q = String(new URL(request.url).searchParams.get('q') || '').trim().slice(0, 120);
+    if (!q) return jsonResponse([], 200, corsOrigin);
+
+    const like = `%${q.replace(/[%_]/g, '\\$&')}%`;
+    const numericId = /^\d+$/.test(q) ? Number(q) : 0;
+
+    const rows = await env.DB.prepare(
+      `SELECT telegram_id, username, first_name, last_name, selected_id, selected_name, selected_type, banned, updated_at
+       FROM app_users
+       WHERE telegram_id = ?
+          OR username LIKE ? ESCAPE '\\'
+          OR first_name LIKE ? ESCAPE '\\'
+          OR last_name LIKE ? ESCAPE '\\'
+       ORDER BY updated_at DESC
+       LIMIT 50`
+    )
+      .bind(numericId, like, like, like)
+      .all()
+      .catch(() => ({ results: [] }));
+
+    return jsonResponse(rows.results || [], 200, corsOrigin);
   }
 
   if (subPath === '/admin/test' && request.method === 'GET') {
@@ -1323,6 +1395,10 @@ async function ensureSchema(env) {
       task_text TEXT NOT NULL,
       due_date TEXT DEFAULT '',
       note_type TEXT DEFAULT 'note',
+      note_key TEXT DEFAULT '',
+      lesson_time TEXT DEFAULT '',
+      lesson_room TEXT DEFAULT '',
+      lesson_subgroup TEXT DEFAULT '0',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
     `CREATE TABLE IF NOT EXISTS reminders (
@@ -1342,6 +1418,7 @@ async function ensureSchema(env) {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
     `CREATE INDEX IF NOT EXISTS idx_tasks_user ON tasks(telegram_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_tasks_note_key ON tasks(telegram_id, note_key)`,
     `CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders(sent, remind_at)`,
     `CREATE INDEX IF NOT EXISTS idx_app_users_updated ON app_users(updated_at)`
   ];
@@ -1356,6 +1433,15 @@ async function ensureSchema(env) {
   try {
     await env.DB.prepare(`ALTER TABLE tasks ADD COLUMN note_type TEXT DEFAULT 'note'`).run();
   } catch (e) {}
+  for (const [column, ddl] of [
+    ['note_key', `ALTER TABLE tasks ADD COLUMN note_key TEXT DEFAULT ''`],
+    ['lesson_time', `ALTER TABLE tasks ADD COLUMN lesson_time TEXT DEFAULT ''`],
+    ['lesson_room', `ALTER TABLE tasks ADD COLUMN lesson_room TEXT DEFAULT ''`],
+    ['lesson_subgroup', `ALTER TABLE tasks ADD COLUMN lesson_subgroup TEXT DEFAULT '0'`]
+  ]) {
+    try { await env.DB.prepare(ddl).run(); } catch (e) {}
+  }
+  try { await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_tasks_note_key ON tasks(telegram_id, note_key)`).run(); } catch (e) {}
 }
 
 async function cleanupDatabase(env) {
