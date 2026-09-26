@@ -736,16 +736,36 @@
             max-height: 78dvh;
             display: flex;
             flex-direction: column;
-            overflow: visible;
+            overflow: hidden;
             box-shadow: 0 -12px 44px rgba(0,0,0,0.38);
             transform: translateY(100%);
             transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
             padding-bottom: calc(20px + env(safe-area-inset-bottom));
             touch-action: pan-y;
             overscroll-behavior: contain;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
             will-change: transform;
+        }
+
+        .modal-content.swiping {
+            transition: none !important;
+        }
+
+        .modal-content::before {
+            content: '';
+            width: 38px;
+            height: 4px;
+            border-radius: 999px;
+            background: var(--text-secondary);
+            opacity: 0.45;
+            align-self: center;
+            margin: -8px auto 12px;
+            flex: 0 0 auto;
+        }
+
+        /* Поиск открывается выше: список при этом остаётся самостоятельной прокруткой. */
+        #search-modal .modal-content {
+            min-height: 62dvh;
+            max-height: 88dvh;
         }
 
         .modal.show .modal-content {
@@ -803,10 +823,11 @@
             top: 100%;
             left: 0;
             width: 100%;
-            max-height: 230px;
+            max-height: 40dvh;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
+            scrollbar-width: none;
             background: var(--modal-bg);
             border: 1px solid var(--border-color);
             border-radius: 0 0 10px 10px;
@@ -836,6 +857,13 @@
             display: flex;
             align-items: center;
             transition: background 0.2s ease, color 0.2s ease, padding-left 0.2s ease;
+        }
+
+        .autocomplete-dropdown::-webkit-scrollbar,
+        .modal-scroll::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+            display: none;
         }
 
         .autocomplete-item:last-child {
@@ -897,22 +925,27 @@
         }
 
         .quick-actions {
-            display: flex;
-            gap: 6px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 7px;
             margin-top: 8px;
         }
 
         .quick-action-btn {
-            flex: 1;
+            min-width: 0;
             background: var(--border-color);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
-            padding: 8px 7px;
+            padding: 9px 7px;
             border-radius: 9px;
             font-size: 11px;
             font-weight: 700;
             cursor: pointer;
             transition: transform .18s ease, background .25s ease, color .25s ease;
+        }
+
+        .quick-action-btn:last-child {
+            grid-column: 1 / -1;
         }
 
         .quick-action-btn:active {
@@ -1011,9 +1044,85 @@
 
         .modal-scroll {
             overflow-y: auto;
+            flex: 1 1 auto;
+            min-height: 0;
             max-height: 62vh;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
+            scrollbar-width: none;
+        }
+
+        .my-schedule-nav {
+            display: grid;
+            grid-template-columns: 40px minmax(0, 1fr) 40px auto;
+            align-items: center;
+            gap: 6px;
+            margin: 0 0 10px;
+            padding: 6px;
+            background: var(--border-color);
+            border-radius: 12px;
+        }
+
+        .my-schedule-nav-btn {
+            height: 34px;
+            border: 1px solid var(--border-color);
+            border-radius: 9px;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform .18s ease, background .2s ease;
+        }
+
+        .my-schedule-nav-btn:active {
+            transform: scale(.95);
+            background: var(--accent);
+            color: var(--accent-text);
+        }
+
+        .my-schedule-date {
+            min-width: 0;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .my-schedule-today-btn {
+            padding: 0 10px;
+            font-size: 11px;
+        }
+
+        /* Длинные списки внутри модалок прокручиваются отдельно от самого меню. */
+        #notes-list,
+        #free-auds-result {
+            max-height: 42dvh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            scrollbar-width: none;
+        }
+
+        #notes-list::-webkit-scrollbar,
+        #free-auds-result::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+            display: none;
+        }
+
+        @media (max-width: 430px) {
+            .container { padding: 10px; }
+            .header, .controls-card { border-radius: 16px; }
+            .badge-type { padding: 8px 14px; font-size: 15px; }
+            .quick-action-btn { font-size: 10.5px; padding: 9px 5px; }
+            .my-schedule-nav { grid-template-columns: 36px minmax(0, 1fr) 36px auto; gap: 5px; }
+            .my-schedule-today-btn { padding: 0 8px; }
         }
 
         .my-schedule-source {
@@ -1359,10 +1468,13 @@ const NOTE_TYPES = {
 // =====================================================
 
 let currentMode = 'Group';
+let searchMode = 'Group';
 let currentName = '';
 let currentId = '';
 let currentDate = new Date();
 let currentTab = 'day';
+let myScheduleDate = new Date();
+let myScheduleRequestId = 0;
 let currentTheme = 'theme-purple';
 let userSubgroup = '0';
 let favorites = [];
@@ -1572,24 +1684,95 @@ function openModal(id) {
 }
 
 function closeModals() {
+    activeModalSwipe = null;
+
     document.querySelectorAll('.modal').forEach(modal => {
+        const content = modal.querySelector('.modal-content');
         modal.classList.remove('show');
+        if (content) {
+            content.classList.remove('swiping');
+            content.style.transform = '';
+        }
         setTimeout(() => {
             modal.style.display = 'none';
-        }, 300);
+        }, 340);
     });
 
     document.body.classList.remove('modal-open');
 
     const dropdown = document.getElementById('autocomplete-dropdown');
     if (dropdown) dropdown.classList.remove('active');
+
+    // Закрытие поиска не меняет уже выбранное расписание.
+    searchMode = currentMode;
+    updateSelectionUI();
 }
+
+let activeModalSwipe = null;
 
 function setupModals() {
     document.querySelectorAll('.modal').forEach(modal => {
-        modal.addEventListener('click', e => {
-            if (e.target === modal) closeModals();
-        });
+        if (modal.dataset.backdropReady !== '1') {
+            modal.dataset.backdropReady = '1';
+            modal.addEventListener('click', e => {
+                if (e.target === modal) closeModals();
+            });
+        }
+
+        const content = modal.querySelector('.modal-content');
+        if (!content || content.dataset.swipeReady === '1') return;
+        content.dataset.swipeReady = '1';
+
+        content.addEventListener('touchstart', e => {
+            if (e.touches.length !== 1) return;
+            const touch = e.touches[0];
+            const rect = content.getBoundingClientRect();
+            // Жест закрытия распознаём только у верхней ручки.
+            // Внутри списков остаётся обычная прокрутка.
+            if (touch.clientY > rect.top + 56) return;
+            activeModalSwipe = { content, startY: touch.clientY, currentY: touch.clientY, moved: false };
+        }, { passive: true });
+
+        content.addEventListener('touchmove', e => {
+            if (!activeModalSwipe || activeModalSwipe.content !== content || e.touches.length !== 1) return;
+            const dy = e.touches[0].clientY - activeModalSwipe.startY;
+            if (dy <= 0) return;
+            activeModalSwipe.currentY = e.touches[0].clientY;
+            if (dy > 5) {
+                activeModalSwipe.moved = true;
+                content.classList.add('swiping');
+                content.style.transform = `translateY(${Math.min(dy, content.offsetHeight)}px)`;
+            }
+        }, { passive: true });
+
+        content.addEventListener('touchend', () => {
+            if (!activeModalSwipe || activeModalSwipe.content !== content) return;
+            const dy = activeModalSwipe.currentY - activeModalSwipe.startY;
+            const shouldClose = activeModalSwipe.moved && dy > 85;
+            activeModalSwipe = null;
+
+            if (shouldClose) {
+                content.classList.remove('swiping');
+                content.style.transform = 'translateY(100%)';
+                const modal = content.closest('.modal');
+                if (modal) modal.classList.remove('show');
+                setTimeout(() => {
+                    if (modal) modal.style.display = 'none';
+                    content.style.transform = '';
+                    document.body.classList.remove('modal-open');
+                }, 340);
+            } else {
+                content.classList.remove('swiping');
+                content.style.transform = '';
+            }
+        }, { passive: true });
+
+        content.addEventListener('touchcancel', () => {
+            if (!activeModalSwipe || activeModalSwipe.content !== content) return;
+            activeModalSwipe = null;
+            content.classList.remove('swiping');
+            content.style.transform = '';
+        }, { passive: true });
     });
 }
 
@@ -1610,6 +1793,7 @@ function updateSelectionUI() {
 
 function setCurrentSelection(mode, name, id, save = true) {
     currentMode = mode;
+    searchMode = mode;
     currentName = name;
     currentId = id;
 
@@ -1623,11 +1807,8 @@ function setCurrentSelection(mode, name, id, save = true) {
     }
 }
 
-function switchSearchMode(mode) {
-    currentMode = mode;
-    selectedSearchId = '';
-
-    updateSelectionUI();
+function updateSearchModeUI(mode) {
+    searchMode = mode || currentMode || 'Group';
 
     const labels = {
         Group: 'Поиск группы',
@@ -1635,8 +1816,44 @@ function switchSearchMode(mode) {
         Aud: 'Поиск аудитории'
     };
 
-    document.getElementById('search-modal-title').innerText = labels[mode] || 'Выбор';
-    document.getElementById('search-label').innerText = labels[mode] || 'Поиск';
+    const placeholders = {
+        Group: 'Например: ИПК-1-25...',
+        Teacher: 'Например: Саниева А.Д....',
+        Aud: 'Например: Г-302...'
+    };
+
+    const label = labels[searchMode] || 'Выбор';
+    const title = document.getElementById('search-modal-title');
+    const searchLabel = document.getElementById('search-label');
+    const input = document.getElementById('search-input');
+
+    if (title) title.innerText = label;
+    if (searchLabel) searchLabel.innerText = label;
+    if (input) input.placeholder = placeholders[searchMode] || '';
+
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    const activeEl = document.getElementById('nav-' + searchMode);
+    if (activeEl) activeEl.classList.add('active');
+}
+
+function switchSearchMode(mode) {
+    if (!['Group', 'Teacher', 'Aud'].includes(mode)) return;
+
+    updateSearchModeUI(mode);
+    selectedSearchId = '';
+
+    const input = document.getElementById('search-input');
+    if (input) {
+        input.value = '';
+        input.focus();
+    }
+
+    const dropdown = document.getElementById('autocomplete-dropdown');
+    if (dropdown) dropdown.classList.remove('active');
+
+    // Если окно поиска уже открыто, сразу показываем список выбранного типа.
+    const modal = document.getElementById('search-modal');
+    if (modal?.classList.contains('show')) filterData('');
 }
 
 function isFavorite() {
@@ -1701,9 +1918,14 @@ function jumpTo(type, name, id) {
 
 function openSearchModal() {
     selectedSearchId = '';
-    document.getElementById('search-input').value = '';
+    updateSearchModeUI(searchMode || currentMode);
+    const input = document.getElementById('search-input');
+    if (input) input.value = '';
     openModal('search-modal');
-    filterData('');
+    setTimeout(() => {
+        if (input) input.focus();
+        filterData('');
+    }, 20);
 }
 
 function openSettingsModal() {
@@ -1711,6 +1933,7 @@ function openSettingsModal() {
 }
 
 function openMyScheduleModal() {
+    myScheduleDate = new Date();
     openModal('my-schedule-modal');
     loadMySchedule();
 }
@@ -1832,7 +2055,7 @@ function filterData(value) {
     const dropdown = document.getElementById('autocomplete-dropdown');
     const query = String(value || '').trim().toLowerCase();
 
-    const rawList = listsData[currentMode] || [];
+    const rawList = listsData[searchMode] || [];
     let list = rawList.map(normalizeListItem).filter(Boolean);
 
     if (query) {
@@ -1875,7 +2098,7 @@ function applySearchSelection() {
         return;
     }
 
-    const list = (listsData[currentMode] || []).map(normalizeListItem).filter(Boolean);
+    const list = (listsData[searchMode] || []).map(normalizeListItem).filter(Boolean);
 
     let selected = null;
 
@@ -1892,7 +2115,7 @@ function applySearchSelection() {
         return;
     }
 
-    jumpTo(currentMode, selected.name, selected.id);
+    jumpTo(searchMode, selected.name, selected.id);
 }
 
 // =====================================================
@@ -1995,9 +2218,9 @@ function getApiIdentifier() {
 
 function buildScheduleQuery(mode, id) {
     const map = {
-        Group: 'group',
-        Teacher: 'teacher',
-        Aud: 'aud'
+        Group: 'idGroup',
+        Teacher: 'idTeacher',
+        Aud: 'idAudLine'
     };
 
     return `${map[mode]}=${encodeURIComponent(id)}`;
@@ -2006,6 +2229,8 @@ function buildScheduleQuery(mode, id) {
 function extractLessonsFromAPIResponse(data) {
     if (!data) return [];
     if (Array.isArray(data)) return data;
+    if (Array.isArray(data.rasp)) return data.rasp;
+    if (Array.isArray(data.data?.rasp)) return data.data.rasp;
     if (Array.isArray(data.data)) return data.data;
     if (Array.isArray(data.items)) return data.items;
     if (Array.isArray(data.lessons)) return data.lessons;
@@ -2018,14 +2243,14 @@ function filterLessonsByDate(lessons, dateStr) {
     if (!Array.isArray(lessons)) return [];
 
     return lessons.filter(lesson => {
-        const d = lesson.date || lesson.Date || lesson.day_date || lesson.day || lesson.Дата;
+        const d = lesson.date || lesson.Date || lesson.day_date || lesson.day || lesson.Дата || lesson.дата;
         if (!d) return true;
         return formatDate(new Date(d)) === dateStr;
     });
 }
 
 async function fetchScheduleForDate(query, dateStr, signal, retries = 2) {
-    const url = `${WORKER_URL}/api/rasp?${query}&date=${encodeURIComponent(dateStr)}`;
+    const url = `${WORKER_URL}/api/rasp?${query}&sdate=${encodeURIComponent(dateStr)}`;
 
     let lastError = null;
 
@@ -2098,29 +2323,32 @@ async function mapWithConcurrency(items, limit, worker) {
 // =====================================================
 
 function extractLessonTitle(l) {
-    return l.subject || l.Subject || l.name || l.Name || l.discipline || l.Дисциплина || l.title || 'Без названия';
+    return l.subject || l.Subject || l.name || l.Name || l.discipline || l.Дисциплина || l.дисциплина || l.title || 'Без названия';
 }
 
 function extractLessonTime(l) {
-    return l.time || l.Time || l.time_range || l.period || l.Время || '';
+    if (l.time || l.Time || l.time_range || l.period || l.Время || l.время) return l.time || l.Time || l.time_range || l.period || l.Время || l.время;
+    const start = l.start || l.startTime || l.начало;
+    const end = l.end || l.endTime || l.окончание || l.конец;
+    return (start && end) ? `${start} - ${end}` : '';
 }
 
 function extractLessonTeacher(l) {
-    return l.teacher || l.Teacher || l.teacherName || l.Преподаватель || '';
+    return l.teacher || l.Teacher || l.teacherName || l.Преподаватель || l.преподаватель || '';
 }
 
 function extractLessonRoom(l) {
-    return l.room || l.Room || l.auditorium || l.aud || l.Аудитория || '';
+    return l.room || l.Room || l.auditorium || l.aud || l.Аудитория || l.аудитория || '';
 }
 
 function getLessonSubgroup(l) {
-    const value = l.subgroup || l.Subgroup || l.sub_group || l.подгруппа || '';
+    const value = l.subgroup || l.Subgroup || l.sub_group || l.подгруппа || l.номерПодгруппы || '';
     const num = parseInt(value, 10);
     return isNaN(num) ? 0 : num;
 }
 
 function getLessonTypeClass(l) {
-    const type = String(l.type || l.Type || l.lesson_type || l.Тип || '').toLowerCase();
+    const type = String(l.type || l.Type || l.lesson_type || l.Тип || l.типЗанятия || '').toLowerCase();
     const title = extractLessonTitle(l).toLowerCase();
 
     if (type.includes('lab') || title.includes('лаб')) return 'type-lab';
@@ -2129,7 +2357,7 @@ function getLessonTypeClass(l) {
 }
 
 function extractLessonGroups(l) {
-    let groups = l.groups || l.Groups || l.group || l.Group || '';
+    let groups = l.groups || l.Groups || l.group || l.Group || l.группа || '';
 
     if (!groups) return [];
 
@@ -2689,18 +2917,60 @@ function getFavoriteSources() {
     return sources;
 }
 
+function getMyScheduleDayLabel(date) {
+    const today = formatDate(new Date());
+    const dateStr = formatDate(date);
+    if (dateStr === today) return 'Сегодня';
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (dateStr === formatDate(tomorrow)) return 'Завтра';
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (dateStr === formatDate(yesterday)) return 'Вчера';
+
+    return `${date.getDate()} ${MONTH_NAMES_GENITIVE[date.getMonth()]}`;
+}
+
+function renderMyScheduleNavigation() {
+    const label = getMyScheduleDayLabel(myScheduleDate);
+    const fullDate = `${label}, ${myScheduleDate.getDate()} ${MONTH_NAMES_GENITIVE[myScheduleDate.getMonth()]}`;
+    const isToday = formatDate(myScheduleDate) === formatDate(new Date());
+
+    return `<div class="my-schedule-nav">
+        <button type="button" class="my-schedule-nav-btn" onclick="changeMyScheduleDay(-1)" title="Предыдущий день">‹</button>
+        <div class="my-schedule-date">${esc(fullDate)}</div>
+        <button type="button" class="my-schedule-nav-btn" onclick="changeMyScheduleDay(1)" title="Следующий день">›</button>
+        <button type="button" class="my-schedule-nav-btn my-schedule-today-btn" onclick="goMyScheduleToday()" ${isToday ? 'style="display:none;"' : ''}>↩ Сегодня</button>
+    </div>`;
+}
+
+function changeMyScheduleDay(delta) {
+    myScheduleDate = new Date(myScheduleDate);
+    myScheduleDate.setDate(myScheduleDate.getDate() + Number(delta || 0));
+    loadMySchedule();
+}
+
+function goMyScheduleToday() {
+    myScheduleDate = new Date();
+    loadMySchedule();
+}
+
 async function loadMySchedule() {
     const content = document.getElementById('my-schedule-content');
+    if (!content) return;
+
+    const requestId = ++myScheduleRequestId;
     const sources = getFavoriteSources();
+    const dateStr = formatDate(myScheduleDate);
 
-    if (!sources.length) {
-        content.innerHTML = '<div class="my-schedule-empty">Добавьте группы, преподавателей или аудитории в избранное.</div>';
-        return;
-    }
+    content.innerHTML = renderMyScheduleNavigation() + (sources.length
+        ? '<div class="loading">⌛ Собираю расписание...</div>'
+        : '<div class="my-schedule-empty">Добавьте группы, преподавателей или аудитории в избранное.</div>');
 
-    content.innerHTML = '<div class="loading">⌛ Собираю расписание...</div>';
+    if (!sources.length) return;
 
-    const dateStr = formatDate(new Date());
     const controller = new AbortController();
 
     try {
@@ -2759,9 +3029,10 @@ async function loadMySchedule() {
             return (ta?.start || 9999) - (tb?.start || 9999);
         });
 
-        let html = `
+        let html = renderMyScheduleNavigation();
+        html += `
             <div class="summary-card">
-                <div class="summary-title">Сегодня · ${combined.length} пар</div>
+                <div class="summary-title">${esc(getMyScheduleDayLabel(myScheduleDate))} · ${combined.length} пар</div>
                 <div class="summary-meta">
                     <span>Источников: ${sources.length}</span>
                 </div>
@@ -2773,7 +3044,7 @@ async function loadMySchedule() {
         }
 
         if (!combined.length) {
-            html += '<div class="my-schedule-empty">Сегодня пар нет или данные не загрузились.</div>';
+            html += `<div class="my-schedule-empty">На ${esc(getMyScheduleDayLabel(myScheduleDate).toLowerCase())} пар нет или данные не загрузились.</div>`;
         } else {
             let lastTime = '';
 
@@ -2797,9 +3068,11 @@ async function loadMySchedule() {
             });
         }
 
+        if (requestId !== myScheduleRequestId) return;
         content.innerHTML = html;
     } catch (e) {
-        content.innerHTML = '<div class="error-card">⚠️ Не удалось собрать «Мои пары».</div>';
+        if (requestId !== myScheduleRequestId) return;
+        content.innerHTML = renderMyScheduleNavigation() + '<div class="error-card">⚠️ Не удалось собрать «Мои пары».</div>';
     }
 }
 
@@ -3017,6 +3290,7 @@ async function loadCloud() {
 
         if (data.selected_name) {
             currentMode = data.selected_type || 'Group';
+            searchMode = currentMode;
             currentName = data.selected_name;
             currentId = data.selected_id || '';
             updateSelectionUI();
@@ -3622,6 +3896,7 @@ function loadLocal() {
 
     if (mode && name) {
         currentMode = mode;
+        searchMode = mode;
         currentName = name;
         currentId = id || '';
         updateSelectionUI();
@@ -3665,6 +3940,7 @@ async function init() {
 
     await loadLists();
     await loadCloud();
+    updateSearchModeUI(currentMode);
 
     if (currentName) {
         navigateView(loadCurrent);
