@@ -2,6 +2,7 @@ const ADMIN_IDS = [1116707989];
 
 const ALLOWED_PROXY_PATHS = new Set([
   '/rasp',
+  '/Rasp',
   '/raspGrouplist',
   '/raspTeacherlist',
   '/raspAudlist',
@@ -193,6 +194,9 @@ function parseTimeServer(str) {
 function extractLessonsServer(data) {
   if (!data) return [];
   if (Array.isArray(data)) return data;
+  if (Array.isArray(data.rasp)) return data.rasp;
+  if (Array.isArray(data.data?.rasp)) return data.data.rasp;
+
   for (const k of ['data', 'items', 'lessons', 'schedule', 'result']) {
     if (Array.isArray(data[k])) return data[k];
   }
@@ -200,11 +204,15 @@ function extractLessonsServer(data) {
 }
 
 function serverLessonTime(l) {
-  return l.time || l.Time || l.time_range || l.period || l.Время || '';
+  const direct = l.time || l.Time || l.time_range || l.period || l.Время || l.время || '';
+  if (direct) return direct;
+  const start = l.start || l.startTime || l.начало;
+  const end = l.end || l.endTime || l.окончание || l.конец;
+  return (start && end) ? `${start} - ${end}` : '';
 }
 
 function serverRoom(l) {
-  return l.room || l.Room || l.auditorium || l.aud || l.Аудитория || '';
+  return l.room || l.Room || l.auditorium || l.aud || l.Аудитория || l.аудитория || '';
 }
 
 // =====================================================
@@ -499,7 +507,7 @@ async function handleFreeAuds(env, url, corsOrigin) {
 
   try {
     const data = await fetchJsonWithTimeout(
-      `${env.KABINET_API}/rasp?date=${date}`,
+      `${env.KABINET_API}/Rasp?date=${date}`,
       {
         headers: {
           'Accept': 'application/json, text/plain, */*',
@@ -695,7 +703,35 @@ async function handleProxy(request, env, ctx, url, subPath, corsOrigin, forceFre
     return jsonResponse({ ok: false, error: 'METHOD_NOT_ALLOWED' }, 405, corsOrigin);
   }
 
-  const cacheKey = `/api${subPath}${url.search}`;
+  // Нормализуем внутренний формат фронта к официальному API КГЭУ.
+  // Поддерживаем и старые запросы group/teacher/aud + date, чтобы старые
+  // развернутые версии фронта не ломались после обновления Worker.
+  const upstreamPath = (subPath === '/rasp' || subPath === '/Rasp') ? '/Rasp' : subPath;
+  const upstreamParams = new URLSearchParams(url.search);
+  upstreamParams.delete('fresh');
+
+  if (upstreamPath === '/Rasp') {
+    if (!upstreamParams.has('idGroup') && upstreamParams.has('group')) {
+      upstreamParams.set('idGroup', upstreamParams.get('group'));
+    }
+    if (!upstreamParams.has('idTeacher') && upstreamParams.has('teacher')) {
+      upstreamParams.set('idTeacher', upstreamParams.get('teacher'));
+    }
+    if (!upstreamParams.has('idAudLine') && upstreamParams.has('aud')) {
+      upstreamParams.set('idAudLine', upstreamParams.get('aud'));
+    }
+    if (!upstreamParams.has('sdate') && upstreamParams.has('date')) {
+      upstreamParams.set('sdate', upstreamParams.get('date'));
+    }
+
+    upstreamParams.delete('group');
+    upstreamParams.delete('teacher');
+    upstreamParams.delete('aud');
+    upstreamParams.delete('date');
+  }
+
+  const normalizedSearch = upstreamParams.toString();
+  const cacheKey = `/api${upstreamPath}${normalizedSearch ? `?${normalizedSearch}` : ''}`;
 
   if (!forceFresh) {
     const fresh = await env.DB.prepare(
@@ -718,7 +754,7 @@ async function handleProxy(request, env, ctx, url, subPath, corsOrigin, forceFre
     }
   }
 
-  const targetUrl = `${env.KABINET_API}${subPath}${url.search}`;
+  const targetUrl = `${env.KABINET_API}${upstreamPath}${normalizedSearch ? `?${normalizedSearch}` : ''}`;
 
   try {
     const res = await fetchWithTimeout(targetUrl, {
