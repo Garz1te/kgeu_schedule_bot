@@ -443,9 +443,9 @@
             }
         }
 
-        /* ЦВЕТА ТИПОВ ПАР: лекция — зелёный, практика — оранжевый, лаба — фиолетовый */
+        /* ЦВЕТА ТИПОВ ПАР: лекция — синий, практика — оранжевый, лаба — фиолетовый */
         .lesson-card.type-lecture {
-            border-left: 4px solid #22c55e;
+            border-left: 4px solid #3b82f6;
         }
 
         .lesson-card.type-practice {
@@ -483,6 +483,42 @@
             flex: 0 0 auto;
         }
 
+        .lesson-kind-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-size: 9px;
+            line-height: 1.1;
+            font-weight: 800;
+            white-space: nowrap;
+            background: var(--border-color);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .lesson-kind-badge.type-lecture { border-color: rgba(56,189,248,.45); color: #7dd3fc; }
+        .lesson-kind-badge.type-practice { border-color: rgba(249,115,22,.45); color: #fdba74; }
+        .lesson-kind-badge.type-lab { border-color: rgba(168,85,247,.45); color: #d8b4fe; }
+
+        .lesson-time-main {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 2px 0 7px;
+            padding: 5px 8px;
+            border-radius: 8px;
+            background: var(--border-color);
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .1px;
+        }
+
+        .lesson-time-main.missing {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
         .lesson-groups {
             margin: 5px 0 6px;
             padding: 5px 7px;
@@ -494,22 +530,60 @@
             font-weight: 700;
         }
 
-        .lesson-groups span {
+        .lesson-groups {
+            display: block;
+        }
+
+        .lesson-groups-label {
+            display: block;
+            margin-bottom: 5px;
             color: var(--text-secondary);
-            font-weight: 600;
+            font-weight: 800;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .25px;
+        }
+
+        .lesson-group-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
         }
 
         .lesson-group-link {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            padding: 3px 8px;
+            border-radius: 999px;
             color: var(--text-primary);
             text-decoration: none;
-            border-bottom: 1px dashed var(--text-secondary);
+            background: rgba(127,127,127,.12);
+            border: 1px solid var(--border-color);
             cursor: pointer;
-            transition: color .18s ease, opacity .18s ease;
+            transition: color .18s ease, opacity .18s ease, transform .18s ease;
+            font-weight: 700;
         }
 
         .lesson-group-link:active {
             color: var(--accent);
             opacity: .78;
+            transform: scale(.97);
+        }
+
+        .lesson-card.type-lecture {
+            border-left: 4px solid #3b82f6;
+            background: linear-gradient(90deg, rgba(59,130,246,.09), transparent 68%);
+        }
+
+        .lesson-card.type-practice {
+            border-left: 4px solid #f97316;
+            background: linear-gradient(90deg, rgba(249,115,22,.09), transparent 68%);
+        }
+
+        .lesson-card.type-lab {
+            border-left: 4px solid #a855f7;
+            background: linear-gradient(90deg, rgba(168,85,247,.09), transparent 68%);
         }
 
         .lesson-info {
@@ -902,17 +976,18 @@
         }
 
         .quick-actions {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 6px;
             margin-top: 8px;
         }
 
         .quick-action-btn {
-            flex: 1;
+            min-width: 0;
             background: var(--border-color);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
-            padding: 8px 7px;
+            padding: 9px 6px;
             border-radius: 9px;
             font-size: 11px;
             font-weight: 700;
@@ -920,10 +995,55 @@
             transition: transform .18s ease, background .25s ease, color .25s ease;
         }
 
+        .quick-action-refresh {
+            grid-column: 1 / -1 !important;
+            width: 100% !important;
+            min-height: 64px;
+            padding: 14px 18px;
+            font-size: 15px;
+            letter-spacing: .15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .quick-action-btn:disabled { opacity: .55; cursor: wait; }
+
         .quick-action-btn:active {
             transform: scale(.97);
             background: var(--accent);
             color: var(--accent-text);
+        }
+
+        .reminder-picker-content {
+            top: 6vh;
+            bottom: auto;
+            max-height: 88dvh;
+        }
+        .reminder-option-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 7px;
+        }
+        .reminder-option {
+            border: 1px solid var(--border-color);
+            background: var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .reminder-option.selected {
+            border-color: var(--accent);
+            background: color-mix(in srgb, var(--accent) 18%, transparent);
+            color: var(--accent);
+        }
+        .reminder-custom-row {
+            margin-top: 10px;
+            margin-bottom: 0;
         }
 
         .summary-card {
@@ -1290,7 +1410,7 @@
                 <button class="quick-action-btn" onclick="openNotesModal()">📝 Мои заметки</button>
                 <button class="quick-action-btn" onclick="openRemindersModal()">🔔 Мои напоминания</button>
                 <button class="quick-action-btn" onclick="openFreeAudsModal()">🚪 Свободные</button>
-                <button class="quick-action-btn" onclick="forceRefreshCurrentView()">↻ Обновить</button>
+                <button class="quick-action-btn quick-action-refresh" onclick="forceRefreshCurrentView()">↻ Обновить</button>
             </div>
         </div>
 
@@ -1400,10 +1520,41 @@
                 <div class="modal-title">🔔 Мои напоминания</div>
             </div>
             <div class="notes-toolbar">
-                <span style="font-size:12px;color:var(--text-secondary);">Напоминание приходит за 15 минут до пары.</span>
+                <span style="font-size:12px;color:var(--text-secondary);">При создании напоминания можно выбрать время от 0 до 24 часов с шагом 5 минут.</span>
                 <button class="action-btn" onclick="clearAllReminders()">🗑 Очистить всё</button>
             </div>
             <div id="reminders-list" class="modal-scroll"></div>
+        </div>
+    </div>
+
+    <!-- Выбор времени напоминания -->
+    <div class="modal" id="reminder-picker-modal">
+        <div class="modal-content reminder-picker-content">
+            <div class="modal-header">
+                <div class="modal-title">⏰ Когда напомнить?</div>
+            </div>
+            <div id="reminder-picker-lesson" class="summary-card" style="margin-bottom:10px;"></div>
+            <div class="reminder-option-grid">
+                <button class="reminder-option" data-minutes="0" onclick="selectReminderLead(0)">В момент начала</button>
+                <button class="reminder-option" data-minutes="5" onclick="selectReminderLead(5)">За 5 мин</button>
+                <button class="reminder-option" data-minutes="10" onclick="selectReminderLead(10)">За 10 мин</button>
+                <button class="reminder-option selected" data-minutes="15" onclick="selectReminderLead(15)">За 15 мин</button>
+                <button class="reminder-option" data-minutes="20" onclick="selectReminderLead(20)">За 20 мин</button>
+                <button class="reminder-option" data-minutes="30" onclick="selectReminderLead(30)">За 30 мин</button>
+                <button class="reminder-option" data-minutes="45" onclick="selectReminderLead(45)">За 45 мин</button>
+                <button class="reminder-option" data-minutes="60" onclick="selectReminderLead(60)">За 1 час</button>
+                <button class="reminder-option" data-minutes="90" onclick="selectReminderLead(90)">За 1 ч 30 мин</button>
+                <button class="reminder-option" data-minutes="120" onclick="selectReminderLead(120)">За 2 часа</button>
+                <button class="reminder-option" data-minutes="180" onclick="selectReminderLead(180)">За 3 часа</button>
+                <button class="reminder-option" data-minutes="360" onclick="selectReminderLead(360)">За 6 часов</button>
+                <button class="reminder-option" data-minutes="720" onclick="selectReminderLead(720)">За 12 часов</button>
+                <button class="reminder-option" data-minutes="1440" onclick="selectReminderLead(1440)">За 24 часа</button>
+            </div>
+            <div class="form-group reminder-custom-row">
+                <label class="form-label">Или своё время — количество минут до пары (шаг 5 минут)</label>
+                <input type="number" class="form-input" id="reminder-custom-minutes" min="0" max="1440" step="5" inputmode="numeric" oninput="handleCustomReminderInput()" onblur="handleCustomReminderMinutes()" placeholder="Своё время: например 25 минут (кратно 5)">
+            </div>
+            <button class="btn-primary" onclick="confirmReminderCreation()">✅ Создать напоминание</button>
         </div>
     </div>
 
@@ -1488,6 +1639,11 @@ let currentTab = 'day';
 let currentTheme = 'theme-purple';
 let userSubgroup = '0';
 let favorites = [];
+let modeSelections = {
+    Group: { name: '', id: '' },
+    Teacher: { name: '', id: '' },
+    Aud: { name: '', id: '' }
+};
 
 let listsData = { Group: [], Teacher: [], Aud: [] };
 
@@ -1633,6 +1789,42 @@ function safeRemoveStorage(key) {
     } catch (e) {}
 }
 
+function getUserScopedStorageKey(key) {
+    const telegramId = getLocalTelegramId();
+    return telegramId ? `kgeu_u_${telegramId}_${key}` : `kgeu_${key}`;
+}
+
+function saveModeSelectionsToStorage() {
+    safeSetStorage(getUserScopedStorageKey('kgeu_mode_selections'), JSON.stringify(modeSelections));
+}
+
+function readModeSelectionsFromStorage() {
+    const raw = safeGetStorage(getUserScopedStorageKey('kgeu_mode_selections')) || safeGetStorage('kgeu_mode_selections');
+    if (!raw) return;
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+            modeSelections = { ...modeSelections, ...parsed };
+        }
+    } catch (e) {}
+}
+
+function rememberModeSelection(mode, name, id) {
+    const type = normalizeMode(mode);
+    modeSelections[type] = { name: String(name || '').trim(), id: String(id || name || '').trim() };
+    saveModeSelectionsToStorage();
+}
+
+function restoreModeSelection(mode) {
+    const type = normalizeMode(mode);
+    const remembered = modeSelections[type] || { name: '', id: '' };
+    const resolved = resolveListItem(type, remembered.name, remembered.id);
+    currentMode = type;
+    currentName = resolved?.name || remembered.name || '';
+    currentId = String(resolved?.id || remembered.id || currentName || '');
+    updateSelectionUI();
+}
+
 // =====================================================
 // Date helpers
 // =====================================================
@@ -1672,13 +1864,26 @@ function getMonthCacheTTL(year, month) {
 function parseTimeRange(str) {
     if (!str) return null;
 
-    const match = String(str).match(/(\d{1,2})[:.](\d{2})\s*[-–—]\s*(\d{1,2})[:.](\d{2})/);
+    const normalized = String(str)
+        .replace(/[\u2010-\u2015\u2212]/g, '-')
+        .replace(/[\u00a0\u202f]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const match = normalized.match(/(\d{1,2})[:.](\d{2})\s*-\s*(\d{1,2})[:.](\d{2})/);
     if (!match) return null;
 
-    return {
-        start: parseInt(match[1], 10) * 60 + parseInt(match[2], 10),
-        end: parseInt(match[3], 10) * 60 + parseInt(match[4], 10)
-    };
+    const sh = Number(match[1]);
+    const sm = Number(match[2]);
+    const eh = Number(match[3]);
+    const em = Number(match[4]);
+    if (sh > 23 || eh > 23 || sm > 59 || em > 59) return null;
+
+    const start = sh * 60 + sm;
+    const end = eh * 60 + em;
+    if (end <= start) return null;
+
+    return { start, end };
 }
 
 function minutesToTime(minutes) {
@@ -1795,10 +2000,31 @@ function resolveListItem(type, rawName = '', rawId = '') {
 
 function normalizeFavorite(f) {
     if (!f) return null;
-    const type = normalizeMode(f.type);
-    const resolved = resolveListItem(type, f.name, f.id);
-    if (!resolved?.name) return null;
-    return { type, name: resolved.name, id: String(resolved.id || resolved.name) };
+    const preferred = normalizeMode(f.type);
+    const rawName = String(f.name || '').trim();
+    const rawId = String(f.id || '').trim();
+    const modes = [preferred, ...['Group', 'Teacher', 'Aud'].filter(m => m !== preferred)];
+
+    if (rawName) {
+        const norm = rawName.replace(/[.\s\-]+/g, '').toLowerCase();
+        for (const mode of modes) {
+            const list = (listsData[mode] || []).map(normalizeListItem).filter(Boolean);
+            const found = list.find(item => item.name.replace(/[.\s\-]+/g, '').toLowerCase() === norm);
+            if (found) return { type: mode, name: found.name, id: String(found.id || found.name) };
+        }
+    }
+
+    if (rawId) {
+        for (const mode of modes) {
+            const list = (listsData[mode] || []).map(normalizeListItem).filter(Boolean);
+            const found = list.find(item => String(item.id) === rawId);
+            if (found) return { type: mode, name: found.name, id: String(found.id || found.name) };
+        }
+    }
+
+    const fallback = resolveListItem(preferred, rawName, rawId);
+    if (!fallback?.name) return null;
+    return { type: preferred, name: fallback.name, id: String(fallback.id || fallback.name) };
 }
 
 function setCurrentSelection(mode, name, id, save = true) {
@@ -1809,6 +2035,7 @@ function setCurrentSelection(mode, name, id, save = true) {
     currentName = resolved?.name || String(name || '').trim();
     currentId = String(resolved?.id || id || currentName || '').trim();
 
+    rememberModeSelection(currentMode, currentName, currentId);
     updateSelectionUI();
 
     if (save) {
@@ -1832,26 +2059,32 @@ function updateSearchModalForMode() {
     };
     const label = labels[currentMode] || 'Поиск';
     const input = document.getElementById('search-input');
-    document.getElementById('search-modal-title').innerText = label;
-    document.getElementById('search-label').innerText = label;
+    const title = document.getElementById('search-modal-title');
+    const searchLabel = document.getElementById('search-label');
+    if (title) title.innerText = label;
+    if (searchLabel) searchLabel.innerText = label;
     if (input) input.placeholder = placeholders[currentMode] || '';
 }
 
 function switchSearchMode(mode) {
     const nextMode = normalizeMode(mode);
+    if (currentName || currentId) rememberModeSelection(currentMode, currentName, currentId);
+
     currentMode = nextMode;
-    currentName = '';
-    currentId = '';
     selectedSearchId = '';
-
-    safeSetStorage('kgeu_mode', currentMode);
-    safeRemoveStorage('kgeu_name');
-    safeRemoveStorage('kgeu_id');
-
-    clearScheduleCaches();
-    updateSelectionUI();
+    restoreModeSelection(nextMode);
     updateSearchModalForMode();
-    openSearchModal();
+    safeSetStorage('kgeu_mode', currentMode);
+    syncCloud();
+    clearScheduleCaches();
+    forceNetworkRefresh = false;
+
+    if (currentName) {
+        navigateView(loadCurrent);
+    } else {
+        const container = document.getElementById('schedule-container');
+        if (container) container.innerHTML = '<div class="loading">Выбери объект для этой вкладки.</div>';
+    }
 }
 
 function isFavorite() {
@@ -1863,40 +2096,34 @@ function isFavorite() {
 
 function toggleFavorite() {
     if (!currentName) return;
-
     const normalized = favorites.map(normalizeFavorite).filter(Boolean);
     const index = normalized.findIndex(f => f.type === currentMode && (f.id === currentId || f.name === currentName));
-
     if (index >= 0) normalized.splice(index, 1);
     else normalized.push({ type: currentMode, name: currentName, id: currentId });
-
     favorites = normalized;
     renderFavorites();
     document.getElementById('star-btn').innerText = isFavorite() ? '★' : '☆';
-
     safeSetStorage('kgeu_favorites', JSON.stringify(favorites));
     syncCloud();
 }
 
 function renderFavorites() {
     const container = document.getElementById('favorites-container');
-
     favorites = favorites.map(normalizeFavorite).filter(Boolean);
-
     if (!favorites.length) {
         container.style.display = 'none';
         container.innerHTML = '';
+        if (typeof updateFavoritesScrollIndicator === 'function') updateFavoritesScrollIndicator();
         return;
     }
-
     container.style.display = 'flex';
     container.innerHTML = favorites.map(f => `
         <div class="favorite-chip" onclick="jumpToEnc('${enc(f.type)}', '${enc(f.name)}', '${enc(f.id || f.name)}')">
             ${esc(f.name)}
         </div>
     `).join('');
-
     safeSetStorage('kgeu_favorites', JSON.stringify(favorites));
+    if (typeof updateFavoritesScrollIndicator === 'function') updateFavoritesScrollIndicator();
 }
 
 function jumpToEnc(typeEnc, nameEnc, idEnc) {
@@ -1959,50 +2186,31 @@ function openFreeAudsModal() {
     openModal('free-auds-modal');
 }
 
-function openRemindersModal() {
-    openModal('reminders-modal');
-    loadReminders();
-}
-
-function openFreeAudsModal() {
-    const d = new Date();
-
-    document.getElementById('free-date').value = formatDate(d);
-
-    const nowMin = d.getHours() * 60 + d.getMinutes();
-    const startMin = Math.min(nowMin, 23 * 60);
-    const endMin = Math.min(startMin + 90, 23 * 60 + 59);
-
-    document.getElementById('free-start').value = minutesToTime(startMin);
-    document.getElementById('free-end').value = minutesToTime(endMin);
-    document.getElementById('free-auds-result').innerHTML = '';
-
-    openModal('free-auds-modal');
-}
-
 function openAdminModal() {
+    if (!isLocalAdmin()) return;
     openModal('admin-modal');
     loadAdminPanel();
 }
 
 function openDiagnosticsModal() {
+    if (!isLocalAdmin()) return;
     openModal('diagnostic-modal');
     renderDiagnostics();
 }
 
 function secretTap() {
+    // The hidden developer menu is completely restricted to the administrator
+    // Telegram account. Five quick taps open the admin menu; diagnostics is
+    // intentionally reachable only from the admin menu.
+    if (!isLocalAdmin()) return;
+
     secretTapCount++;
     clearTimeout(secretTapTimer);
 
     secretTapTimer = setTimeout(() => {
-        if (secretTapCount >= 10 && isLocalAdmin()) {
-            openAdminModal();
-        } else if (secretTapCount >= 5) {
-            openDiagnosticsModal();
-        }
-
+        if (secretTapCount >= 5) openAdminModal();
         secretTapCount = 0;
-    }, 700);
+    }, 1500);
 }
 
 // =====================================================
@@ -2184,27 +2392,41 @@ function navigateView(loader) {
     loader(viewRequestId, activeRequestController.signal);
 }
 
-function loadCurrent(requestId, signal) {
-    if (!currentName) {
-        const container = document.getElementById('schedule-container');
-        container.innerHTML = '<div class="loading">Выбери группу, преподавателя или аудиторию.</div>';
-        return;
-    }
-
-    if (currentTab === 'month') {
-        loadMonthView(requestId, signal).catch(console.error);
-    } else {
-        loadSchedule(requestId, signal).catch(console.error);
+async function loadCurrent(requestId, signal) {
+    try {
+        if (!currentName) {
+            const container = document.getElementById('schedule-container');
+            if (container) container.innerHTML = '<div class="loading">Выбери группу, преподавателя или аудиторию.</div>';
+            return;
+        }
+        if (currentTab === 'month') await loadMonthView(requestId, signal);
+        else await loadSchedule(requestId, signal);
+    } finally {
+        forceNetworkRefresh = false;
     }
 }
 
 function forceRefreshCurrentView() {
     const now = Date.now();
     if (now - lastForcedRefreshAt < 15 * 1000) return;
+
     lastForcedRefreshAt = now;
+    const btn = document.querySelector('.quick-action-refresh');
+    if (btn) btn.disabled = true;
+
     forceNetworkRefresh = true;
     clearScheduleCaches();
-    navigateView(loadCurrent);
+
+    const myModalOpen = document.getElementById('my-schedule-modal')?.classList.contains('show');
+    if (myModalOpen) {
+        loadMySchedule()
+            .catch(e => console.error(e))
+            .finally(() => { forceNetworkRefresh = false; });
+    } else {
+        navigateView(loadCurrent);
+    }
+
+    setTimeout(() => { if (btn) btn.disabled = false; }, 1600);
 }
 
 function clearScheduleCaches() {
@@ -2219,6 +2441,30 @@ function clearScheduleCaches() {
     lastWeekData = null;
 }
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
+async function mapWithConcurrency(items, limit, workerFn) {
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) return [];
+
+    const concurrency = Math.max(1, Math.min(list.length, Number(limit) || 1));
+    const results = new Array(list.length);
+    let cursor = 0;
+
+    async function runner() {
+        while (true) {
+            const index = cursor++;
+            if (index >= list.length) return;
+            results[index] = await workerFn(list[index], index);
+        }
+    }
+
+    await Promise.all(Array.from({ length: concurrency }, () => runner()));
+    return results;
+}
+
 // =====================================================
 // Schedule data helpers
 // =====================================================
@@ -2229,282 +2475,894 @@ function getApiIdentifier(mode = currentMode) {
 }
 
 function buildScheduleQuery(mode, id) {
-    const key = normalizeMode(mode) === 'Group' ? 'idGroup' : normalizeMode(mode) === 'Teacher' ? 'idTeacher' : 'idAudLine';
+    const type = normalizeMode(mode);
+    const key = type === 'Group' ? 'idGroup' : type === 'Teacher' ? 'idTeacher' : 'idAudLine';
     return `${key}=${encodeURIComponent(id)}`;
 }
 
-function extractLessonsFromAPIResponse(data) {
-    if (!data) return [];
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data.data?.rasp)) return data.data.rasp;
-    if (Array.isArray(data.data)) return data.data;
-    if (Array.isArray(data.rasp)) return data.rasp;
-    if (Array.isArray(data.items)) return data.items;
-    if (Array.isArray(data.lessons)) return data.lessons;
-    if (Array.isArray(data.schedule)) return data.schedule;
-    if (Array.isArray(data.result)) return data.result;
-    return [];
+function safeJsonStringifyClient(value, maxLength = 12000) {
+    try {
+        const seen = new WeakSet();
+        const json = JSON.stringify(value, (key, val) => {
+            if (val && typeof val === 'object') {
+                if (seen.has(val)) return '[Circular]';
+                seen.add(val);
+            }
+            return val;
+        });
+        return String(json || '').slice(0, Math.max(256, Number(maxLength) || 12000));
+    } catch (e) {
+        return '';
+    }
+}
+
+function extractLessonsFromAPIResponse(data, seedDate = '', seedContext = {}) {
+    if (!data || typeof data !== 'object') return [];
+
+    const lessons = [];
+    const seen = new WeakSet();
+
+    const readDate = obj => {
+        const fields = [obj?.__kgeuDate, obj?.дата, obj?.Дата, obj?.date, obj?.Date,
+            obj?.lessonDate, obj?.lesson_date, obj?.day_date, obj?.day,
+            obj?.датаНачала, obj?.DateStart, obj?.dateStart, obj?.startDate];
+        for (const v of fields) {
+            const d = normalizeDateOnly(v);
+            if (d) return d;
+        }
+        return '';
+    };
+
+    const readTitle = obj => {
+        if (!obj || typeof obj !== 'object') return '';
+        const value = obj?.__kgeuTitle ?? obj?.subject ?? obj?.Subject ?? obj?.discipline ?? obj?.Дисциплина ?? obj?.дисциплина ??
+            obj?.subjectName ?? obj?.SubjectName ?? obj?.disciplineName ?? obj?.discipline_name ?? obj?.nameDiscipline ??
+            obj?.disciplineTitle ?? obj?.НаименованиеДисциплины ?? obj?.НазваниеДисциплины ?? obj?.названиеДисциплины ??
+            obj?.Предмет ?? obj?.предмет ?? obj?.Наименование ?? obj?.наименование ?? obj?.название ?? obj?.name ?? obj?.Name ?? obj?.title ?? obj?.Title ?? '';
+        if (value && typeof value === 'object') {
+            return String(value.name ?? value.Name ?? value.title ?? value.Title ?? value.text ?? value.Text ?? value.value ?? value.Value ??
+                value.Наименование ?? value.наименование ?? value.название ?? value.Название ?? value.предмет ?? value.Предмет ?? '').trim();
+        }
+        return String(value || '').trim();
+    };
+
+    const parsePackedGroupString = value => {
+        const raw = String(value ?? '').trim();
+        if (!raw) return [];
+
+        const known = (listsData.Group || [])
+            .map(normalizeListItem)
+            .filter(Boolean)
+            .sort((a, b) => String(b.name).length - String(a.name).length);
+        const found = [];
+
+        for (const item of known) {
+            const name = String(item.name || '').trim();
+            if (!name) continue;
+            const safe = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const re = new RegExp(`(^|[^\\p{L}\\p{N}])${safe}(?=$|[^\\p{L}\\p{N}])`, 'iu');
+            if (re.test(raw)) found.push({ name, id: String(item.id || name) });
+        }
+
+        if (found.length) return dedupeGroups(found);
+
+        const parts = raw
+            .split(/[,;|\n]+|\s*\/\s*|\s+и\s+/iu)
+            .map(v => v.trim())
+            .filter(Boolean);
+        if (parts.length > 1) {
+            return dedupeGroups(parts.map(name => {
+                const resolved = resolveListItem('Group', name, '');
+                return { name, id: String(resolved?.id || name) };
+            }));
+        }
+
+        return [];
+    };
+
+    const normalizeGroup = value => {
+        if (value === null || value === undefined || value === '') return null;
+        if (typeof value === 'object') {
+            const name = value.name ?? value.Name ?? value.title ?? value.Title ?? value.groupName ?? value.Группа ?? value.группа ?? value.text ?? value.label ?? value.Наименование ?? value.наименование ?? '';
+            const id = value.id ?? value.Id ?? value.ID ?? value.idGroup ?? value.groupId ?? value.кодГруппы ?? value.код ?? name;
+            const cleanName = String(name || '').trim();
+            return cleanName ? { name: cleanName, id: String(id || cleanName).trim() } : null;
+        }
+        const name = String(value).trim();
+        if (!name) return null;
+        if (/^\d+$/.test(name)) {
+            const byId = resolveListItem('Group', '', name);
+            if (byId?.name) return { name: byId.name, id: String(byId.id || name) };
+        }
+        const resolved = resolveListItem('Group', name, '');
+        return { name, id: String(resolved?.id || name) };
+    };
+
+    const readGroups = obj => {
+        if (!obj || typeof obj !== 'object') return [];
+        const value = obj.__kgeuGroups ?? obj.groups ?? obj.Groups ?? obj.groupNames ?? obj.group_names ?? obj.groupList ?? obj.group_list ??
+            obj.group ?? obj.Group ?? obj.Группы ?? obj.группы ?? obj.группа ?? obj.Группа ?? obj.groupName ?? obj.group_name ??
+            obj.списокГрупп ?? obj.ГруппаСтрокой ?? obj.ГруппыСтрокой ?? obj.groupString ?? obj.группыСтрокой ?? obj.группаСтрокой ??
+            obj.кодыГрупп ?? obj.idGroups ?? obj.idGroup ?? obj.groupId ?? obj.group_id ?? '';
+        if (!value) return [];
+
+        const result = [];
+        const values = Array.isArray(value) ? value.flat(Infinity) : [value];
+        for (const item of values) {
+            if (typeof item === 'string' && !/^\d+$/.test(item.trim())) {
+                const packed = parsePackedGroupString(item);
+                if (packed.length) { result.push(...packed); continue; }
+            }
+            const g = normalizeGroup(item);
+            if (g) result.push(g);
+        }
+        return dedupeGroups(result);
+    };
+
+    const readTeacher = obj => {
+        try { return extractLessonTeacher(obj); } catch (_) { return ''; }
+    };
+    const readTeacherId = obj => {
+        try { return extractLessonTeacherId(obj); } catch (_) { return ''; }
+    };
+    const readRoom = obj => {
+        try { return extractLessonRoom(obj); } catch (_) { return ''; }
+    };
+    const readRoomId = obj => {
+        try { return extractLessonRoomId(obj); } catch (_) { return ''; }
+    };
+    const readSubgroups = obj => {
+        try { return getLessonSubgroups(obj); } catch (_) { return []; }
+    };
+    const readPair = obj => {
+        try { return extractPairNumber(obj); } catch (_) { return 0; }
+    };
+    const readTime = obj => {
+        try { return extractLessonTime(obj); } catch (_) { return ''; }
+    };
+
+    const typeFromValue = value => {
+        const raw = String(value ?? '').trim();
+        if (!raw) return '';
+        if (/(?:^|[^\p{L}\p{N}])(?:лр|лабр?)(?:$|[^\p{L}\p{N}])/iu.test(raw) || /лаборатор/iu.test(raw)) return 'type-lab';
+        if (/(?:^|[^\p{L}\p{N}])(?:пр|практ|практика|семинар)(?:$|[^\p{L}\p{N}])/iu.test(raw) || /практик|семинар/iu.test(raw)) return 'type-practice';
+        if (/(?:^|[^\p{L}\p{N}])л(?:$|[^\p{L}\p{N}])/iu.test(raw) || /лекц/iu.test(raw)) return 'type-lecture';
+        return '';
+    };
+
+    const readType = obj => {
+        if (!obj || typeof obj !== 'object') return '';
+        const vals = [obj.__kgeuType, obj.типЗанятия, obj.ТипЗанятия, obj.тип, obj.Тип, obj.видЗанятия, obj.ВидЗанятия,
+            obj.вид, obj.ВидЗанятия, obj.type, obj.Type, obj.typeName, obj.TypeName, obj.lesson_type, obj.lessonType, obj.kind, obj.Kind,
+            obj.kindName, obj.KindName, obj.ТипПары, obj.ВидПары, obj.pairType, obj.ТипЗанятияКод, obj.видЗанятияКод,
+            obj.lessonTypeName, obj.lesson_kind, obj.lessonKind, obj.custom1, obj.custom2];
+        for (const v of vals) {
+            if (typeof v === 'object' && v) {
+                const nested = [v.name, v.Name, v.title, v.Title, v.value, v.Value, v.type, v.Type, v.code, v.код, v.Наименование, v.название].map(x => typeFromValue(x)).find(Boolean);
+                if (nested) return nested;
+            }
+            const cls = typeFromValue(v);
+            if (cls) return cls;
+        }
+        return '';
+    };
+
+    const parseTimeFromKey = value => {
+        const m = String(value || '').match(/(\d{1,2}[:.]\d{2})\s*[-–—]\s*(\d{1,2}[:.]\d{2})/);
+        return m ? `${extractTimeToken(m[1])} - ${extractTimeToken(m[2])}` : '';
+    };
+    const parsePairFromKey = value => {
+        const raw = String(value || '').trim();
+        const m = raw.match(/(?:^|\s)(?:пара|pair|period|№)\s*([1-8])\b/iu);
+        return m ? Number(m[1]) : 0;
+    };
+    const parseGroupsFromKey = value => {
+        const raw = String(value || '').trim();
+        if (!raw) return [];
+        const known = (listsData.Group || []).map(normalizeListItem).filter(Boolean).sort((a,b) => String(b.name).length - String(a.name).length);
+        const result = [];
+        for (const item of known) {
+            const name = String(item.name || '').trim();
+            if (!name) continue;
+            const safe = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const re = new RegExp(`(^|[^\\p{L}\\p{N}])${safe}(?=$|[^\\p{L}\\p{N}])`, 'iu');
+            if (re.test(raw)) result.push({ name, id: String(item.id || name) });
+        }
+        if (result.length) return dedupeGroups(result);
+        const guessed = raw.match(/(?<![\p{L}\p{N}])[А-ЯЁA-Z]{1,10}[-_ ]\d{1,3}(?:[-_ ]\d{2,4})?(?![\p{L}\p{N}])/giu) || [];
+        return dedupeGroups(guessed.map(name => ({ name, id: getKnownItemId('Group', name) })));
+    };
+
+    const initial = {
+        date: normalizeDateOnly(seedDate) || String(seedContext.date || ''),
+        time: String(seedContext.time || ''),
+        pair: Number(seedContext.pair || 0) || 0,
+        pairScope: !!seedContext.pairScope,
+        groups: Array.isArray(seedContext.groups) ? seedContext.groups : [],
+        subgroups: Array.isArray(seedContext.subgroups) ? seedContext.subgroups : [],
+        teacher: String(seedContext.teacher || ''),
+        teacherId: String(seedContext.teacherId || ''),
+        room: String(seedContext.room || ''),
+        roomId: String(seedContext.roomId || ''),
+        type: String(seedContext.type || ''),
+        title: String(seedContext.title || '')
+    };
+
+    const mergeContext = (ctx, obj, keyHint = '') => {
+        const next = { ...ctx };
+        const d = readDate(obj);
+        if (d) next.date = d;
+        if (!next.date) {
+            const fromKey = normalizeDateOnly(keyHint);
+            if (fromKey) next.date = fromKey;
+        }
+
+        const title = readTitle(obj);
+        if (title) next.title = title;
+
+        const time = readTime(obj) || parseTimeFromKey(keyHint);
+        if (time) next.time = time;
+
+        const pair = readPair(obj) || parsePairFromKey(keyHint) || (next.pairScope && /^([1-8])$/.test(String(keyHint || '').trim()) ? Number(keyHint) : 0);
+        if (pair) next.pair = pair;
+
+        const groups = readGroups(obj);
+        if (groups.length) next.groups = groups;
+        const keyGroups = parseGroupsFromKey(keyHint);
+        if (keyGroups.length && (!next.groups.length || keyGroups.some(g => !next.groups.some(x => x.id === g.id || x.name === g.name)))) {
+            next.groups = dedupeGroups([...(next.groups || []), ...keyGroups]);
+        }
+
+        const subgroups = readSubgroups(obj);
+        if (subgroups.length) next.subgroups = subgroups;
+
+        const teacher = readTeacher(obj);
+        if (teacher) next.teacher = teacher;
+        const teacherId = readTeacherId(obj);
+        if (teacherId) next.teacherId = teacherId;
+        const room = readRoom(obj);
+        if (room) next.room = room;
+        const roomId = readRoomId(obj);
+        if (roomId) next.roomId = roomId;
+        const type = readType(obj) || typeFromValue(keyHint);
+        if (type) next.type = type;
+        if (/^(?:pairs?|пары?|занятия?|lessons?|periods?|времена?)/iu.test(String(keyHint || '').trim())) next.pairScope = true;
+        return next;
+    };
+
+    const looksLikeConcreteLesson = node => {
+        if (!node || typeof node !== 'object' || Array.isArray(node)) return false;
+        // A wrapper such as {data:{...}} can contain the words "subject" and
+        // "time" in nested JSON. It must never itself become a lesson. A concrete
+        // lesson is recognized from fields on the object itself.
+        return isLessonLikeClient(node);
+    };
+
+    const visit = (node, context, depth, keyHint = '') => {
+        if (!node || typeof node !== 'object' || depth > 18 || lessons.length >= 5000) return;
+        if (seen.has(node)) return;
+        seen.add(node);
+
+        const pairContainer = /^(?:pairs?|пары?|занятия?|lessons?|periods?|времена?)/iu.test(String(keyHint || '').trim());
+
+        if (Array.isArray(node)) {
+            for (let index = 0; index < node.length; index++) {
+                const item = node[index];
+                const childContext = pairContainer && !context.pair && index < 8
+                    ? { ...context, pairScope: true, pair: index + 1 }
+                    : context;
+                visit(item, childContext, depth + 1, keyHint);
+            }
+            return;
+        }
+
+        const ownContext = mergeContext(context, node, keyHint);
+        if (looksLikeConcreteLesson(node)) {
+            const enriched = { ...node };
+            const title = readTitle(enriched) || ownContext.title;
+            if (!readTitle(enriched) && title) enriched.__kgeuTitle = title;
+            if (!extractLessonDate(enriched) && ownContext.date) enriched.__kgeuDate = ownContext.date;
+            if (!extractLessonTime(enriched) && (ownContext.time || ownContext.pair)) enriched.__kgeuTime = ownContext.time || (KGEU_PAIR_TIME_RANGES_CLIENT[ownContext.pair] || '');
+            if (!extractPairNumber(enriched) && ownContext.pair) enriched.__kgeuPairNumber = ownContext.pair;
+            if (!extractLessonGroups(enriched).length && ownContext.groups.length) enriched.__kgeuGroups = ownContext.groups;
+            if (!getLessonSubgroups(enriched).length && ownContext.subgroups.length) enriched.__kgeuSubgroups = ownContext.subgroups;
+            if (!extractLessonTeacher(enriched) && ownContext.teacher) enriched.__kgeuTeacher = ownContext.teacher;
+            if (!extractLessonTeacherId(enriched) && ownContext.teacherId) enriched.__kgeuTeacherId = ownContext.teacherId;
+            if (!extractLessonRoom(enriched) && ownContext.room) enriched.__kgeuRoom = ownContext.room;
+            if (!extractLessonRoomId(enriched) && ownContext.roomId) enriched.__kgeuRoomId = ownContext.roomId;
+            if (ownContext.type) enriched.__kgeuTypeClass = ownContext.type;
+            lessons.push(enriched);
+        }
+
+        for (const [key, value] of Object.entries(node)) {
+            if (!value || typeof value !== 'object') continue;
+
+            // Some KGEU payload variants use numeric keys (1..8) for the lesson
+            // number instead of an explicit "pair" field. Only inherit this
+            // numbering when we are already inside a schedule/day/pair container.
+            const numericPair = /^(?:[1-8])$/.test(String(key).trim());
+            const scheduleParent = /^(?:pairs?|пары?|занятия?|lessons?|periods?|времена?|rasp|расписание|schedule|day|день)$/iu.test(String(keyHint || '').trim());
+            const childContext = numericPair && (pairContainer || scheduleParent || !!ownContext.date)
+                ? { ...ownContext, pairScope: true, pair: Number(key) }
+                : ownContext;
+
+            visit(value, childContext, depth + 1, key);
+        }
+    };
+
+    visit(data, initial, 0, '');
+    return dedupeRawLessonObjects(lessons);
+}
+function isLessonLikeClient(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+
+    const titleFields = [
+        'subject','Subject','discipline','Дисциплина','дисциплина','subjectName','SubjectName','disciplineName','discipline_name',
+        'nameDiscipline','disciplineTitle','НаименованиеДисциплины','НазваниеДисциплины','названиеДисциплины',
+        'Предмет','предмет','Наименование','наименование','название','name','Name','title','Title'
+    ];
+    const hasTitle = titleFields.some(k => {
+        const v = value[k];
+        if (v === undefined || v === null) return false;
+        if (typeof v === 'object') return !!String(v.name ?? v.Name ?? v.title ?? v.Title ?? v.text ?? v.Text ?? v.value ?? v.Value ?? v.Наименование ?? v.наименование ?? '').trim();
+        return !!String(v).trim();
+    });
+    if (!hasTitle) return false;
+
+    // A concrete lesson is allowed to contain nested objects such as pair,
+    // teacher, room or discipline. The previous wrapper-first check rejected
+    // perfectly valid lesson records whenever one of these fields was an object.
+    // Only treat an object as a wrapper when it has no useful schedule fields of
+    // its own; wrapper children are still traversed by extractLessonsFromAPIResponse.
+    const wrapperKeys = [
+        'weeks','week','days','day','pairs','pair','lessons','lesson','items','entries','rows','schedule','result','dates','data',
+        'Недели','Неделя','Дни','День','Пары','Пара','Занятия','Занятие','Расписание'
+    ];
+
+    const concreteScheduleKeys = [
+        'часы','Часы','hours','lessonHours','time','Time','time_range','timeRange','period','periodTime','pairTime','pair_time',
+        'lessonTime','LessonTime','Время','время','времяПары','времяЗанятия','start','Start','startTime','StartTime','timeStart','TimeStart',
+        'begin','Begin','начало','Начало','ВремяНачала','времяНачала','end','End','endTime','EndTime','timeEnd','TimeEnd','finish','Finish',
+        'конец','Конец','ВремяОкончания','времяОкончания','date','Date','дата','Дата','lessonDate','lesson_date','day_date','day',
+        'тип','Тип','type','Type','lesson_type','lessonType','типЗанятия','ТипЗанятия','видЗанятия','ВидЗанятия','вид','kind','Kind',
+        'teacher','Teacher','teacherName','teacher_name','teacherFio','teacher_fio','ФИОПреподавателя','преподаватель','Преподаватель',
+        'room','Room','auditorium','aud','Аудитория','аудитория','audLine','audLineName','audName','номерАудитории','группы','Группы',
+        'groups','Groups','группа','Группа','group','Group','groupName','group_name','groupString','groupNames','ГруппыСтрокой','кодыГрупп',
+        'списокГрупп','idGroup','idGroups','кодГруппы','subgroup','Subgroup','подгруппа','номерПодгруппы','подгруппаНомер','subgroupNumber',
+        'pair','Pair','пара','номерПары','номер_пары','pairNumber','lessonNumber','номерЗанятия','periodNumber','period_no'
+    ];
+    if (concreteScheduleKeys.some(k => Object.prototype.hasOwnProperty.call(value, k))) return true;
+
+    try {
+        const raw = JSON.stringify(value).slice(0, 12000);
+        return /\d{1,2}[:.]\d{2}/.test(raw) && /(?:teacher|препод|room|ауд|group|групп|type|тип|пара|lesson|занят)/iu.test(raw);
+    } catch (e) {
+        return false;
+    }
+}
+function dedupeRawLessonObjects(lessons) {
+    const out = [];
+    const seen = new Set();
+    for (const lesson of lessons || []) {
+        if (!lesson || typeof lesson !== 'object') continue;
+        const title = String(extractLessonTitle(lesson) || '').trim().toLowerCase();
+        const time = String(extractLessonTime(lesson) || '').trim().toLowerCase();
+        const teacher = String(extractLessonTeacher(lesson) || '').trim().toLowerCase();
+        const room = String(extractLessonRoom(lesson) || '').trim().toLowerCase();
+        const pair = String(extractPairNumber(lesson) || '');
+        const date = String(extractLessonDate(lesson) || '').trim();
+        const type = String(getLessonTypeClass(lesson) || '').trim().toLowerCase();
+        const groups = extractLessonGroups(lesson).map(g => `${g.id}|${g.name}`).sort().join(',').toLowerCase();
+        const subgroup = getLessonSubgroups(lesson).join(',');
+        const key = [title,time,teacher,room,pair,date,type,groups,subgroup].join('\x1f');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(lesson);
+    }
+    return out;
+}
+
+
+function normalizeDateOnly(value) {
+    if (value === null || value === undefined) return '';
+    const raw = String(value).trim();
+    if (!raw) return '';
+
+    let m = raw.match(/(?:^|\b)(20\d{2})[-.](\d{1,2})[-.](\d{1,2})(?=\b|T|\s|$)/);
+    if (m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+
+    m = raw.match(/\b(\d{1,2})[./-](\d{1,2})[./-](20\d{2})\b/);
+    if (m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0,10);
+    return '';
+}
+
+function extractLessonDate(l) {
+    const values = [
+        l?.__kgeuDate, l?.дата, l?.Дата, l?.date, l?.Date, l?.lessonDate, l?.lesson_date,
+        l?.day_date, l?.day, l?.датаНачала, l?.датаОкончания,
+        l?.DateStart, l?.dateStart, l?.startDate, l?.start_date
+    ];
+    for (const value of values) {
+        const parsed = normalizeDateOnly(value);
+        if (parsed) return parsed;
+    }
+    return '';
 }
 
 function filterLessonsByDate(lessons, dateStr) {
-    if (!Array.isArray(lessons)) return [];
-
-    return lessons.filter(lesson => {
-        const d = lesson.date || lesson.Date || lesson.day_date || lesson.day || lesson.Дата;
-        if (!d) return true;
-        return formatDate(new Date(d)) === dateStr;
-    });
+    if (!Array.isArray(lessons) || !lessons.length) return [];
+    const dates = lessons.map(extractLessonDate);
+    const hasRecognizedDates = dates.some(Boolean);
+    return hasRecognizedDates
+        ? lessons.filter((lesson, i) => !dates[i] || dates[i] === dateStr)
+        : lessons.slice();
 }
 
-async function fetchScheduleForDate(query, dateStr, signal, retries = 1) {
-    const baseUrl = `${WORKER_URL}/api/Rasp?${query}&sdate=${encodeURIComponent(dateStr)}`;
-    const url = `${baseUrl}${forceNetworkRefresh ? '&fresh=1' : ''}`;
-    const requestKey = baseUrl;
-
-    if (!forceNetworkRefresh && scheduleInflight.has(requestKey)) {
-        return await scheduleInflight.get(requestKey);
+function extractTimeToken(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'number' && Number.isFinite(value) && value >= 0 && value < 1440) {
+        const h = Math.floor(value / 60), m = value % 60;
+        return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
     }
+    const raw = String(value).trim();
+    const m = raw.match(/(?:^|T|\s)(\d{1,2})[:.](\d{2})(?::\d{2})?/);
+    if (!m) return '';
+    const h = Number(m[1]), mm = Number(m[2]);
+    if (h > 23 || mm > 59) return '';
+    return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+}
 
-    const work = (async () => {
-        let lastError = null;
-
-        for (let attempt = 0; attempt <= retries; attempt++) {
-            try {
-                const startedAt = performance.now();
-
-                const res = await fetch(url, {
-                    signal,
-                    cache: forceNetworkRefresh ? 'no-store' : 'default',
-                    headers: {
-                        'X-Telegram-Init-Data': getInitData()
-                    }
-                });
-
-                apiRequestCount++;
-                const duration = Math.round(performance.now() - startedAt);
-
-                lastApiRequest = {
-                    date: dateStr,
-                    url,
-                    status: res.status,
-                    duration,
-                    at: Date.now()
-                };
-
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-                const data = await res.json();
-                lastApiError = null;
-                return filterLessonsByDate(extractLessonsFromAPIResponse(data), dateStr);
-            } catch (e) {
-                if (e.name === 'AbortError') throw e;
-                lastError = e;
-                lastApiError = `${dateStr}: ${e.message || 'ошибка запроса'}`;
-                if (attempt < retries) await sleep(300 * (attempt + 1));
-            }
-        }
-
-        throw lastError || new Error('Не удалось получить расписание');
-    })();
-
-    scheduleInflight.set(requestKey, work);
-    try {
-        return await work;
-    } finally {
-        scheduleInflight.delete(requestKey);
+function extractPairNumber(l) {
+    const candidates = [
+        l?.__kgeuPairNumber, l?.pair, l?.Pair, l?.пара, l?.номерПары, l?.номер_пары, l?.pairNumber,
+        l?.lessonNumber, l?.['№пары'], l?.номерЗанятия, l?.номер_занятия, l?.periodNumber, l?.period_no
+    ];
+    for (const value of candidates) {
+        if (value === null || value === undefined || value === '') continue;
+        const match = String(value).match(/\b([1-8])\b/);
+        if (match) return Number(match[1]);
     }
+    return 0;
 }
 
-async function fetchScheduleRange(mode, id, startDate, days, signal) {
-    const params = new URLSearchParams({
-        type: normalizeMode(mode),
-        id: String(id || ''),
-        start: startDate,
-        days: String(Math.max(1, Math.min(7, Number(days || 1))))
-    });
-
-    const baseUrl = `${WORKER_URL}/api/schedule-range?${params.toString()}`;
-    const url = `${baseUrl}${forceNetworkRefresh ? '&fresh=1' : ''}`;
-    const requestKey = baseUrl;
-
-    if (!forceNetworkRefresh && scheduleInflight.has(requestKey)) {
-        return await scheduleInflight.get(requestKey);
-    }
-
-    const work = (async () => {
-        const startedAt = performance.now();
-
-        const res = await fetch(url, {
-            signal,
-            cache: forceNetworkRefresh ? 'no-store' : 'default',
-            headers: {
-                'X-Telegram-Init-Data': getInitData()
-            }
-        });
-
-        apiRequestCount++;
-        lastApiRequest = {
-            date: startDate,
-            url,
-            status: res.status,
-            duration: Math.round(performance.now() - startedAt),
-            at: Date.now()
-        };
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        lastApiError = null;
-        return data?.data || {};
-    })();
-
-    scheduleInflight.set(requestKey, work);
-    try {
-        return await work;
-    } finally {
-        scheduleInflight.delete(requestKey);
-    }
-}
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function mapWithConcurrency(items, limit, worker) {
-    const results = new Array(items.length);
-    let nextIndex = 0;
-
-    async function runner() {
-        while (true) {
-            const index = nextIndex++;
-            if (index >= items.length) return;
-            results[index] = await worker(items[index], index);
-        }
-    }
-
-    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, runner));
-    return results;
-}
-
-// =====================================================
-// Lesson normalization
-// =====================================================
-
-function extractLessonTitle(l) {
-    return l.subject || l.Subject || l.discipline || l.Дисциплина || l.дисциплина || l.name || l.Name || l.title || 'Без названия';
-}
+const KGEU_PAIR_TIME_RANGES_CLIENT = {
+    1:'08:00 - 09:30', 2:'09:40 - 11:10', 3:'11:40 - 13:10', 4:'13:20 - 14:50',
+    5:'15:00 - 16:30', 6:'16:40 - 18:10', 7:'18:20 - 19:50', 8:'20:00 - 21:30'
+};
 
 function extractLessonTime(l) {
-    return l.time || l.Time || l.time_range || l.period || l.Время || l.время || '';
+    if (!l || typeof l !== 'object') return '';
+
+    const directValues = [
+        l?.__kgeuTime, l?.часы, l?.Часы, l?.hours, l?.lessonHours,
+        l?.time, l?.Time, l?.time_range, l?.timeRange, l?.period,
+        l?.pairTime, l?.pair_time, l?.lessonTime, l?.LessonTime,
+        l?.Время, l?.время, l?.времяПары, l?.времяЗанятия
+    ];
+
+    for (const value of directValues) {
+        if (value === null || value === undefined || value === '') continue;
+        if (typeof value === 'object') {
+            const start = extractTimeToken(value.start ?? value.Start ?? value.from ?? value.begin ?? value.начало ?? value.Начало ?? value.ВремяНачала ?? value.времяНачала);
+            const end = extractTimeToken(value.end ?? value.End ?? value.to ?? value.finish ?? value.конец ?? value.Конец ?? value.ВремяОкончания ?? value.времяОкончания);
+            if (start && end) return `${start} - ${end}`;
+        }
+        const raw = String(value).trim();
+        const matches = raw.match(/\d{1,2}[:.]\d{2}/g) || [];
+        if (matches.length >= 2) {
+            const start = extractTimeToken(matches[0]);
+            const end = extractTimeToken(matches[1]);
+            if (start && end) return `${start} - ${end}`;
+        }
+        if (matches.length === 1) return extractTimeToken(matches[0]);
+    }
+
+    const startKeys = [
+        'start','Start','startTime','StartTime','timeStart','TimeStart','timeFrom','TimeFrom',
+        'begin','Begin','from','From','начало','Начало','времяНачала','ВремяНачала','lessonStart','датаНачала','DateStart'
+    ];
+    const endKeys = [
+        'end','End','endTime','EndTime','timeEnd','TimeEnd','timeTo','TimeTo',
+        'finish','Finish','to','To','конец','Конец','времяОкончания','ВремяОкончания','lessonEnd','датаОкончания','DateEnd'
+    ];
+    for (const key of startKeys) {
+        const start = extractTimeToken(l?.[key]);
+        if (!start) continue;
+        for (const endKey of endKeys) {
+            const end = extractTimeToken(l?.[endKey]);
+            if (end) return `${start} - ${end}`;
+        }
+    }
+
+    // Nested API variants: inspect only schedule-related keys, not arbitrary timestamps.
+    const foundStarts = [];
+    const foundEnds = [];
+    const queue = [{ node: l, depth: 0 }];
+    const seen = new Set();
+    while (queue.length && foundStarts.length < 32) {
+        const { node, depth } = queue.shift();
+        if (!node || typeof node !== 'object' || seen.has(node) || depth > 6) continue;
+        seen.add(node);
+        for (const [key, value] of Object.entries(node)) {
+            const low = String(key).toLowerCase();
+            // Numeric values such as pairNumber=4 are not clock times. Only
+            // interpret numbers as minutes-from-midnight when the key explicitly
+            // describes a time/duration field. String values can still contain
+            // normal HH:MM timestamps and are handled by extractTimeToken().
+            const numericTimeAllowed = typeof value !== 'number' || /time|врем|часы|hours|start|end|begin|finish|начал|конец|from|to|до|оконч/.test(low);
+            const token = numericTimeAllowed ? extractTimeToken(value) : '';
+            if (token) {
+                if (/end|finish|конец|оконч|to|до/.test(low)) foundEnds.push(token);
+                else if (/time|врем|часы|hours|start|begin|начал|from/.test(low)) foundStarts.push(token);
+            }
+            if (value && typeof value === 'object') queue.push({ node: value, depth: depth + 1 });
+        }
+    }
+    if (foundStarts.length && foundEnds.length) return `${foundStarts[0]} - ${foundEnds[0]}`;
+    if (foundStarts.length >= 2) return `${foundStarts[0]} - ${foundStarts[1]}`;
+    if (foundStarts.length) return foundStarts[0];
+
+    const pairNumber = extractPairNumber(l);
+    return pairNumber ? (KGEU_PAIR_TIME_RANGES_CLIENT[pairNumber] || '') : '';
+}
+
+function getLessonIdentityBase(l) {
+    return [
+        extractLessonTitle(l),
+        extractLessonTime(l),
+        extractLessonTeacher(l),
+        extractLessonRoom(l),
+        getLessonTypeClass(l)
+    ].map(v => String(v || '').trim().toLowerCase()).join('|');
+}
+
+function extractLessonTitle(l) {
+    const value = l?.__kgeuTitle ?? l?.subject ?? l?.Subject ?? l?.discipline ?? l?.Дисциплина ?? l?.дисциплина ??
+        l?.subjectName ?? l?.disciplineName ?? l?.nameDiscipline ?? l?.disciplineTitle ?? l?.НаименованиеДисциплины ??
+        l?.название ?? l?.name ?? l?.Name ?? l?.title ?? l?.Title ?? '';
+
+    if (value && typeof value === 'object') {
+        const nested = value.name ?? value.Name ?? value.title ?? value.Title ?? value.text ?? value.Text ??
+            value.label ?? value.value ?? value.Value ?? value.Наименование ?? value.наименование ??
+            value.дисциплина ?? value.Дисциплина ?? value.subject ?? value.Subject ?? '';
+        return String(nested || 'Без названия').trim();
+    }
+
+    return String(value || 'Без названия').trim();
 }
 
 function extractLessonTeacher(l) {
-    return l.teacher || l.Teacher || l.teacherName || l.преподаватель || l.Преподаватель || '';
+    const value = l?.__kgeuTeacher ?? l?.teacher ?? l?.Teacher ?? l?.teacherName ?? l?.teacher_name ?? l?.преподаватель ?? l?.Преподаватель ?? l?.фиоПреподавателя ?? l?.ФИОПреподавателя ?? l?.teacherFio ?? l?.teacher_fio ?? l?.ФИО ?? '';
+    if (value && typeof value === 'object') {
+        return String(value.name ?? value.Name ?? value.ФИО ?? value.фио ?? value.title ?? '').trim();
+    }
+    return String(value || '').trim();
+}
+
+function extractLessonTeacherId(l) {
+    const obj = l?.teacher && typeof l.teacher === 'object' ? l.teacher : (l?.Teacher && typeof l.Teacher === 'object' ? l.Teacher : (l?.преподаватель && typeof l.преподаватель === 'object' ? l.преподаватель : null));
+    const value = l?.__kgeuTeacherId ?? l?.teacherId ?? l?.idTeacher ?? l?.кодПреподавателя ?? l?.код_преподавателя ?? l?.TeacherId ?? l?.teacher_id ?? obj?.id ?? obj?.Id ?? obj?.ID ?? obj?.idTeacher ?? obj?.код ?? obj?.кодПреподавателя;
+    return value === undefined || value === null ? '' : String(value).trim();
 }
 
 function extractLessonRoom(l) {
-    return l.room || l.Room || l.auditorium || l.aud || l.аудитория || l.Аудитория || '';
+    const value = l?.__kgeuRoom ?? l?.room ?? l?.Room ?? l?.auditorium ?? l?.aud ?? l?.аудитория ?? l?.Аудитория ?? l?.audLine ?? l?.audLineName ?? l?.audName ?? l?.аудиторияНомер ?? l?.номерАудитории ?? '';
+    if (value && typeof value === 'object') {
+        return String(value.name ?? value.Name ?? value.title ?? value.аудитория ?? '').trim();
+    }
+    return String(value || '').trim();
 }
 
-function getLessonSubgroup(l) {
-    const value = l.subgroup ?? l.Subgroup ?? l.sub_group ?? l.подгруппа ?? l.номерПодгруппы ?? l.подгруппаНомер ?? l['номер_подгруппы'] ?? '';
-    const match = String(value || '').match(/\d+/);
-    return match ? Number(match[0]) : 0;
+function extractLessonRoomId(l) {
+    const obj = l?.room && typeof l.room === 'object' ? l.room : (l?.Room && typeof l.Room === 'object' ? l.Room : (l?.auditorium && typeof l.auditorium === 'object' ? l.auditorium : (l?.аудитория && typeof l.аудитория === 'object' ? l.аудитория : null)));
+    const value = l?.__kgeuRoomId ?? l?.roomId ?? l?.audId ?? l?.idAud ?? l?.idAudLine ?? l?.кодАудитории ?? l?.код_аудитории ?? l?.aud_id ?? l?.auditoriumId ?? obj?.id ?? obj?.Id ?? obj?.ID ?? obj?.idAud ?? obj?.idAudLine ?? obj?.код ?? obj?.кодАудитории;
+    return value === undefined || value === null ? '' : String(value).trim();
 }
+
+function getLessonSubgroups(l) {
+    if (Array.isArray(l?.__kgeuSubgroups)) return [...new Set(l.__kgeuSubgroups.map(Number).filter(n => n === 1 || n === 2))].sort((a,b)=>a-b);
+    const rawValues = [
+        l?.номерПодгруппы, l?.подгруппа, l?.подгруппаНомер, l?.Subgroup,
+        l?.subgroup, l?.subgroupNumber, l?.sub_group, l?.номер_подгруппы, l?.пг, l?.п_г,
+        l?.groupSubgroup, l?.subGroup
+    ].filter(v => v !== undefined && v !== null && String(v).trim() !== '');
+
+    const found = new Set();
+    rawValues.forEach(value => {
+        for (const m of String(value).matchAll(/\b([12])\b/g)) found.add(Number(m[1]));
+    });
+
+    const text = [l?.дисциплина, l?.Дисциплина, l?.типЗанятия, l?.ТипЗанятия, l?.тип, l?.description, l?.title, l?.subject, l?.custom1, l?.custom2]
+        .filter(Boolean).join(' ');
+    for (const m of text.matchAll(/(?:п\s*\/\s*г|п\s*г|подгрупп(?:а|ы)?)[^0-9]{0,8}([12])\b/giu)) found.add(Number(m[1]));
+    // KGEU also uses notation like "лаб. Химия 1/2 г" for a lesson
+    // conducted for both subgroups. Treat it as common to 1 and 2.
+    for (const m of text.matchAll(/\b([12])\s*\/\s*([12])(?:\s*(?:г|гр|подгрупп(?:а|ы)?))?\b/giu)) {
+        found.add(Number(m[1]));
+        found.add(Number(m[2]));
+    }
+    return [...found].sort((a,b)=>a-b);
+}
+
+function getLessonSubgroup(l) { return getLessonSubgroups(l)[0] || 0; }
+function getLessonSubgroupLabel(l) { return getLessonSubgroups(l).join(', '); }
 
 function getLessonTypeClass(l) {
     if (l?.isWindow) return 'type-window';
+    if (l?.__kgeuTypeClass) return l.__kgeuTypeClass;
 
-    const raw = [
-        l.type, l.Type, l.lesson_type, l.Тип, l.тип,
-        l.типЗанятия, l.ТипЗанятия, l.видЗанятия, l.вид, l.custom1, l.custom2
-    ].filter(Boolean).join(' ').toLowerCase();
+    const rawValues = [];
+    const addTypeValue = value => {
+        if (value === undefined || value === null || value === '') return;
+        if (typeof value === 'object') {
+            [value.name, value.Name, value.title, value.Title, value.value, value.Value, value.type, value.Type, value.code, value.код, value.название, value.Наименование]
+                .filter(v => v !== undefined && v !== null && String(v).trim() !== '')
+                .forEach(v => rawValues.push(String(v)));
+            return;
+        }
+        rawValues.push(String(value));
+    };
+
+    [l?.типЗанятия, l?.ТипЗанятия, l?.тип, l?.Тип, l?.видЗанятия, l?.ВидЗанятия, l?.вид, l?.type, l?.Type,
+        l?.lesson_type, l?.lessonType, l?.kind, l?.Kind, l?.custom1, l?.custom2].forEach(addTypeValue);
+
+    const raw = rawValues.join(' ').toLowerCase().trim();
     const compact = raw.replace(/[\s._-]+/g, '');
+    const token = t => new RegExp(`(^|[^\\p{L}\\p{N}])${t}(?=$|[^\\p{L}\\p{N}])`, 'iu').test(raw);
 
-    if (/лаборатор|лабр|\bлр\b|laboratory|lab/.test(raw) || compact.includes('лр')) return 'type-lab';
-    if (/практичес|практика|семинар|\bпр\b|practice|seminar/.test(raw) || compact === 'пр') return 'type-practice';
+    if (token('лр') || /(?:^|[^а-яёa-z])(лаб(?:оратор)?|лабораторная|лабораторное|лабораторно)(?:$|[^а-яёa-z])/iu.test(raw) || compact === 'лр' || /\blab(?:oratory)?\b/i.test(raw)) return 'type-lab';
+    if (token('пр') || /практик|семинар|practice|seminar/iu.test(raw) || compact === 'пр') return 'type-practice';
+    if (token('л') || /лекц|lecture/iu.test(raw) || compact === 'л') return 'type-lecture';
 
     const title = extractLessonTitle(l).toLowerCase();
-    if (title.includes('лаборатор')) return 'type-lab';
-    if (title.includes('практи')) return 'type-practice';
+    if (/(^|[\s(\[\]{},.;:/\\-])(?:лр|лабр?)(?=$|[\s)\]}},.;:/\\-])/iu.test(title) || /лаборатор/iu.test(title)) return 'type-lab';
+    if (/(^|[\s(\[\]{},.;:/\\-])(?:пр|практ)(?=$|[\s)\]}},.;:/\\-])/iu.test(title) || /практик|семинар|practice|seminar/iu.test(title)) return 'type-practice';
+    if (/(^|[\s(\[\]{},.;:/\\-])л(?=$|[\s)\]}},.;:/\\-])/iu.test(title) || /лекц|lecture/iu.test(title)) return 'type-lecture';
 
     return 'type-lecture';
 }
 
-function extractLessonGroups(l) {
-    let groups = l.groups ?? l.Groups ?? l.group ?? l.Group ?? l.группы ?? l.группа ?? l.Группа ?? l.groupName ?? l.group_name ?? l.списокГрупп ?? '';
 
-    if (!groups && (l.idGroup || l.кодГруппы)) {
-        groups = l.idGroup || l.кодГруппы;
+function getLessonTypeLabel(l) {
+    const type = getLessonTypeClass(l);
+    return type === 'type-lab' ? 'Лабораторная' : type === 'type-practice' ? 'Практика' : type === 'type-window' ? 'Перерыв' : 'Лекция';
+}
+
+function extractLessonGroups(l) {
+    if (Array.isArray(l?.__kgeuGroups)) return dedupeGroups(l.__kgeuGroups);
+
+    let groups = l?.groups ?? l?.Groups ?? l?.groupNames ?? l?.group_names ?? l?.groupList ?? l?.group_list ??
+        l?.groupsData ?? l?.groupInfo ?? l?.group ?? l?.Group ?? l?.Группы ?? l?.группы ?? l?.группа ?? l?.Группа ??
+        l?.groupName ?? l?.group_name ?? l?.списокГрупп ?? l?.группыЗанятия ?? l?.списокГруппЗанятия ??
+        l?.ГруппаСтрокой ?? l?.ГруппыСтрокой ?? l?.groupString ?? l?.группыСтрокой ?? l?.группаСтрокой ??
+        l?.группыСтрока ?? l?.списокГруппСтрокой ?? l?.кодыГрупп ?? l?.idGroups ?? l?.idGroup ?? l?.кодГруппы ?? l?.['группы строкой'] ?? '';
+
+    if (!groups && (l?.idGroup || l?.кодГруппы || l?.groupId || l?.group_id)) {
+        groups = [{ id: l.idGroup ?? l.кодГруппы ?? l.groupId ?? l.group_id, name: l.groupName ?? l.Группа ?? l.группа ?? '' }];
     }
 
-    if (!groups) return [];
+    if (!groups) {
+        const queue = [{ node: l, depth: 0 }];
+        const seen = new Set();
+        while (queue.length && !groups) {
+            const { node, depth } = queue.shift();
+            if (!node || typeof node !== 'object' || seen.has(node) || depth > 6) continue;
+            seen.add(node);
+            for (const [key, value] of Object.entries(node)) {
+                const low = String(key).toLowerCase();
+                if (/group|групп|группа/.test(low) && !/idgroup|кодгрупп|groupid|group_id/.test(low)) {
+                    if (value && (typeof value === 'string' || typeof value === 'number' || Array.isArray(value) || typeof value === 'object')) {
+                        groups = value;
+                        break;
+                    }
+                }
+                if (value && typeof value === 'object') queue.push({ node: value, depth: depth + 1 });
+            }
+        }
+    }
+
+    if (!groups) {
+        const queue = [{ node: l, depth: 0 }];
+        const seen = new Set();
+        while (queue.length && !groups) {
+            const { node, depth } = queue.shift();
+            if (!node || typeof node !== 'object' || seen.has(node) || depth > 5) continue;
+            seen.add(node);
+            for (const [key, value] of Object.entries(node)) {
+                const low = String(key).toLowerCase();
+                if (/(^|[^a-zа-яё])(group|groups|groupname|групп|группа)([^a-zа-яё]|$)/u.test(low) && !/subgroup|подгрупп|idgroup|кодгрупп|groupid/.test(low)) {
+                    if (value !== null && value !== undefined && value !== '') { groups = value; break; }
+                }
+                if (value && typeof value === 'object') queue.push({ node: value, depth: depth + 1 });
+            }
+        }
+    }
 
     const normalizeGroupObject = g => {
-        if (!g) return null;
+        if (g === null || g === undefined || g === '') return null;
         if (typeof g === 'object') {
-            const name = g.name ?? g.Name ?? g.title ?? g.Группа ?? g.group ?? g.groupName ?? g.наименование ?? g.text ?? '';
+            const name = g.name ?? g.Name ?? g.title ?? g.Группа ?? g.group ?? g.groupName ?? g.наименование ?? g.text ?? g.label ?? '';
             const id = g.id ?? g.Id ?? g.ID ?? g.idGroup ?? g.groupId ?? g.кодГруппы ?? g.код ?? name;
-            return String(name || '').trim() ? { name: String(name).trim(), id: String(id || name).trim() } : null;
+            if (String(name || '').trim()) return { name: String(name).trim(), id: String(id || name).trim() };
+            return null;
         }
         const name = String(g).trim();
-        return name ? { name, id: name } : null;
+        return name ? { name, id: getKnownItemId('Group', name) } : null;
     };
 
-    if (Array.isArray(groups)) {
-        return groups.map(normalizeGroupObject).filter(Boolean);
+    let result = [];
+    if (groups) {
+        if (Array.isArray(groups)) {
+            result = groups.flatMap(item => {
+                const one = normalizeGroupObject(item);
+                return one ? [one] : [];
+            });
+        } else {
+            const raw = String(groups).trim();
+            const known = (listsData.Group || []).map(normalizeListItem).filter(Boolean).sort((a,b)=>b.name.length-a.name.length);
+            const matched = [];
+            for (const item of known) {
+                const n = String(item.name || '').trim();
+                if (!n) continue;
+                const safe = n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const re = new RegExp(`(^|[^\p{L}\p{N}])${safe}(?=$|[^\p{L}\p{N}])`, 'iu');
+                if (re.test(raw) && !matched.some(x => x.id === item.id || x.name === item.name)) {
+                    matched.push({ name: item.name, id: item.id });
+                }
+            }
+
+            const parts = raw
+                .split(/[,;|\n]+|\s*\/\s*|\s+и\s+/iu)
+                .map(v => v.trim())
+                .filter(Boolean);
+            for (const part of parts) {
+                const resolved = resolveListItem('Group', part, '');
+                const normalizedPart = String(part).trim().toLowerCase();
+                const exists = matched.some(x =>
+                    String(x.id || '') === String(resolved?.id || '') ||
+                    String(x.name || '').trim().toLowerCase() === normalizedPart
+                );
+                if (!exists) matched.push({
+                    name: String(resolved?.name || part).trim(),
+                    id: String(resolved?.id || getKnownItemId('Group', part) || part).trim()
+                });
+            }
+            result = matched;
+        }
     }
 
-    const raw = String(groups).trim();
-    return raw.split(/,|;|\s+\/\s+/)
-        .map(s => s.trim())
-        .filter(Boolean)
-        .map(name => ({ name, id: getKnownItemId('Group', name) }));
+    result = dedupeGroups(result);
+    if (!result.length && currentMode === 'Group' && currentName) {
+        result = [{ name: currentName, id: String(currentId || getKnownItemId('Group', currentName) || currentName) }];
+    }
+    return result;
+}
+
+function dedupeGroups(groups) {
+    const seen = new Set();
+    return (groups || []).filter(g => {
+        const key = `${String(g.id || '')}|${String(g.name || '').trim().toLowerCase()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
+function normalizeSchedulePayloadForDate(payload, dateStr) {
+    const lessons = Array.isArray(payload) ? payload : extractLessonsFromAPIResponse(payload);
+    return filterLessonsByDate(lessons, dateStr);
+}
+
+function prepareLessonsForDisplay(rawLessons, dateStr) {
+    const filteredDate = normalizeSchedulePayloadForDate(rawLessons || [], dateStr);
+    if (!filteredDate.length) return [];
+
+    const afterSubgroup = filterLessonBySubgroup(filteredDate);
+    const merged = new Map();
+
+    afterSubgroup.forEach((lesson, index) => {
+        const copy = { ...(lesson || {}) };
+        copy.__kgeuDate = dateStr;
+        copy.__kgeuTitle = extractLessonTitle(copy);
+        copy.__kgeuTime = extractLessonTime(copy);
+        copy.__kgeuTeacher = extractLessonTeacher(copy);
+        copy.__kgeuRoom = extractLessonRoom(copy);
+        copy.__kgeuTypeClass = getLessonTypeClass(copy);
+        copy.__kgeuGroups = extractLessonGroups(copy);
+        copy.__kgeuSubgroups = getLessonSubgroups(copy);
+
+        const stableId = copy.id ?? copy.Id ?? copy.ID ?? copy.code ?? copy.Code ?? copy.lessonId ?? copy.idLesson ?? '';
+        copy.__kgeuPairNumber = extractPairNumber(copy);
+        const groupKey = (copy.__kgeuGroups || []).map(g => String(g.id || g.name || '').trim().toLowerCase()).sort().join(',');
+        const subgroupKey = (copy.__kgeuSubgroups || []).join(',');
+        const keyParts = [copy.__kgeuTitle, copy.__kgeuTime, copy.__kgeuTeacher, copy.__kgeuRoom, copy.__kgeuTypeClass, dateStr, groupKey, subgroupKey]
+            .map(v => String(v || '').trim().toLowerCase());
+        const key = copy.__kgeuTime
+            ? keyParts.join('|')
+            : `no-time|${String(stableId || copy.__kgeuPairNumber || index).trim().toLowerCase()}|${copy.__kgeuTitle.toLowerCase()}|${groupKey}|${subgroupKey}`;
+
+        const existing = merged.get(key);
+        if (!existing) {
+            merged.set(key, copy);
+            return;
+        }
+
+        existing.__kgeuGroups = dedupeGroups([...(existing.__kgeuGroups || []), ...(copy.__kgeuGroups || [])]);
+        existing.__kgeuSubgroups = [...new Set([...(existing.__kgeuSubgroups || []), ...(copy.__kgeuSubgroups || [])])].sort((a,b)=>a-b);
+        if (existing.__kgeuTypeClass === 'type-lecture' && copy.__kgeuTypeClass !== 'type-lecture') {
+            existing.__kgeuTypeClass = copy.__kgeuTypeClass;
+        }
+    });
+
+    const mergedByCore = new Map();
+    for (const lesson of merged.values()) {
+        const subgroupKey = (lesson.__kgeuSubgroups || []).join(',');
+        const core = [lesson.__kgeuTitle, lesson.__kgeuTime, lesson.__kgeuTeacher, lesson.__kgeuRoom, lesson.__kgeuTypeClass, dateStr, subgroupKey]
+            .map(v => String(v || '').trim().toLowerCase()).join('|');
+        const existing = mergedByCore.get(core);
+        if (!existing) {
+            mergedByCore.set(core, lesson);
+            continue;
+        }
+        existing.__kgeuGroups = dedupeGroups([...(existing.__kgeuGroups || []), ...(lesson.__kgeuGroups || [])]);
+        existing.__kgeuSubgroups = [...new Set([...(existing.__kgeuSubgroups || []), ...(lesson.__kgeuSubgroups || [])])].sort((a,b)=>a-b);
+    }
+
+    return [...mergedByCore.values()].sort((a,b) => {
+        const ta = parseTimeRange(a.__kgeuTime || extractLessonTime(a));
+        const tb = parseTimeRange(b.__kgeuTime || extractLessonTime(b));
+        if (ta && tb) return ta.start - tb.start || ta.end - tb.end;
+        if (ta) return -1;
+        if (tb) return 1;
+        return String(a.__kgeuTitle || '').localeCompare(String(b.__kgeuTitle || ''), 'ru');
+    });
 }
 
 function filterLessonBySubgroup(lessons) {
-    if (userSubgroup === '0') return lessons || [];
-
-    return (lessons || []).filter(l => {
-        const subgroup = getLessonSubgroup(l);
-        return subgroup === 0 || subgroup === parseInt(userSubgroup, 10);
+    if (!Array.isArray(lessons) || userSubgroup === '0') return lessons || [];
+    const selected = Number(userSubgroup);
+    return lessons.filter(l => {
+        if (l?.isWindow) return true;
+        const subgroups = getLessonSubgroups(l);
+        return !subgroups.length || subgroups.includes(selected);
     });
 }
 
 function addWindowsToLessons(lessons) {
     if (!lessons || lessons.length < 2) return lessons || [];
-
-    const items = lessons
-        .filter(l => !l?.isWindow)
+    const items = lessons.filter(l => !l?.isWindow)
         .map(l => ({ l, time: parseTimeRange(extractLessonTime(l)) }))
         .filter(x => x.time)
-        .sort((a, b) => a.time.start - b.time.start);
-
+        .sort((a,b) => a.time.start - b.time.start);
     if (items.length < 2) return lessons || [];
 
     const result = [];
-
-    for (let i = 0; i < items.length; i++) {
+    for (let i=0; i<items.length; i++) {
         result.push(items[i].l);
-
         if (i < items.length - 1) {
-            const gap = items[i + 1].time.start - items[i].time.end;
-
-            // Ровно 30 минут — обычный межпарный интервал, отдельный блок не показываем.
+            const gap = items[i+1].time.start - items[i].time.end;
             if (gap > 30) {
-                const start = items[i].time.end;
-                const end = items[i + 1].time.start;
-
-                result.push({
-                    isWindow: true,
-                    title: '☕ Перерыв',
-                    time: `${minutesToTime(start)} - ${minutesToTime(end)}`,
-                    duration: `${gap} мин`
-                });
+                result.push({ isWindow:true, title:'☕ Перерыв', time:`${minutesToTime(items[i].time.end)} - ${minutesToTime(items[i+1].time.start)}`, duration:`${gap} мин` });
             }
         }
     }
-
     return result;
+}
+
+function extractLessonDuration(l) {
+    const time = parseTimeRange(extractLessonTime(l));
+    if (time && time.end > time.start) return time.end - time.start;
+    const raw = l?.duration ?? l?.Duration ?? l?.durationMinutes ?? l?.длительность ?? l?.продолжительность ?? '';
+    const text = String(raw).toLowerCase();
+    const hm = text.match(/(\d+)\s*(?:ч|час|часа|часов).*?(\d+)\s*мин/);
+    if (hm) return Number(hm[1])*60 + Number(hm[2]);
+    const hours = text.match(/(\d+(?:[.,]\d+)?)\s*(?:ч|час|часа|часов)/);
+    if (hours) return Math.round(Number(hours[1].replace(',','.'))*60);
+    const mins = text.match(/(\d+)\s*(?:мин|мину)/);
+    return mins ? Number(mins[1]) : 0;
 }
 
 function getKnownItemId(type, name) {
@@ -2518,493 +3376,470 @@ function getKnownItemId(type, name) {
 
 function renderErrorState(container, title, details = '') {
     if (!container) return;
-
-    container.innerHTML = `
-        <div class="error-card">
-            <strong>⚠️ ${esc(title)}</strong><br>
-            <span style="color:var(--text-secondary);">${esc(details || 'Попробуйте обновить данные.')}</span>
-            <button class="btn-primary" style="margin-top:8px;" onclick="forceRefreshCurrentView()">↻ Повторить</button>
-        </div>
-    `;
+    container.innerHTML = `<div class="error-card"><strong>⚠️ ${esc(title)}</strong><br><span style="color:var(--text-secondary);">${esc(details || 'Попробуйте обновить данные.')}</span><button class="btn-primary" style="margin-top:8px;" onclick="forceRefreshCurrentView()">↻ Повторить</button></div>`;
 }
 
-function renderLessons(rawLessons, container, dateStr) {
-    if (!rawLessons || rawLessons.length === 0) {
-        container.innerHTML = '<div class="loading">🎉 На этот день пар нет!</div>';
-        return;
-    }
-
-    const lessons = addWindowsToLessons(rawLessons);
-    const nextLesson = getNextLessonForToday(lessons, dateStr);
-
-    container.innerHTML = lessons.map(l => renderLessonHtml(l, dateStr, l === nextLesson)).join('');
+function formatRelativeMinutes(minutes) {
+    const total = Math.max(0, Math.round(Number(minutes) || 0));
+    const h = Math.floor(total/60), m = total%60;
+    if (h && m) return `${h} ч ${m} мин`;
+    if (h) return `${h} ч`;
+    return `${m} мин`;
 }
 
 function getNextLessonForToday(lessons, lessonDateStr) {
     if (lessonDateStr !== formatDate(new Date()) || !Array.isArray(lessons)) return null;
-
-    const now = new Date();
-    const nowMin = now.getHours() * 60 + now.getMinutes();
-
-    return lessons
-        .filter(l => !l?.isWindow)
-        .map(l => ({ l, time: parseTimeRange(extractLessonTime(l)) }))
-        .filter(x => x.time && x.time.start > nowMin)
-        .sort((a, b) => a.time.start - b.time.start)[0]?.l || null;
+    const nowMin = new Date().getHours()*60 + new Date().getMinutes();
+    return lessons.filter(l=>!l?.isWindow)
+        .map(l=>({l,time:parseTimeRange(extractLessonTime(l))}))
+        .filter(x=>x.time && x.time.start>nowMin)
+        .sort((a,b)=>a.time.start-b.time.start)[0]?.l || null;
 }
 
 function checkIsCurrentLesson(timeStr, lessonDateStr) {
     if (!lessonDateStr || formatDate(new Date()) !== lessonDateStr) return null;
-
     const time = parseTimeRange(timeStr);
     if (!time) return null;
-
-    const now = new Date();
-    const nowMin = now.getHours() * 60 + now.getMinutes();
-
-    if (nowMin >= time.start && nowMin < time.end) {
-        return Math.round(((nowMin - time.start) / (time.end - time.start)) * 100);
-    }
-
+    const nowMin = new Date().getHours()*60 + new Date().getMinutes();
+    if (nowMin >= time.start && nowMin < time.end) return Math.round(((nowMin-time.start)/(time.end-time.start))*100);
     return null;
 }
 
 function getLessonLiveInfo(l, lessonDateStr, isNextLesson = false) {
     if (!lessonDateStr || formatDate(new Date()) !== lessonDateStr || l?.isWindow) return '';
-
-    const time = parseTimeRange(extractLessonTime(l));
-    if (!time) return '';
-
-    const now = new Date();
-    const nowMin = now.getHours() * 60 + now.getMinutes();
-
-    if (nowMin >= time.start && nowMin < time.end) {
-        const left = Math.max(0, time.end - nowMin);
-        return `<span class="lesson-live-badge">ИДЕТ ПАРА · осталось ${left} мин</span>`;
-    }
-
-    if (isNextLesson && time.start > nowMin) {
-        const diff = time.start - nowMin;
-        return `<span class="lesson-live-badge lesson-next-badge">через ${diff} мин</span>`;
-    }
-
+    const t = parseTimeRange(extractLessonTime(l));
+    if (!t) return '';
+    const nowMin = new Date().getHours()*60 + new Date().getMinutes();
+    if (nowMin >= t.start && nowMin < t.end) return `<span class="lesson-live-badge">ИДЕТ ПАРА · до конца ${formatRelativeMinutes(t.end-nowMin)}</span>`;
+    if (isNextLesson && t.start > nowMin) return `<span class="lesson-live-badge lesson-next-badge">через ${formatRelativeMinutes(t.start-nowMin)}</span>`;
     return '';
 }
 
-function buildLessonNoteKey(dateStr, title, timeStr, room, subgroup = 0) {
-    return [dateStr, title, timeStr, room, subgroup].map(v => String(v || '').trim()).join('\x1f');
+function renderLiveStatusBar(lessons, dateStr) {
+    if (dateStr !== formatDate(new Date())) return '';
+    const real = (lessons || []).filter(l => !l?.isWindow);
+    const nowMin = new Date().getHours()*60 + new Date().getMinutes();
+    const current = real.find(l => { const t=parseTimeRange(extractLessonTime(l)); return t && nowMin>=t.start && nowMin<t.end; });
+    const next = real.map(l=>({lesson:l,time:parseTimeRange(extractLessonTime(l))})).filter(x=>x.time && x.time.start>nowMin).sort((a,b)=>a.time.start-b.time.start)[0]?.lesson || null;
+    if (!current && !next) return '';
+    const rows=[];
+    if (current) { const t=parseTimeRange(extractLessonTime(current)); rows.push(`<div class="live-status-row"><span>🟢 <b>Сейчас:</b> ${esc(extractLessonTitle(current))}</span><span>До конца ${formatRelativeMinutes(t.end-nowMin)}</span></div>`); }
+    if (next) { const t=parseTimeRange(extractLessonTime(next)); rows.push(`<div class="live-status-row"><span>➡️ <b>Следующая:</b> ${esc(extractLessonTitle(next))}</span><span>${esc(extractLessonTime(next))} · через ${formatRelativeMinutes(t.start-nowMin)}</span></div>`); }
+    return `<div class="live-status-card">${rows.join('')}</div>`;
 }
 
-function noteDomToken(key) {
-    return enc(key).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 120);
+function buildLessonNoteKey(dateStr, title, timeStr, room, subgroup = 0) {
+    return [dateStr,title,timeStr,room,subgroup].map(v=>String(v||'').trim()).join('\x1f');
 }
+function noteDomToken(key) { return enc(key).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,120); }
 
 function renderLessonHtml(l, lessonDateStr = '', isNextLesson = false, sourceLabel = '') {
-    const timeStr = extractLessonTime(l);
-    const title = extractLessonTitle(l);
-    const teacher = extractLessonTeacher(l);
-    const room = extractLessonRoom(l);
-    const groups = extractLessonGroups(l);
-
+    const timeStr = l?.__kgeuTime || extractLessonTime(l);
+    const title = l?.__kgeuTitle || extractLessonTitle(l);
+    const teacher = l?.__kgeuTeacher || extractLessonTeacher(l);
+    const room = l?.__kgeuRoom || extractLessonRoom(l);
+    const groups = l?.__kgeuGroups || extractLessonGroups(l);
+    const teacherId = extractLessonTeacherId(l) || (teacher ? getKnownItemId('Teacher', teacher) : '');
+    const roomId = extractLessonRoomId(l) || (room ? getKnownItemId('Aud', room) : '');
+    const duration = extractLessonDuration(l);
+    const subgroupLabel = getLessonSubgroupLabel(l);
     const typeClass = getLessonTypeClass(l);
-    const subgroup = getLessonSubgroup(l);
-    const subgroupBadge = subgroup > 0 ? `<span class="lesson-subgroup-badge">п/г ${subgroup}</span>` : '';
+    const hasTime = !!parseTimeRange(timeStr);
+    const typeLabel = getLessonTypeLabel(l);
     const progress = checkIsCurrentLesson(timeStr, lessonDateStr);
     const currentClass = progress !== null ? 'current-lesson' : '';
     const liveBadge = getLessonLiveInfo(l, lessonDateStr, isNextLesson);
 
-    if (l.isWindow) {
-        return `
-            <div class="lesson-card type-window ${currentClass}" style="text-align:center; padding:12px; border-style:dashed;">
-                <div style="font-size:14px; font-weight:700; color:var(--text-secondary); margin-bottom:4px;">${esc(l.title)}</div>
-                <div style="font-size:13px; color:var(--text-secondary);">🕒 ${esc(timeStr)} (${esc(l.duration)})</div>
-                ${progress !== null ? `<div class="live-progress" style="width:${progress}%; background:var(--text-secondary);"></div>` : ''}
-            </div>`;
-    }
+    if (l.isWindow) return `<div class="lesson-card type-window" style="text-align:center;padding:12px;border-style:dashed;"><div style="font-size:14px;font-weight:700;color:var(--text-secondary);margin-bottom:4px;">${esc(l.title || '☕ Перерыв')}</div><div style="font-size:13px;color:var(--text-secondary);">🕒 ${esc(timeStr)} · ${esc(l.duration || '')}</div></div>`;
 
-    const teacherId = teacher ? getKnownItemId('Teacher', teacher) : '';
-    const roomId = room ? getKnownItemId('Aud', room) : '';
-    const noteKey = buildLessonNoteKey(lessonDateStr, title, timeStr, room, subgroup);
+    const noteKey = buildLessonNoteKey(lessonDateStr,title,timeStr,room,getLessonSubgroupLabel(l));
     const note = notesByKey[noteKey];
     const token = noteDomToken(noteKey);
-
-    const groupBlock = groups.length ? `
-        <div class="lesson-groups">
-            👥 ${groups.map(g => `
-                <span class="lesson-group-link" onclick="jumpToEnc('${enc('Group')}', '${enc(g.name)}', '${enc(getKnownItemId('Group', g.id || g.name))}')">${esc(g.name)}</span>
-            `).join(', ')}
-        </div>
-    ` : '';
-
-    const teacherBlock = teacher ? `
-        <div style="margin-top:6px;">
-            <div class="clickable-badge" onclick="jumpToEnc('${enc('Teacher')}', '${enc(teacher)}', '${enc(teacherId)}')">
-                👤 ${esc(teacher)}
-            </div>
-        </div>
-    ` : '';
-
-    const roomBlock = room ? `
-        <div class="clickable-badge" onclick="jumpToEnc('${enc('Aud')}', '${enc(room)}', '${enc(roomId)}')">
-            📍 ${esc(room)}
-        </div>
-    ` : `<div style="color:var(--text-secondary);">📍 Ауд. не указана</div>`;
-
+    const subgroupBadge = subgroupLabel ? `<span class="lesson-subgroup-badge">п/г ${esc(subgroupLabel)}</span>` : '';
+    const kindBadge = `<span class="lesson-kind-badge ${typeClass}">${esc(typeLabel)}</span>`;
+    const groupBlock = groups.length ? `<div class="lesson-groups"><span class="lesson-groups-label">👥 Группы</span><div class="lesson-group-chips">${groups.map(g=>`<span class="lesson-group-link" onclick="jumpToEnc('${enc('Group')}','${enc(g.name)}','${enc(String(g.id || getKnownItemId('Group',g.name)))}')">${esc(g.name)}</span>`).join('')}</div></div>` : '';
+    const teacherBlock = teacher ? `<div style="margin-top:6px;"><div class="clickable-badge" onclick="jumpToEnc('${enc('Teacher')}','${enc(teacher)}','${enc(teacherId)}')">👤 ${esc(teacher)}</div></div>` : '';
+    const roomBlock = room ? `<div class="clickable-badge" onclick="jumpToEnc('${enc('Aud')}','${enc(room)}','${enc(roomId)}')">📍 ${esc(room)}</div>` : `<div style="color:var(--text-secondary);">📍 Ауд. не указана</div>`;
     const sourceBlock = sourceLabel ? `<div class="lesson-source-badge">${esc(sourceLabel)}</div>` : '';
-    const noteBlock = note ? `
-        <div class="lesson-note" id="lesson-note-display-${token}"><span class="lesson-note-label">📝</span>${esc(note.task_text)} <button class="action-btn" style="margin-left:6px;" onclick="toggleLessonNoteEditor('${enc(noteKey)}','${enc(title)}','${enc(lessonDateStr)}','${enc(timeStr)}','${enc(room)}','${enc(String(subgroup))}')">Изменить</button></div>
-    ` : '';
+    const noteBlock = note ? `<div class="lesson-note" id="lesson-note-display-${token}"><span class="lesson-note-label">📝</span>${esc(note.task_text)} <button class="action-btn" style="margin-left:6px;" onclick="toggleLessonNoteEditor('${enc(noteKey)}','${enc(title)}','${enc(lessonDateStr)}','${enc(timeStr)}','${enc(room)}','${enc(String(getLessonSubgroupLabel(l)))}')">Изменить</button></div>` : '';
 
-    return `
-        <div class="lesson-card ${typeClass} ${currentClass}">
-            <div class="lesson-title">
-                📖 ${esc(title)} ${subgroupBadge} ${liveBadge}
-            </div>
-            ${sourceBlock}
-            ${groupBlock}
-            <div class="lesson-info">
-                <span>🕒 ${esc(timeStr)}</span>
-                ${roomBlock}
-            </div>
-            ${teacherBlock}
-            ${noteBlock}
-            <div class="lesson-actions">
-                <button class="action-btn" onclick="toggleLessonNoteEditor('${enc(noteKey)}','${enc(title)}','${enc(lessonDateStr)}','${enc(timeStr)}','${enc(room)}','${enc(String(subgroup))}')">📝 ${note ? 'Заметка' : 'Добавить заметку'}</button>
-                <button class="action-btn" onclick="remindEnc('${enc(title)}', '${enc(lessonDateStr)}', '${enc(timeStr)}', '${enc(room)}')">⏰ Напомнить</button>
-            </div>
-            <div id="lesson-note-editor-${token}"></div>
-            ${progress !== null ? `<div class="live-progress" style="width:${progress}%;"></div>` : ''}
+        const pairLabel = !hasTime && l?.__kgeuPairNumber ? `<span class="lesson-subgroup-badge">${l.__kgeuPairNumber} пара</span>` : '';
+    const timeBlock = `<div class="lesson-time-main ${hasTime ? '' : 'missing'}">🕒 ${esc(timeStr || 'Время не указано')} ${pairLabel}${duration ? ` · ${duration} мин` : ''}</div>`;
+
+    return `<div class="lesson-card ${typeClass} ${currentClass}">
+        <div class="lesson-title">📖 ${esc(title)} ${kindBadge} ${subgroupBadge} ${liveBadge}</div>
+        ${timeBlock}
+        ${sourceBlock}${groupBlock}
+        <div class="lesson-info">${roomBlock}</div>
+        ${teacherBlock}${noteBlock}
+        <div class="lesson-actions">
+            <button class="action-btn" onclick="toggleLessonNoteEditor('${enc(noteKey)}','${enc(title)}','${enc(lessonDateStr)}','${enc(timeStr)}','${enc(room)}','${enc(String(getLessonSubgroupLabel(l)))}')">📝 ${note ? 'Заметка' : 'Добавить заметку'}</button>
+            <button class="action-btn" onclick="remindEnc('${enc(title)}','${enc(lessonDateStr)}','${enc(timeStr)}','${enc(room)}')">⏰ Напомнить</button>
         </div>
-    `;
+        <div id="lesson-note-editor-${token}"></div>
+        ${progress !== null ? `<div class="live-progress" style="width:${progress}%;"></div>` : ''}
+    </div>`;
 }
 
-// =====================================================
-// Day / week loading
-// =====================================================
-
-async function loadSchedule(requestId = viewRequestId, signal = activeRequestController?.signal) {
-    if (!currentName || requestId !== viewRequestId) return;
-
-    const container = document.getElementById('schedule-container');
-    const dateLabel = document.getElementById('date-label');
-    const dateStr = formatDate(currentDate);
-    const identifier = getApiIdentifier();
-
-    if (!identifier) return;
-
-    document.getElementById('global-search-input').value = '';
-    updateTodayButtonVisibility();
-
-    if (currentTab === 'day') {
-        dateLabel.innerText = formatDisplayDate(currentDate);
-
-        const cacheKey = `${currentMode}_${identifier}_${dateStr}`;
-
-        if (dayLessonsCache[cacheKey] && cacheFresh(dayLessonsCacheAt[cacheKey], getDayCacheTTL(dateStr))) {
-            renderLessons(dayLessonsCache[cacheKey], container, dateStr);
-            return;
-        }
-
-        container.innerHTML = '<div class="loading">⌛ Загрузка данных...</div>';
-
-        try {
-            const query = buildScheduleQuery(currentMode, identifier);
-            const lessons = await fetchScheduleForDate(query, dateStr, signal);
-
-            if (requestId !== viewRequestId || currentTab !== 'day') return;
-
-            dayLessonsCache[cacheKey] = lessons;
-            dayLessonsCacheAt[cacheKey] = Date.now();
-
-            renderLessons(lessons, container, dateStr);
-            forceNetworkRefresh = false;
-        } catch (e) {
-            if (e.name === 'AbortError') return;
-            renderErrorState(container, 'Не удалось загрузить расписание.', lastApiError);
-        }
-
+function renderLessons(rawLessons, container, dateStr) {
+    const lessons = prepareLessonsForDisplay(rawLessons || [], dateStr);
+    if (!lessons.length) {
+        container.innerHTML = renderLiveStatusBar([], dateStr) + '<div class="loading">🎉 На этот день пар нет!</div>';
         return;
     }
+    const withBreaks = addWindowsToLessons(lessons);
+    const nextLesson = getNextLessonForToday(withBreaks,dateStr);
+    container.innerHTML = renderLiveStatusBar(withBreaks,dateStr) + withBreaks.map(l=>renderLessonHtml(l,dateStr,l===nextLesson)).join('');
+}
 
-    if (currentTab === 'week') {
-        const monday = getMonday(currentDate);
-        dateLabel.innerText = `Неделя от ${monday.getDate()} ${MONTH_NAMES_GENITIVE[monday.getMonth()]}`;
+function createAbortError() {
+    const err = new Error('Операция отменена');
+    err.name = 'AbortError';
+    return err;
+}
 
-        const weekKey = `${currentMode}_${identifier}_${formatDate(monday)}`;
-        const cached = weekCache[weekKey];
+function awaitWithAbort(promise, signal) {
+    if (!signal) return promise;
+    if (signal.aborted) return Promise.reject(createAbortError());
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        const cleanup = () => {
+            try { signal.removeEventListener('abort', onAbort); } catch (_) {}
+        };
+        const onAbort = () => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            reject(createAbortError());
+        };
+        signal.addEventListener('abort', onAbort, { once: true });
+        Promise.resolve(promise).then(value => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve(value);
+        }, error => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            reject(error);
+        });
+    });
+}
 
-        if (!forceNetworkRefresh && cached && cacheFresh(cached.at, 15 * 60 * 1000)) {
-            lastWeekData = cached.data;
-            renderWeekSchedule(cached.data, container);
-            return;
-        }
+function makeScheduleClientKey(query, dateStr) {
+    return `${WORKER_URL}/api/Rasp?${query}&sdate=${encodeURIComponent(dateStr)}`;
+}
 
-        container.innerHTML = '<div class="loading">⌛ Загрузка недели...</div>';
+async function fetchScheduleForDate(query, dateStr, signal, retries = 1) {
+    const baseUrl = makeScheduleClientKey(query, dateStr);
+    const force = !!forceNetworkRefresh;
+    const url = `${baseUrl}${force ? '&fresh=1' : ''}`;
+    const key = `${force ? 'force:' : 'normal:'}${baseUrl}`;
 
-        try {
-            const query = buildScheduleQuery(currentMode, identifier);
+    if (!force && scheduleInflight.has(key)) {
+        return awaitWithAbort(scheduleInflight.get(key), signal);
+    }
 
-            const dates = Array.from({ length: 7 }, (_, i) => {
-                const d = new Date(monday);
-                d.setDate(d.getDate() + i);
-                return formatDate(d);
-            });
-
-            weekErrors = {};
-
-            const weekData = await fetchScheduleRange(currentMode, identifier, formatDate(monday), 7, signal);
-
-            if (requestId !== viewRequestId || currentTab !== 'week') return;
-
-            for (const dStr of dates) {
-                if (!(dStr in weekData)) weekErrors[dStr] = true;
+    const work = (async () => {
+        let lastError = null;
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                const started = performance.now();
+                // The shared request itself is not tied to one screen's AbortSignal.
+                // Individual callers can still abort via awaitWithAbort(). This prevents
+                // one navigation change from cancelling the same request for everyone else.
+                const res = await fetch(url, {
+                    cache: force ? 'no-store' : 'default',
+                    headers: { 'X-Telegram-Init-Data': getInitData() }
+                });
+                apiRequestCount++;
+                lastApiRequest = {
+                    date: dateStr,
+                    url,
+                    status: res.status,
+                    duration: Math.round(performance.now() - started),
+                    at: Date.now()
+                };
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                lastApiError = null;
+                const parsed = extractLessonsFromAPIResponse(data, dateStr, { date: dateStr });
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                if (e?.name === 'AbortError') throw e;
+                lastError = e;
+                lastApiError = `${dateStr}: ${e?.message || 'ошибка запроса'}`;
+                if (attempt < retries) await sleep(250 * (attempt + 1));
             }
+        }
+        throw lastError || new Error('Не удалось получить расписание');
+    })();
 
-            weekCache[weekKey] = {
-                data: weekData,
+    if (!force) scheduleInflight.set(key, work);
+    try {
+        return await awaitWithAbort(work, signal);
+    } finally {
+        if (!force) scheduleInflight.delete(key);
+    }
+}
+
+async function fetchScheduleRange(mode, id, startDate, days, signal) {
+    const normalizedDays = Math.max(1, Math.min(7, Number(days || 1)));
+    const dates = Array.from({ length: normalizedDays }, (_, index) => {
+        const d = new Date(`${startDate}T00:00:00Z`);
+        d.setUTCDate(d.getUTCDate() + index);
+        return d.toISOString().slice(0, 10);
+    });
+    const params = new URLSearchParams({
+        type: normalizeMode(mode),
+        id: String(id || ''),
+        start: startDate,
+        days: String(normalizedDays)
+    });
+    const baseUrl = `${WORKER_URL}/api/schedule-range?${params.toString()}`;
+    const force = !!forceNetworkRefresh;
+    const url = `${baseUrl}${force ? '&fresh=1' : ''}`;
+    const key = `${force ? 'force:' : 'normal:'}${baseUrl}`;
+
+    if (!force && scheduleInflight.has(key)) {
+        return awaitWithAbort(scheduleInflight.get(key), signal);
+    }
+
+    const work = (async () => {
+        let rangeError = null;
+        try {
+            const started = performance.now();
+            const res = await fetch(url, {
+                cache: force ? 'no-store' : 'default',
+                headers: { 'X-Telegram-Init-Data': getInitData() }
+            });
+            apiRequestCount++;
+            lastApiRequest = {
+                date: startDate,
+                url,
+                status: res.status,
+                duration: Math.round(performance.now() - started),
                 at: Date.now()
             };
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            if (!data?.ok && data?.error) throw new Error(data.error);
 
-            lastWeekData = weekData;
-            renderWeekSchedule(weekData, container);
-            forceNetworkRefresh = false;
+            const rawDays = data?.data && typeof data.data === 'object' ? data.data : {};
+            const normalized = {};
+            for (const [dayKey, dayPayload] of Object.entries(rawDays)) {
+                normalized[dayKey] = extractLessonsFromAPIResponse(dayPayload, dayKey, { date: dayKey });
+            }
+
+            // Defensive parity fallback: if the range endpoint is unavailable or
+            // returns only some days, fetch the missing days through the same /api/Rasp
+            // path used by the Day view. This keeps the proven server↔frontend contract
+            // intact without multiplying requests on healthy range responses.
+            const missingDates = dates.filter(d => !(d in normalized));
+            if (missingDates.length) {
+                const direct = await mapWithConcurrency(missingDates, 3, async d => {
+                    try {
+                        const lessons = await fetchScheduleForDate(buildScheduleQuery(mode, id), d, null, 1);
+                        return [d, lessons];
+                    } catch (_) {
+                        return [d, null];
+                    }
+                });
+                direct.forEach(([d, lessons]) => {
+                    if (Array.isArray(lessons)) normalized[d] = lessons;
+                });
+            }
+
+            lastApiError = null;
+            return normalized;
         } catch (e) {
-            if (e.name === 'AbortError') return;
-            renderErrorState(container, 'Не удалось загрузить неделю.', lastApiError);
+            rangeError = e;
+            if (e?.name === 'AbortError') throw e;
+            lastApiError = `${startDate}: ${e?.message || 'ошибка запроса диапазона'}`;
         }
+
+        // Full fallback: when range itself fails, reuse the stable single-day endpoint.
+        const direct = await mapWithConcurrency(dates, 3, async d => {
+            try {
+                const lessons = await fetchScheduleForDate(buildScheduleQuery(mode, id), d, null, 1);
+                return [d, lessons];
+            } catch (_) {
+                return [d, null];
+            }
+        });
+        const fallback = {};
+        direct.forEach(([d, lessons]) => {
+            if (Array.isArray(lessons)) fallback[d] = lessons;
+        });
+        if (Object.keys(fallback).length) return fallback;
+        throw rangeError || new Error('Не удалось получить расписание');
+    })();
+
+    if (!force) scheduleInflight.set(key, work);
+    try {
+        return await awaitWithAbort(work, signal);
+    } finally {
+        if (!force) scheduleInflight.delete(key);
     }
 }
 
-function renderWeekSchedule(weekData, container) {
-    if (!weekData || Object.keys(weekData).length === 0) {
-        container.innerHTML = '<div class="loading">🎉 На этой неделе пар нет!</div>';
-        return;
-    }
-
-    let html = '';
-    let hasErrors = false;
-
-    const entries = Object.entries(weekData).sort((a, b) => a[0].localeCompare(b[0]));
-
-    for (const [dateKey, rawLessons] of entries) {
-        const dt = new Date(dateKey);
-
-        if (rawLessons === null || weekErrors[dateKey]) {
-            hasErrors = true;
-            html += `
-                <div class="day-header">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div>
-                <div class="error-card">⚠️ Данные за этот день не удалось загрузить.</div>
-            `;
-            continue;
-        }
-
-        const filtered = filterLessonBySubgroup(rawLessons || []);
-        if (!filtered.length) continue;
-
-        html += `<div class="day-header">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div>`;
-
-        const lessons = addWindowsToLessons(filtered);
-        const nextLesson = getNextLessonForToday(lessons, dateKey);
-
-        html += lessons.map(l => renderLessonHtml(l, dateKey, l === nextLesson)).join('');
-    }
-
-    if (!html && !hasErrors) {
-        html = '<div class="loading">🎉 На этой неделе пар нет!</div>';
-    }
-
-    if (hasErrors) {
-        html = '<div class="error-card">⚠️ Часть дней не удалось загрузить. Остальные данные показаны ниже.</div>' + html;
-    }
-
-    container.innerHTML = html;
-}
-
-// =====================================================
-// Month
-// =====================================================
-
-async function loadMonthView(requestId = viewRequestId, signal = activeRequestController?.signal) {
-    if (!currentName || requestId !== viewRequestId || currentTab !== 'month') return;
-
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const identifier = getApiIdentifier();
-    if (!identifier) return;
-
-    document.getElementById('date-label').innerText = `${MONTH_NAMES[month]} ${year} г.`;
-    document.getElementById('global-search-input').value = '';
+async function loadSchedule(requestId=viewRequestId, signal=activeRequestController?.signal){
+    if(!currentName || requestId!==viewRequestId) return;
+    const container=document.getElementById('schedule-container');
+    const dateLabel=document.getElementById('date-label');
+    const dateStr=formatDate(currentDate);
+    const identifier=getApiIdentifier();
+    if(!identifier) return;
+    document.getElementById('global-search-input').value='';
     updateTodayButtonVisibility();
 
-    const monthId = `${year}-${String(month + 1).padStart(2, '0')}`;
-    const cacheKey = `${currentMode}_${identifier}_${monthId}`;
-    const ttl = getMonthCacheTTL(year, month);
-
-    if (!forceNetworkRefresh && monthLessonsCacheKey === cacheKey && Object.keys(monthLessonsCache).length && cacheFresh(monthLessonsCacheAt, ttl)) {
-        renderMonthGrid(year, month, false);
+    if(currentTab==='day'){
+        dateLabel.innerText=formatDisplayDate(currentDate);
+        const cacheKey=`${currentMode}_${identifier}_${userSubgroup}_${dateStr}`;
+        if(!forceNetworkRefresh && dayLessonsCache[cacheKey] && cacheFresh(dayLessonsCacheAt[cacheKey],getDayCacheTTL(dateStr))){
+            renderLessons(dayLessonsCache[cacheKey],container,dateStr); return;
+        }
+        // На refresh допускаем показ предыдущих данных во время обновления, но поверх них
+        // всегда будет установлен свежий ответ или ошибка.
+        container.innerHTML='<div class="loading">⌛ Загрузка данных...</div>';
+        try{
+            const raw=await fetchScheduleForDate(buildScheduleQuery(currentMode,identifier),dateStr,signal,1);
+            const clean=prepareLessonsForDisplay(raw,dateStr);
+            dayLessonsCache[cacheKey]=clean; dayLessonsCacheAt[cacheKey]=Date.now();
+            renderLessons(clean,container,dateStr); forceNetworkRefresh=false;
+        }catch(e){if(e.name==='AbortError')return; renderErrorState(container,'Не удалось загрузить расписание.',lastApiError);}
         return;
     }
 
-    if (!forceNetworkRefresh) {
-        const local = safeGetStorage(`kgeu_month_cache_${cacheKey}`);
-        if (local) {
-            try {
-                const parsed = JSON.parse(local);
-                if (parsed?.at && cacheFresh(parsed.at, ttl) && parsed.data) {
-                    monthLessonsCache = parsed.data;
-                    monthLessonsCacheKey = cacheKey;
-                    monthLessonsCacheAt = parsed.at;
-                    monthErrors = parsed.errors || {};
-                    renderMonthGrid(year, month, false);
-                    return;
+    if(currentTab==='week'){
+        const monday=getMonday(currentDate);
+        dateLabel.innerText=`Неделя от ${monday.getDate()} ${MONTH_NAMES_GENITIVE[monday.getMonth()]}`;
+        const weekKey=`${currentMode}_${identifier}_${formatDate(monday)}`;
+        const cached=weekCache[weekKey];
+        if(!forceNetworkRefresh && cached && cacheFresh(cached.at,15*60*1000)){ lastWeekData=cached.data; renderWeekSchedule(cached.data,container); return; }
+        container.innerHTML='<div class="loading">⌛ Загрузка недели...</div>';
+        try{
+            const weekData=await fetchScheduleRange(currentMode,identifier,formatDate(monday),7,signal);
+            const dates=Array.from({length:7},(_,i)=>{const d=new Date(monday);d.setDate(d.getDate()+i);return formatDate(d);});
+            weekErrors={};
+            dates.forEach(d=>{if(!(d in weekData))weekErrors[d]=true;});
+            const rawWeek={};
+            dates.forEach(d=>{if(d in weekData)rawWeek[d]=Array.isArray(weekData[d]) ? weekData[d] : extractLessonsFromAPIResponse(weekData[d] || [], d, { date: d });});
+            weekCache[weekKey]={data:rawWeek,at:Date.now()}; lastWeekData=rawWeek;
+            renderWeekSchedule(rawWeek,container); forceNetworkRefresh=false;
+        }catch(e){if(e.name==='AbortError')return;renderErrorState(container,'Не удалось загрузить неделю.',lastApiError);}
+    }
+}
+
+function renderWeekSchedule(weekData,container){
+    if(!weekData || Object.keys(weekData).length===0){container.innerHTML='<div class="loading">🎉 На этой неделе пар нет!</div>';return;}
+    let html=''; let hasErrors=false;
+    const entries=Object.entries(weekData).sort((a,b)=>a[0].localeCompare(b[0]));
+    for(const [dateKey,rawLessons] of entries){
+        const dt=new Date(dateKey+'T00:00:00');
+        if(rawLessons===null || weekErrors[dateKey]){hasErrors=true;html+=`<div class="day-header">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div><div class="error-card">⚠️ Данные за этот день не удалось загрузить.</div>`;continue;}
+        const lessons=prepareLessonsForDisplay(rawLessons,dateKey);
+        if(!lessons.length)continue;
+        html+=`<div class="day-header">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div>`;
+        const withBreaks=addWindowsToLessons(lessons); const next=getNextLessonForToday(withBreaks,dateKey);
+        html+=withBreaks.map(l=>renderLessonHtml(l,dateKey,l===next)).join('');
+    }
+    if(!html && !hasErrors)html='<div class="loading">🎉 На этой неделе пар нет!</div>';
+    if(hasErrors)html='<div class="error-card">⚠️ Часть дней не удалось загрузить. Остальные данные показаны ниже.</div>'+html;
+    container.innerHTML=html;
+}
+
+function pruneMonthLocalCache(){
+    const entries=[];
+    for(let i=0;i<localStorage.length;i++){
+        const key=localStorage.key(i); if(!key || !key.startsWith('kgeu_month_cache_'))continue;
+        try{const parsed=JSON.parse(localStorage.getItem(key)||'null');entries.push({key,at:Number(parsed?.at||0)});}catch(e){entries.push({key,at:0});}
+    }
+    entries.sort((a,b)=>b.at-a.at).slice(8).forEach(item=>safeRemoveStorage(item.key));
+}
+
+async function loadMonthView(requestId=viewRequestId,signal=activeRequestController?.signal){
+    if(!currentName || requestId!==viewRequestId || currentTab!=='month')return;
+    const year=currentDate.getFullYear(), month=currentDate.getMonth(), identifier=getApiIdentifier();
+    if(!identifier)return;
+    document.getElementById('date-label').innerText=`${MONTH_NAMES[month]} ${year} г.`;
+    document.getElementById('global-search-input').value=''; pruneMonthLocalCache(); updateTodayButtonVisibility();
+    const monthId=`${year}-${String(month+1).padStart(2,'0')}`;
+    const cacheKey=`${currentMode}_${identifier}_${monthId}`; const ttl=getMonthCacheTTL(year,month);
+    if(!forceNetworkRefresh && monthLessonsCacheKey===cacheKey && Object.keys(monthLessonsCache).length && cacheFresh(monthLessonsCacheAt,ttl)){renderMonthGrid(year,month,false);return;}
+    if(!forceNetworkRefresh){
+        const local=safeGetStorage(`kgeu_month_cache_${cacheKey}`);
+        if(local){try{
+            const parsed=JSON.parse(local);
+            if(parsed?.at && cacheFresh(parsed.at,ttl) && parsed.data){
+                monthLessonsCache=Object.fromEntries(Object.entries(parsed.data).map(([d,v])=>[d,Array.isArray(v)?v:extractLessonsFromAPIResponse(v,d,{date:d})]));
+                monthLessonsCacheKey=cacheKey;
+                monthLessonsCacheAt=parsed.at;
+                monthErrors=parsed.errors||{};
+                const totalDaysLocal=new Date(year,month+1,0).getDate();
+                const emptyDays=new Set(Array.isArray(parsed.emptyDays)?parsed.emptyDays:[]);
+                let complete=true;
+                for(let day=1;day<=totalDaysLocal;day++){
+                    const d=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                    if(!(d in monthLessonsCache) && !emptyDays.has(d) && !monthErrors[d]) { complete=false; break; }
                 }
-            } catch (e) {}
-        }
-    }
-
-    renderMonthGrid(year, month, true);
-
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    const dates = Array.from({ length: totalDays }, (_, i) => `${year}-${String(month + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`);
-    try {
-        monthErrors = {};
-        const chunks = [];
-        for (let i = 0; i < dates.length; i += 7) chunks.push(dates.slice(i, i + 7));
-
-        const chunkResults = await mapWithConcurrency(chunks, 2, async chunk => {
-            try {
-                return await fetchScheduleRange(currentMode, identifier, chunk[0], chunk.length, signal);
-            } catch (e) {
-                if (e.name === 'AbortError') throw e;
-                chunk.forEach(dateStr => { monthErrors[dateStr] = true; });
-                return {};
+                if(complete){renderMonthGrid(year,month,false);return;}
             }
-        });
-
-        if (requestId !== viewRequestId || currentTab !== 'month') return;
-
-        monthLessonsCache = {};
-        chunkResults.forEach(group => {
-            Object.assign(monthLessonsCache, group || {});
-        });
-        dates.forEach(dateStr => {
-            if (!(dateStr in monthLessonsCache) && !monthErrors[dateStr]) monthErrors[dateStr] = true;
-        });
-        monthLessonsCacheAt = Date.now();
-        monthLessonsCacheKey = cacheKey;
-        const compactMonthCache = Object.fromEntries(
-            Object.entries(monthLessonsCache).filter(([, lessons]) => Array.isArray(lessons) && lessons.length)
-        );
-        safeSetStorage(`kgeu_month_cache_${cacheKey}`, JSON.stringify({
-            at: monthLessonsCacheAt,
-            data: compactMonthCache,
-            errors: monthErrors
-        }));
-
-        renderMonthGrid(year, month, false);
-        forceNetworkRefresh = false;
-    } catch (e) {
-        if (e.name === 'AbortError') return;
-        const container = document.getElementById('schedule-container');
-        renderErrorState(container, 'Не удалось загрузить месяц.', lastApiError);
+        }catch(e){}}
     }
+    renderMonthGrid(year,month,true);
+    const totalDays=new Date(year,month+1,0).getDate();
+    const dates=Array.from({length:totalDays},(_,i)=>`${year}-${String(month+1).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`);
+    const chunks=[]; for(let i=0;i<dates.length;i+=7)chunks.push(dates.slice(i,i+7));
+    try{
+        monthErrors={};
+        // Только один range-запрос одновременно: внутри Worker уже есть 4 параллельных
+        // обращения к API КГЭУ. Это даёт хороший баланс скорости и нагрузки.
+        const chunkResults=await mapWithConcurrency(chunks,1,async chunk=>{
+            try{return await fetchScheduleRange(currentMode,identifier,chunk[0],chunk.length,signal);}catch(e){if(e.name==='AbortError')throw e;chunk.forEach(d=>monthErrors[d]=true);return {};}
+        });
+        if(requestId!==viewRequestId || currentTab!=='month')return;
+        monthLessonsCache={};
+        chunkResults.forEach(group=>Object.entries(group||{}).forEach(([d,v])=>{monthLessonsCache[d]=Array.isArray(v)?v:extractLessonsFromAPIResponse(v||[], d, { date: d });}));
+        dates.forEach(d=>{if(!(d in monthLessonsCache) && !monthErrors[d])monthErrors[d]=true;});
+        monthLessonsCacheKey=cacheKey;monthLessonsCacheAt=Date.now();
+        const compact=Object.fromEntries(Object.entries(monthLessonsCache).filter(([,v])=>Array.isArray(v)));
+        const emptyDays=dates.filter(d=>Array.isArray(monthLessonsCache[d]) && monthLessonsCache[d].length===0 && !monthErrors[d]);
+        safeSetStorage(`kgeu_month_cache_${cacheKey}`,JSON.stringify({at:monthLessonsCacheAt,data:compact,emptyDays,errors:monthErrors}));
+        renderMonthGrid(year,month,false);forceNetworkRefresh=false;
+    }catch(e){if(e.name==='AbortError')return;renderErrorState(document.getElementById('schedule-container'),'Не удалось загрузить месяц.',lastApiError);}
 }
 
-function renderMonthGrid(year, month, isLoading = false) {
-    const container = document.getElementById('schedule-container');
-
-    container.innerHTML = `
-        <div class="month-calendar">
-            <div class="weekdays-grid">
-                <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
-            </div>
-            <div class="days-grid" id="calendar-days-container"></div>
-        </div>
-        <div class="month-preview" id="month-preview-content">
-            <div class="loading">${isLoading ? '⌛ Загрузка месяца...' : 'Нажмите на день'}</div>
-        </div>
-    `;
-
-    const daysGrid = document.getElementById('calendar-days-container');
-
-    let firstDayIndex = new Date(year, month, 1).getDay();
-    firstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    const todayStr = formatDate(new Date());
-
-    let html = '';
-
-    for (let i = 0; i < firstDayIndex; i++) {
-        html += `<div class="calendar-day empty"></div>`;
+function renderMonthGrid(year,month,isLoading=false){
+    const container=document.getElementById('schedule-container');
+    container.innerHTML=`<div class="month-calendar"><div class="weekdays-grid"><div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div></div><div class="days-grid" id="calendar-days-container"></div></div><div class="month-preview" id="month-preview-content"><div class="loading">${isLoading?'⌛ Загрузка месяца...':'Нажмите на день'}</div></div>`;
+    const daysGrid=document.getElementById('calendar-days-container');
+    let firstDayIndex=new Date(year,month,1).getDay(); firstDayIndex=firstDayIndex===0?6:firstDayIndex-1;
+    const totalDays=new Date(year,month+1,0).getDate(); const todayStr=formatDate(new Date()); let html='';
+    for(let i=0;i<firstDayIndex;i++)html+='<div class="calendar-day empty"></div>';
+    for(let day=1;day<=totalDays;day++){
+        const dateStr=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const lessons=prepareLessonsForDisplay(monthLessonsCache[dateStr]||[],dateStr); const withBreaks=addWindowsToLessons(lessons);
+        let dots=''; for(let i=0;i<Math.min(withBreaks.length,5);i++) dots+=`<div class="dot ${getLessonTypeClass(withBreaks[i])}"></div>`;
+        if(monthErrors[dateStr])dots+='<div class="dot" style="background:#ef4444;"></div>';
+        html+=`<div class="calendar-day ${todayStr===dateStr?'today':''}" onclick="selectMonthDay('${dateStr}',this)"><span>${day}</span><div class="dots-container">${dots}</div></div>`;
     }
-
-    for (let day = 1; day <= totalDays; day++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-        const rawLessons = monthLessonsCache[dateStr];
-        const filtered = filterLessonBySubgroup(rawLessons || []);
-        const lessons = addWindowsToLessons(filtered);
-
-        let dotsHtml = '';
-        const dotsCount = Math.min(lessons.length, 5);
-
-        for (let i = 0; i < dotsCount; i++) {
-            dotsHtml += `<div class="dot ${getLessonTypeClass(lessons[i])}"></div>`;
-        }
-
-        if (monthErrors[dateStr]) {
-            dotsHtml += `<div class="dot" style="background:#ef4444;"></div>`;
-        }
-
-        const todayClass = todayStr === dateStr ? 'today' : '';
-
-        html += `
-            <div class="calendar-day ${todayClass}" onclick="selectMonthDay('${dateStr}', this)">
-                <span>${day}</span>
-                <div class="dots-container">${dotsHtml}</div>
-            </div>
-        `;
-    }
-
-    daysGrid.innerHTML = html;
+    daysGrid.innerHTML=html;
 }
 
-function selectMonthDay(dateStr, element) {
-    document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
-    element.classList.add('selected');
-
-    const preview = document.getElementById('month-preview-content');
-    if (!preview) return;
-
+function selectMonthDay(dateStr,element){
+    document.querySelectorAll('.calendar-day').forEach(el=>el.classList.remove('selected')); element.classList.add('selected');
+    const preview=document.getElementById('month-preview-content'); if(!preview)return;
     preview.classList.add('page-exit');
-
-    setTimeout(() => {
-        const rawLessons = monthLessonsCache[dateStr];
-        const dt = new Date(dateStr);
-
-        let html = `<div class="day-header" style="margin-top:0;">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div>`;
-
-        if (monthErrors[dateStr]) {
-            html += '<div class="error-card">⚠️ Не удалось получить данные за этот день.</div>';
-        } else {
-            const filtered = filterLessonBySubgroup(rawLessons || []);
-            const lessons = addWindowsToLessons(filtered);
-
-            if (!lessons.length) {
-                html += '<div style="text-align:center; padding:15px; font-weight:500;">🎉 На этот день пар нет!</div>';
-            } else {
-                const nextLesson = getNextLessonForToday(lessons, dateStr);
-                html += lessons.map(l => renderLessonHtml(l, dateStr, l === nextLesson)).join('');
-            }
-        }
-
-        preview.innerHTML = html;
-        preview.classList.remove('page-exit');
-        preview.classList.add('page-enter');
-
-        setTimeout(() => preview.classList.remove('page-enter'), 300);
-    }, 150);
+    setTimeout(()=>{
+        const dt=new Date(dateStr+'T00:00:00'); const lessons=prepareLessonsForDisplay(monthLessonsCache[dateStr]||[],dateStr); const withBreaks=addWindowsToLessons(lessons);
+        let html=`<div class="day-header" style="margin-top:0;">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div>`;
+        if(monthErrors[dateStr])html+='<div class="error-card">⚠️ Не удалось получить данные за этот день.</div>';
+        else if(!withBreaks.length)html+='<div style="text-align:center;padding:15px;font-weight:500;">🎉 На этот день пар нет!</div>';
+        else{const next=getNextLessonForToday(withBreaks,dateStr);html+=withBreaks.map(l=>renderLessonHtml(l,dateStr,l===next)).join('');}
+        preview.innerHTML=html;preview.classList.remove('page-exit');preview.classList.add('page-enter');setTimeout(()=>preview.classList.remove('page-enter'),300);
+    },150);
 }
 
 // =====================================================
@@ -3081,19 +3916,20 @@ async function loadMySchedule() {
     if (!sources.length) return;
 
     try {
-        const results = await mapWithConcurrency(sources, 7, async source => {
+        const safeSources = sources.slice(0, 20);
+        const results = await mapWithConcurrency(safeSources, 7, async source => {
             const identifier = source.id || source.name;
             const query = buildScheduleQuery(source.type, identifier);
-            const cacheKey = `${source.type}_${identifier}_${dateStr}`;
+            const cacheKey = `${source.type}_${identifier}_${userSubgroup}_${dateStr}`;
 
             try {
                 let lessons = dayLessonsCache[cacheKey];
-                if (!lessons || !cacheFresh(dayLessonsCacheAt[cacheKey], getDayCacheTTL(dateStr))) {
+                if (!lessons || !cacheFresh(dayLessonsCacheAt[cacheKey], getDayCacheTTL(dateStr)) || forceNetworkRefresh) {
                     lessons = await fetchScheduleForDate(query, dateStr, null, 1);
                     dayLessonsCache[cacheKey] = lessons;
                     dayLessonsCacheAt[cacheKey] = Date.now();
                 }
-                return { source, lessons: filterLessonBySubgroup(lessons || []), error: null };
+                return { source, lessons: prepareLessonsForDisplay(lessons || [], dateStr), error: null };
             } catch (e) {
                 return { source, lessons: [], error: e.message || 'ошибка' };
             }
@@ -3101,22 +3937,26 @@ async function loadMySchedule() {
 
         if (requestId !== myScheduleRequestId) return;
 
-        const combined = [];
+        const combinedMap = new Map();
         const errors = [];
-        const seen = new Set();
 
         results.forEach(result => {
             if (result.error) errors.push(`${result.source.name}: ${result.error}`);
-
-            result.lessons.filter(l => !l.isWindow).forEach(lesson => {
-                const key = `${extractLessonTitle(lesson)}|${extractLessonTime(lesson)}|${extractLessonRoom(lesson)}`;
-                if (!seen.has(key)) {
-                    seen.add(key);
-                    combined.push({ lesson, source: result.source });
+            const lessons = prepareLessonsForDisplay(result.lessons || [], dateStr).filter(l => !l.isWindow);
+            lessons.forEach(lesson => {
+                const key = [extractLessonTitle(lesson), extractLessonTime(lesson), extractLessonTeacher(lesson), extractLessonRoom(lesson), getLessonTypeClass(lesson)]
+                    .map(v => String(v || '').trim().toLowerCase()).join('|');
+                const existing = combinedMap.get(key);
+                if (!existing) {
+                    combinedMap.set(key, { lesson, source: result.source });
+                    return;
                 }
+                existing.lesson.__kgeuGroups = dedupeGroups([...(existing.lesson.__kgeuGroups || []), ...(lesson.__kgeuGroups || [])]);
+                existing.lesson.__kgeuSubgroups = [...new Set([...(existing.lesson.__kgeuSubgroups || []), ...(lesson.__kgeuSubgroups || [])])].sort((a,b)=>a-b);
             });
         });
 
+        const combined = [...combinedMap.values()];
         combined.sort((a, b) => {
             const ta = parseTimeRange(extractLessonTime(a.lesson));
             const tb = parseTimeRange(extractLessonTime(b.lesson));
@@ -3321,7 +4161,8 @@ function syncCloud() {
             selected_type: currentMode,
             theme: currentTheme,
             subgroup: userSubgroup,
-            favorites_json: JSON.stringify(favorites)
+            favorites_json: JSON.stringify(favorites),
+            selections_json: JSON.stringify(modeSelections)
         };
         const signature = JSON.stringify(settings);
         if (signature === lastSyncedSignature) return;
@@ -3340,46 +4181,43 @@ function syncCloud() {
 
 async function loadCloud() {
     if (!getInitData()) return;
-
     try {
         const data = await apiFetch('/api/user/sync');
-
         if (!data || !data.telegram_id) return;
 
-        if (data.theme) {
-            setTheme(data.theme, false);
-        }
-
+        if (data.theme) setTheme(data.theme, false);
         if (data.subgroup) {
             userSubgroup = data.subgroup;
-            document.getElementById('subgroup-select').value = userSubgroup;
+            const select = document.getElementById('subgroup-select');
+            if (select) select.value = userSubgroup;
+        }
+
+        if (data.selections_json) {
+            try {
+                const parsed = JSON.parse(data.selections_json);
+                if (parsed && typeof parsed === 'object') modeSelections = { ...modeSelections, ...parsed };
+            } catch (e) {}
         }
 
         if (data.favorites_json) {
             try {
                 const parsed = JSON.parse(data.favorites_json);
-                if (Array.isArray(parsed) && parsed.length) {
-                    favorites = parsed.map(normalizeFavorite).filter(Boolean);
-                    renderFavorites();
-                }
+                if (Array.isArray(parsed)) { favorites = parsed.map(normalizeFavorite).filter(Boolean); renderFavorites(); }
             } catch (e) {}
         }
 
+        // Совместимость со старой схемой: один общий selection переносим только в нужный режим.
         if (data.selected_name) {
-            const resolved = resolveListItem(data.selected_type || 'Group', data.selected_name, data.selected_id || '');
-            currentMode = normalizeMode(data.selected_type || 'Group');
-            currentName = resolved?.name || data.selected_name;
-            currentId = resolved?.id || data.selected_id || currentName;
-            updateSelectionUI();
+            const type = normalizeMode(data.selected_type || 'Group');
+            if (!modeSelections[type]?.name) modeSelections[type] = { name: data.selected_name, id: data.selected_id || data.selected_name };
         }
 
+        saveModeSelectionsToStorage();
+        restoreModeSelection(currentMode || data.selected_type || 'Group');
         lastSyncedSignature = JSON.stringify({
-            selected_id: currentId,
-            selected_name: currentName,
-            selected_type: currentMode,
-            theme: currentTheme,
-            subgroup: userSubgroup,
-            favorites_json: JSON.stringify(favorites)
+            selected_id: currentId, selected_name: currentName, selected_type: currentMode,
+            theme: currentTheme, subgroup: userSubgroup, favorites_json: JSON.stringify(favorites),
+            selections_json: JSON.stringify(modeSelections)
         });
     } catch (e) {
         console.warn('Cloud load error:', e);
@@ -3565,89 +4403,152 @@ async function clearAllNotes() {
 // Reminders
 // =====================================================
 
+let pendingReminder = null;
+let selectedReminderLeadMinutes = 15;
+
 function remindEnc(titleEnc, dateEnc, timeEnc, roomEnc) {
-    remindLesson(dec(titleEnc), dec(dateEnc), dec(timeEnc), dec(roomEnc));
+    openReminderPicker(dec(titleEnc), dec(dateEnc), dec(timeEnc), dec(roomEnc));
 }
 
-async function remindLesson(title, dateStr, timeStr, room) {
+function openReminderPicker(title, dateStr, timeStr, room) {
     const time = parseTimeRange(timeStr);
+    if (!time) { alert('Не удалось определить время пары.'); return; }
+    const date = new Date(`${dateStr}T00:00:00`);
+    const start = new Date(date); start.setMinutes(time.start);
+    if (Number.isNaN(start.getTime())) { alert('Не удалось определить дату пары.'); return; }
+    if (start.getTime() <= Date.now()) { alert('Эта пара уже началась или прошла.'); return; }
 
-    if (!time) {
-        alert('Не удалось определить время пары.');
+    pendingReminder = { title, dateStr, timeStr, room, lessonStartAt: start.getTime() };
+    selectedReminderLeadMinutes = 15;
+    const custom = document.getElementById('reminder-custom-minutes');
+    if (custom) custom.value = '';
+    document.querySelectorAll('#reminder-picker-modal .reminder-option').forEach(btn => btn.classList.toggle('selected', btn.dataset.minutes === '15'));
+
+    const box = document.getElementById('reminder-picker-lesson');
+    if (box) box.innerHTML = `<div class="summary-title">${esc(title)}</div><div class="summary-meta"><span>🕒 ${esc(timeStr)}</span>${room ? `<span>📍 ${esc(room)}</span>` : ''}<span>📅 ${esc(dateStr)}</span></div><div id="reminder-effective-time" class="summary-meta" style="margin-top:6px;font-weight:700;">Напоминание: за 15 мин до пары</div>`;
+    openModal('reminder-picker-modal');
+}
+
+function selectReminderLead(minutes) {
+    const raw = Number(minutes);
+    const value = Math.max(0, Math.min(1440, Number.isFinite(raw) ? Math.round(raw / 5) * 5 : 0));
+    selectedReminderLeadMinutes = value;
+    const custom = document.getElementById('reminder-custom-minutes');
+    if (custom) custom.value = '';
+    document.querySelectorAll('#reminder-picker-modal .reminder-option').forEach(btn => btn.classList.toggle('selected', Number(btn.dataset.minutes) === value));
+    updateEffectiveReminderLabel();
+}
+
+function updateEffectiveReminderLabel() {
+    const el = document.getElementById('reminder-effective-time');
+    if (!el) return;
+    const lead = Number(selectedReminderLeadMinutes) || 0;
+    el.textContent = `Напоминание: ${lead === 0 ? 'в момент начала' : `за ${formatRelativeMinutes(lead)} до пары`}`;
+}
+
+function handleCustomReminderInput() {
+    const custom = document.getElementById('reminder-custom-minutes');
+    if (!custom || custom.value === '') return;
+    const raw = Number(custom.value);
+    if (!Number.isFinite(raw)) return;
+    selectedReminderLeadMinutes = Math.max(0, Math.min(1440, Math.trunc(raw)));
+    document.querySelectorAll('#reminder-picker-modal .reminder-option').forEach(btn => btn.classList.remove('selected'));
+    updateEffectiveReminderLabel();
+}
+
+function handleCustomReminderMinutes() {
+    const custom = document.getElementById('reminder-custom-minutes');
+    if (!custom || custom.value === '') return;
+    const raw = Number(custom.value);
+    if (!Number.isFinite(raw)) return;
+    const value = Math.max(0, Math.min(1440, Math.round(raw / 5) * 5));
+    custom.value = String(value);
+    selectedReminderLeadMinutes = value;
+    document.querySelectorAll('#reminder-picker-modal .reminder-option').forEach(btn => btn.classList.remove('selected'));
+    updateEffectiveReminderLabel();
+}
+
+async function confirmReminderCreation() {
+    if (!pendingReminder) return;
+
+    const custom = document.getElementById('reminder-custom-minutes');
+    const customValueRaw = custom && custom.value !== '' ? Number(custom.value) : null;
+    let lead = customValueRaw !== null && Number.isFinite(customValueRaw)
+        ? Math.max(0, Math.min(1440, Math.round(customValueRaw / 5) * 5))
+        : Number(selectedReminderLeadMinutes);
+    if (!Number.isInteger(lead) || lead < 0 || lead > 1440) {
+        alert('Время напоминания должно быть от 0 до 1440 минут.');
+        return;
+    }
+    lead = Math.round(lead / 5) * 5;
+    if (custom && customValueRaw !== null && Number.isFinite(customValueRaw)) custom.value = String(lead);
+    selectedReminderLeadMinutes = lead;
+    updateEffectiveReminderLabel();
+    const remindAt = pendingReminder.lessonStartAt - lead * 60 * 1000;
+
+    if (remindAt <= Date.now()) {
+        alert('Для этой пары выбранное время уже прошло. Выбери меньшее количество минут.');
         return;
     }
 
-    const date = new Date(dateStr + 'T00:00:00');
-    const start = new Date(date);
-    start.setMinutes(time.start);
-
-    if (start.getTime() < Date.now()) {
-        alert('Эта пара уже прошла.');
-        return;
-    }
-
-    const remindAt = start.getTime() - 15 * 60 * 1000;
-
-    const message = `⏰ Напоминание: ${title}\n🕒 ${timeStr}${room ? `\n📍 ${room}` : ''}`;
+    const message = `⏰ Напоминание: ${pendingReminder.title}\n🕒 ${pendingReminder.timeStr}${pendingReminder.room ? `\n📍 ${pendingReminder.room}` : ''}`;
+    const reminderKey = [pendingReminder.dateStr, pendingReminder.title, pendingReminder.timeStr, pendingReminder.room, lead].join('|');
 
     try {
-        await apiFetch('/api/reminders', {
+        const result = await apiFetch('/api/reminders', {
             method: 'POST',
             body: JSON.stringify({
                 remind_at: remindAt,
+                lesson_start_at: pendingReminder.lessonStartAt,
+                lead_minutes: lead,
+                reminder_key: reminderKey,
                 message
             })
         });
 
-        alert('Напоминание создано за 15 минут до пары.');
+        closeModals();
+        pendingReminder = null;
+        const note = result?.duplicate ? 'Такое напоминание уже существует.' : `Напоминание создано ${lead === 0 ? 'в момент начала' : `за ${formatRelativeMinutes(lead)}`} до пары.`;
+        alert(note);
+        if (document.getElementById('reminders-modal')?.classList.contains('show')) loadReminders();
     } catch (e) {
-        alert('Ошибка напоминания. Открой приложение в Telegram.');
+        alert('Ошибка напоминания. Открой приложение в Telegram и попробуй снова.');
     }
 }
 
 async function loadReminders() {
     const list = document.getElementById('reminders-list');
-
+    if (!list) return;
     try {
         const reminders = await apiFetch('/api/reminders');
-
         if (!Array.isArray(reminders) || !reminders.length) {
             list.innerHTML = '<div class="my-schedule-empty">Нет активных напоминаний.</div>';
             return;
         }
-
-        list.innerHTML = reminders.map(r => `
-            <div class="lesson-card" style="margin-bottom:8px;">
+        list.innerHTML = reminders.map(r => {
+            const lead = Number(r.lead_minutes);
+            const leadText = Number.isFinite(lead) ? (lead === 0 ? 'в момент начала' : `за ${formatRelativeMinutes(lead)}`) : 'в выбранное время';
+            return `<div class="lesson-card" style="margin-bottom:8px;">
                 <div class="lesson-title">🔔 ${formatDateTime(r.remind_at)}</div>
-                <div class="lesson-info" style="display:block; white-space:pre-wrap;">${esc(r.message)}</div>
-                <div class="lesson-actions">
-                    <button class="action-btn" onclick="deleteReminder(${r.id})">🗑 Удалить</button>
-                </div>
-            </div>
-        `).join('');
+                <div class="lesson-info" style="display:block;white-space:pre-wrap;">${esc(r.message)}</div>
+                <div class="summary-meta"><span>⏱ ${esc(leadText)}</span></div>
+                <div class="lesson-actions"><button class="action-btn" onclick="deleteReminder(${r.id})">🗑 Удалить</button></div>
+            </div>`;
+        }).join('');
     } catch (e) {
         list.innerHTML = '<div class="error-card">Не удалось загрузить напоминания.</div>';
     }
 }
 
 async function deleteReminder(id) {
-    try {
-        await apiFetch(`/api/reminders?id=${id}`, { method: 'DELETE' });
-        loadReminders();
-    } catch (e) {
-        alert('Ошибка удаления.');
-    }
+    try { await apiFetch(`/api/reminders?id=${id}`, { method:'DELETE' }); loadReminders(); }
+    catch(e) { alert('Ошибка удаления.'); }
 }
 
 async function clearAllReminders() {
-    if (!confirm('Удалить все активные напоминания?')) return;
-
-    try {
-        await apiFetch('/api/reminders?all=1', { method: 'DELETE' });
-        loadReminders();
-    } catch (e) {
-        alert('Не удалось очистить напоминания.');
-    }
+    if(!confirm('Удалить все активные напоминания?'))return;
+    try{await apiFetch('/api/reminders?all=1',{method:'DELETE'});loadReminders();}
+    catch(e){alert('Не удалось очистить напоминания.');}
 }
 
 function formatDateTime(ms) {
@@ -3762,7 +4663,10 @@ function renderDiagnostics() {
             ${esc(lastApiError || 'Нет зарегистрированных ошибок.')}
         </div>
 
-        <button class="btn-primary" onclick="forceRefreshCurrentView(); setTimeout(openDiagnosticsModal, 300);">↻ Обновить и проверить</button>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn-primary" style="flex:1;" onclick="forceRefreshCurrentView(); setTimeout(() => { if (isLocalAdmin()) openDiagnosticsModal(); }, 300);">↻ Обновить и проверить</button>
+            <button class="action-btn" style="flex:0 0 auto;" onclick="closeModals(); setTimeout(openAdminModal, 60);">← Админка</button>
+        </div>
     `;
 }
 
@@ -3814,6 +4718,7 @@ async function loadAdminPanel() {
                 <button class="admin-btn" onclick="adminAction('clearLogs')">🗑 Очистить логи</button>
                 <button class="admin-btn" onclick="adminBroadcast()">📢 Рассылка пользователям</button>
                 <button class="admin-btn danger" onclick="adminBan()">🚫 Бан / разбан</button>
+                <button class="admin-btn" onclick="openDiagnosticsModal()">🛠 Открыть диагностику</button>
             </div>
 
             ${renderTopGroups(stats.topGroups || [])}
@@ -3950,44 +4855,25 @@ function refreshLiveSchedule() {
 // =====================================================
 
 function loadLocal() {
-    const theme = safeGetStorage('kgeu_theme');
-    if (theme) setTheme(theme, false);
+    const theme = safeGetStorage('kgeu_theme'); if (theme) setTheme(theme,false);
+    const bg = safeGetStorage('kgeu_bg'); const bgColors = safeGetStorage('kgeu_bg_colors');
+    if (bg) { try { applyCustomBackground(bg,false,bgColors ? JSON.parse(bgColors) : null); } catch (e) {} }
 
-    const bg = safeGetStorage('kgeu_bg');
-    const bgColors = safeGetStorage('kgeu_bg_colors');
-
-    if (bg) {
-        try {
-            applyCustomBackground(bg, false, bgColors ? JSON.parse(bgColors) : null);
-        } catch (e) {}
-    }
-
+    readModeSelectionsFromStorage();
     const mode = safeGetStorage('kgeu_mode');
-    const name = safeGetStorage('kgeu_name');
-    const id = safeGetStorage('kgeu_id');
+    if (mode) currentMode = normalizeMode(mode);
+    restoreModeSelection(currentMode);
 
-    if (mode && name) {
-        const resolved = resolveListItem(mode, name, id || '');
-        currentMode = normalizeMode(mode);
-        currentName = resolved?.name || name;
-        currentId = resolved?.id || id || currentName;
-        updateSelectionUI();
+    // Совместимость со старой версией с одним общим выбором.
+    if (!currentName) {
+        const name = safeGetStorage('kgeu_name'); const id = safeGetStorage('kgeu_id');
+        if (name || id) setCurrentSelection(currentMode,name||'',id||'',false);
     }
 
-    const subgroup = safeGetStorage('kgeu_subgroup');
-    if (subgroup) {
-        userSubgroup = subgroup;
-        document.getElementById('subgroup-select').value = subgroup;
-    }
-
-    const favRaw = safeGetStorage('kgeu_favorites');
-    if (favRaw) {
-        try {
-            const parsed = JSON.parse(favRaw);
-            if (Array.isArray(parsed)) favorites = parsed.map(normalizeFavorite).filter(Boolean);
-        } catch (e) {}
-    }
-
+    const subgroup=safeGetStorage('kgeu_subgroup');
+    if (subgroup) { userSubgroup=subgroup; const select=document.getElementById('subgroup-select'); if(select)select.value=subgroup; }
+    const favRaw=safeGetStorage('kgeu_favorites');
+    if(favRaw){try{const parsed=JSON.parse(favRaw);if(Array.isArray(parsed))favorites=parsed.map(normalizeFavorite).filter(Boolean);}catch(e){}}
     renderFavorites();
 }
 
@@ -4012,6 +4898,15 @@ async function init() {
 
     await loadLists();
     await loadCloud();
+    for (const mode of ['Group','Teacher','Aud']) {
+        const sel = modeSelections[mode];
+        if (sel?.name || sel?.id) {
+            const resolved = resolveListItem(mode, sel.name, sel.id);
+            if (resolved) modeSelections[mode] = { name: resolved.name, id: String(resolved.id || resolved.name) };
+        }
+    }
+    saveModeSelectionsToStorage();
+    updateSelectionUI();
     await loadNotesIndex();
 
     if (currentName) {
