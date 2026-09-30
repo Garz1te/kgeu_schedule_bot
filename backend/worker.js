@@ -1,11 +1,4 @@
-const DEFAULT_ADMIN_IDS = [1116707989];
-
-function getAdminIds(env) {
-  const raw = String(env?.ADMIN_IDS || '').trim();
-  if (!raw) return DEFAULT_ADMIN_IDS;
-  const ids = raw.split(/[,;\s]+/).map(Number).filter(Number.isSafeInteger);
-  return ids.length ? [...new Set([...DEFAULT_ADMIN_IDS, ...ids])] : DEFAULT_ADMIN_IDS;
-}
+const ADMIN_IDS = [1116707989];
 
 const ALLOWED_PROXY_PATHS = new Set([
   '/rasp',
@@ -87,14 +80,10 @@ export default {
     ctx.waitUntil((async () => {
       try {
         await ensureSchemaOnce(env);
-        // Run Telegram-bound jobs sequentially. Each job uses up to 5 outgoing
-        // connections; running them in parallel could exceed the Free-plan
-        // 6-connection limit for a single invocation.
-        await processReminders(env);
-        await processBroadcastQueue(env);
-
-        // Maintenance stays hourly, piggybacking on the existing 5-minute trigger.
-        if (new Date().getUTCMinutes() === 0) await cleanupDatabase(env);
+        const jobs = [processReminders(env), processBroadcastQueue(env)];
+        // Maintenance stays hourly, piggybacking on the existing trigger.
+        if (new Date().getUTCMinutes() === 0) jobs.push(cleanupDatabase(env));
+        await Promise.allSettled(jobs);
       } catch (e) {
         console.error('scheduled error:', e);
       }
@@ -440,6 +429,17 @@ function serverRoom(l) {
   return value;
 }
 
+const TELEGRAM_INIT_DATA_MAX_AGE_SEC = 7 * 24 * 60 * 60;
+const TELEGRAM_INIT_DATA_CLOCK_SKEW_SEC = 10 * 60;
+let telegramHmacKeyPromise = null;
+
+function getBotToken(env) {
+  // BOT_TOKEN is the canonical secret. TELEGRAM_BOT_TOKEN is accepted as a
+  // compatibility alias so a differently named existing secret does not break
+  // authentication after an update.
+  return String(env.BOT_TOKEN || env.TELEGRAM_BOT_TOKEN || '').trim();
+}
+
 async function sha256Hex(value) {
   const bytes = await crypto.subtle.digest(
     'SHA-256',
@@ -450,11 +450,61 @@ async function sha256Hex(value) {
 
 async function getWebhookSecret(env) {
   // Explicit secret wins when configured. Otherwise derive a stable secret from
-  // the existing BOT_TOKEN so no additional secret is required for this deployment.
+  // the existing bot token so current deployments keep working without an extra
+  // required secret.
   const explicit = String(env.WEBHOOK_SECRET || '').trim();
   if (explicit) return explicit;
-  if (!env.BOT_TOKEN) return '';
-  return sha256Hex(`${env.BOT_TOKEN}:kgeu-webhook`);
+  const botToken = getBotToken(env);
+  if (!botToken) return '';
+  return sha256Hex(`${botToken}:kgeu-webhook`);
+}
+
+async function getTelegramHmacKey(env) {
+  const botToken = getBotToken(env);
+  if (!botToken) return null;
+
+  // Reuse the derived key inside the same isolate to avoid importing/deriving it
+  // for every request. The secret itself never leaves the Worker.
+  if (!telegramHmacKeyPromise) {
+    telegramHmacKeyPromise = crypto.subtle.importKey(
+      'raw',
+      await crypto.subtle.sign(
+        'HMAC',
+        await crypto.subtle.importKey(
+          'raw',
+          new TextEncoder().encode('WebAppData'),
+          { name: 'HMAC', hash: 'SHA-256' },
+          false,
+          ['sign']
+        ),
+        new TextEncoder().encode(botToken)
+      ),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+  }
+  return telegramHmacKeyPromise;
+}
+
+function decodeHex(hex) {
+  if (!/^[0-9a-f]{64}$/i.test(hex)) return null;
+  const bytes = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return bytes;
+}
+
+function buildTelegramDataCheckString(params, excludeSignature = false) {
+  const pairs = [];
+  for (const [key, value] of params.entries()) {
+    if (key === 'hash') continue;
+    if (excludeSignature && key === 'signature') continue;
+    pairs.push(`${key}=${value}`);
+  }
+  // Telegram requires alphabetical ordering of the full `key=value` lines.
+  // JS default sort is deterministic code-unit ordering, matching ASCII Telegram keys.
+  pairs.sort();
+  return pairs.join('\n');
 }
 
 // =====================================================
@@ -463,66 +513,51 @@ async function getWebhookSecret(env) {
 
 async function verifyTelegramInitData(env, initData) {
   try {
-    if (!env.BOT_TOKEN || !initData) return null;
+    const botToken = getBotToken(env);
+    const rawInitData = String(initData || '').trim();
+    if (!botToken || !rawInitData) return null;
 
-    const params = new URLSearchParams(initData);
-    const hash = params.get('hash');
-    if (!hash) return null;
+    const params = new URLSearchParams(rawInitData);
+    const receivedHash = String(params.get('hash') || '').trim().toLowerCase();
+    if (!decodeHex(receivedHash)) return null;
 
-    params.delete('hash');
-
-    const authDate = parseInt(params.get('auth_date') || '0', 10);
+    const authDate = Number(params.get('auth_date') || 0);
     const nowSec = Math.floor(Date.now() / 1000);
-    if (authDate && (nowSec - authDate > 86400 || authDate - nowSec > 300)) {
+    if (!Number.isInteger(authDate) || authDate <= 0) return null;
+    const age = nowSec - authDate;
+    if (age > TELEGRAM_INIT_DATA_MAX_AGE_SEC || age < -TELEGRAM_INIT_DATA_CLOCK_SKEW_SEC) {
       return null;
     }
 
-    const pairs = [];
-    for (const [key, value] of params.entries()) {
-      pairs.push(`${key}=${value}`);
-    }
-    pairs.sort();
+    const key = await getTelegramHmacKey(env);
+    if (!key) return null;
 
-    const dataCheckString = pairs.join('\n');
     const encoder = new TextEncoder();
+    const providedHash = decodeHex(receivedHash);
+    if (!providedHash) return null;
 
-    const webAppKey = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode('WebAppData'),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-
-    const secret = await crypto.subtle.sign(
-      'HMAC',
-      webAppKey,
-      encoder.encode(env.BOT_TOKEN)
-    );
-
-    const key = await crypto.subtle.importKey(
-      'raw',
-      secret,
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-
-    const signature = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      encoder.encode(dataCheckString)
-    );
-
-    const expectedHash = hash.toLowerCase();
-    if (!/^[0-9a-f]{64}$/.test(expectedHash)) return null;
-    const providedHash = new Uint8Array(expectedHash.match(/.{2}/g).map(byte => parseInt(byte, 16)));
-    const valid = await crypto.subtle.verify(
+    // Telegram's bot-side HMAC scheme: secret = HMAC_SHA256(key=WebAppData,
+    // message=bot_token), then HMAC_SHA256(key=secret, message=data_check_string).
+    // This is exactly the algorithm documented by Telegram.
+    let valid = await crypto.subtle.verify(
       'HMAC',
       key,
       providedHash,
-      encoder.encode(dataCheckString)
+      encoder.encode(buildTelegramDataCheckString(params, false))
     );
+
+    // Newer initData may contain an Ed25519 `signature` field as well. Keep a
+    // compatibility fallback for clients/variants where the traditional `hash`
+    // was calculated without that field. Both branches still require a valid
+    // HMAC made from the real bot token.
+    if (!valid && params.has('signature')) {
+      valid = await crypto.subtle.verify(
+        'HMAC',
+        key,
+        providedHash,
+        encoder.encode(buildTelegramDataCheckString(params, true))
+      );
+    }
 
     if (!valid) return null;
 
@@ -531,7 +566,6 @@ async function verifyTelegramInitData(env, initData) {
 
     const user = JSON.parse(userRaw);
     if (!user?.id) return null;
-
     return user;
   } catch (e) {
     console.error('verifyTelegramInitData error:', e);
@@ -594,7 +628,7 @@ async function requireUser(request, env) {
 async function requireAdmin(request, env) {
   const user = await requireUser(request, env);
   if (!user?.id) return null;
-  if (!getAdminIds(env).includes(Number(user.id))) return null;
+  if (!ADMIN_IDS.includes(Number(user.id))) return null;
   return user;
 }
 
@@ -629,10 +663,10 @@ async function handleTelegramWebhook(request, env, ctx) {
         banned = row?.banned || 0;
       }
 
-      if (!banned && env.BOT_TOKEN) {
+      if (!banned && getBotToken(env)) {
         const webAppUrl = env.WEBAPP_URL || 'https://garz1te.github.io/kgeu_schedule_bot';
         await sendTelegramMessage(
-          env.BOT_TOKEN,
+          getBotToken(env),
           update.message.chat.id,
           'Привет! Открой расписание КГЭУ ниже 👇',
           { inline_keyboard: [[{ text: '📅 Открыть расписание', web_app: { url: webAppUrl } }]] }
@@ -1333,10 +1367,6 @@ async function fetchScheduleDayResult(env, type, id, dateStr, forceFresh = false
         if (stale) break;
       }
       if (stale) {
-        // If the university API is temporarily unavailable, serve the D1 stale
-        // copy and also cache it briefly at the edge so repeated opens do not
-        // hammer D1 during the outage.
-        await cachePutText(edgeKey, stale, 'application/json; charset=utf-8', 60);
         return {
           status: 200,
           text: stale,
@@ -1937,8 +1967,9 @@ async function processReminders(env) {
     if (!rows.length) return;
 
     const results = await mapServerWithConcurrency(rows, 5, async row => {
-      if (!env.BOT_TOKEN) return { id: row.id, ok: false };
-      const ok = await sendTelegramMessage(env.BOT_TOKEN, row.telegram_id, row.message);
+      const botToken = getBotToken(env);
+      if (!botToken) return { id: row.id, ok: false };
+      const ok = await sendTelegramMessage(botToken, row.telegram_id, row.message);
       return { id: row.id, ok };
     });
 
@@ -1996,12 +2027,13 @@ async function processBroadcastQueue(env) {
       .catch(() => ({ results: [] }));
 
     const rows = rowsResult.results || [];
-    if (!rows.length || !env.BOT_TOKEN) return;
+    const botToken = getBotToken(env);
+    if (!rows.length || !botToken) return;
 
     await env.DB.prepare(`UPDATE broadcast_jobs SET status = 'sending' WHERE id = ?`).bind(rows[0].job_id).run().catch(() => {});
 
     const results = await mapServerWithConcurrency(rows, 5, async row => {
-      const ok = await sendTelegramMessage(env.BOT_TOKEN, row.telegram_id, row.message);
+      const ok = await sendTelegramMessage(botToken, row.telegram_id, row.message);
       return { id: row.id, jobId: row.job_id, ok };
     });
 
@@ -2056,18 +2088,7 @@ async function processBroadcastQueue(env) {
 async function handleAdmin(request, env, subPath, corsOrigin) {
   const admin = await requireAdmin(request, env);
   if (!admin) {
-    const initData = request.headers.get('X-Telegram-Init-Data') || '';
-    const verified = await verifyTelegramInitData(env, initData);
-    return jsonResponse({
-      ok: false,
-      error: 'FORBIDDEN',
-      telegram_id: verified?.id ? Number(verified.id) : null,
-      configured_admin_ids: getAdminIds(env)
-    }, 403, corsOrigin);
-  }
-
-  if (subPath === '/admin/check' && request.method === 'GET') {
-    return jsonResponse({ ok: true, admin: true, telegram_id: Number(admin.id) }, 200, corsOrigin);
+    return jsonResponse({ ok: false, error: 'FORBIDDEN' }, 403, corsOrigin);
   }
 
   if (subPath === '/admin/stats' && request.method === 'GET') {

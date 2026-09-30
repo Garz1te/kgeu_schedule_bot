@@ -4,7 +4,6 @@ compatibility_date = "2026-09-01"
 workers_dev = true
 
 [vars]
-ADMIN_IDS = "1116707989"
 KABINET_API = "https://kabinet.kgeu.ru/api"
 WEBAPP_URL = "https://garz1te.github.io/kgeu_schedule_bot"
 
