@@ -1,4 +1,11 @@
-const ADMIN_IDS = [1116707989];
+const DEFAULT_ADMIN_IDS = [1116707989];
+
+function getAdminIds(env) {
+  const raw = String(env?.ADMIN_IDS || '').trim();
+  if (!raw) return DEFAULT_ADMIN_IDS;
+  const ids = raw.split(/[,;\s]+/).map(Number).filter(Number.isSafeInteger);
+  return ids.length ? [...new Set([...DEFAULT_ADMIN_IDS, ...ids])] : DEFAULT_ADMIN_IDS;
+}
 
 const ALLOWED_PROXY_PATHS = new Set([
   '/rasp',
@@ -80,10 +87,14 @@ export default {
     ctx.waitUntil((async () => {
       try {
         await ensureSchemaOnce(env);
-        const jobs = [processReminders(env), processBroadcastQueue(env)];
-        // Maintenance stays hourly, piggybacking on the existing trigger.
-        if (new Date().getUTCMinutes() === 0) jobs.push(cleanupDatabase(env));
-        await Promise.allSettled(jobs);
+        // Run Telegram-bound jobs sequentially. Each job uses up to 5 outgoing
+        // connections; running them in parallel could exceed the Free-plan
+        // 6-connection limit for a single invocation.
+        await processReminders(env);
+        await processBroadcastQueue(env);
+
+        // Maintenance stays hourly, piggybacking on the existing 5-minute trigger.
+        if (new Date().getUTCMinutes() === 0) await cleanupDatabase(env);
       } catch (e) {
         console.error('scheduled error:', e);
       }
@@ -583,7 +594,7 @@ async function requireUser(request, env) {
 async function requireAdmin(request, env) {
   const user = await requireUser(request, env);
   if (!user?.id) return null;
-  if (!ADMIN_IDS.includes(Number(user.id))) return null;
+  if (!getAdminIds(env).includes(Number(user.id))) return null;
   return user;
 }
 
@@ -1322,6 +1333,10 @@ async function fetchScheduleDayResult(env, type, id, dateStr, forceFresh = false
         if (stale) break;
       }
       if (stale) {
+        // If the university API is temporarily unavailable, serve the D1 stale
+        // copy and also cache it briefly at the edge so repeated opens do not
+        // hammer D1 during the outage.
+        await cachePutText(edgeKey, stale, 'application/json; charset=utf-8', 60);
         return {
           status: 200,
           text: stale,
@@ -2041,7 +2056,18 @@ async function processBroadcastQueue(env) {
 async function handleAdmin(request, env, subPath, corsOrigin) {
   const admin = await requireAdmin(request, env);
   if (!admin) {
-    return jsonResponse({ ok: false, error: 'FORBIDDEN' }, 403, corsOrigin);
+    const initData = request.headers.get('X-Telegram-Init-Data') || '';
+    const verified = await verifyTelegramInitData(env, initData);
+    return jsonResponse({
+      ok: false,
+      error: 'FORBIDDEN',
+      telegram_id: verified?.id ? Number(verified.id) : null,
+      configured_admin_ids: getAdminIds(env)
+    }, 403, corsOrigin);
+  }
+
+  if (subPath === '/admin/check' && request.method === 'GET') {
+    return jsonResponse({ ok: true, admin: true, telegram_id: Number(admin.id) }, 200, corsOrigin);
   }
 
   if (subPath === '/admin/stats' && request.method === 'GET') {
