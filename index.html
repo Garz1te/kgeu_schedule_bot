@@ -745,8 +745,8 @@
 
         /* Точки календаря в новых цветах */
         .dot.type-lecture {
-            background: #3b82f6;
-            box-shadow: 0 0 0 1px rgba(59,130,246,.35), 0 0 5px rgba(59,130,246,.28);
+            background: #22c55e;
+            box-shadow: 0 0 0 1px rgba(34,197,94,.35), 0 0 5px rgba(34,197,94,.28);
         }
 
         .dot.type-practice {
@@ -765,8 +765,8 @@
         }
 
         body.theme-light .dot.type-lecture {
-            background:#2563eb;
-            box-shadow:0 0 0 1px rgba(37,99,235,.28);
+            background:#16a34a;
+            box-shadow:0 0 0 1px rgba(22,163,74,.28);
         }
 
         body.theme-light .dot.type-practice {
@@ -1552,7 +1552,7 @@
             </div>
             <div class="form-group reminder-custom-row">
                 <label class="form-label">Или своё время — количество минут до пары (шаг 5 минут)</label>
-                <input type="number" class="form-input" id="reminder-custom-minutes" min="0" max="1440" step="5" inputmode="numeric" oninput="handleCustomReminderInput()" onblur="handleCustomReminderMinutes()" placeholder="Своё время: шаг 5 минут, например 25">
+                <input type="number" class="form-input" id="reminder-custom-minutes" min="0" max="1440" step="5" inputmode="numeric" oninput="handleCustomReminderInput()" onblur="handleCustomReminderMinutes()" placeholder="Своё время: например 25 минут (кратно 5)">
             </div>
             <button class="btn-primary" onclick="confirmReminderCreation()">✅ Создать напоминание</button>
         </div>
@@ -1714,10 +1714,25 @@ function dec(value) {
 
 function getInitData() {
     try {
-        return window.Telegram?.WebApp?.initData || '';
-    } catch (e) {
-        return '';
-    }
+        const direct = String(window.Telegram?.WebApp?.initData || '').trim();
+        if (direct) return direct;
+
+        // Telegram Web Apps normally expose initData through WebApp.initData.
+        // Some clients/webview transitions expose the same signed payload in
+        // tgWebAppData inside the launch URL first; use it only as a transport
+        // fallback. It is still HMAC-verified by the Worker before any protected
+        // operation is allowed.
+        const candidates = [window.location.hash?.slice(1) || '', window.location.search?.slice(1) || ''];
+        for (const raw of candidates) {
+            if (!raw) continue;
+            try {
+                const params = new URLSearchParams(raw);
+                const fallback = String(params.get('tgWebAppData') || '').trim();
+                if (fallback) return fallback;
+            } catch (_) {}
+        }
+    } catch (e) {}
+    return '';
 }
 
 function getLocalTelegramId() {
@@ -1759,6 +1774,7 @@ async function apiFetch(path, options = {}) {
     } catch (e) {}
 
     if (!res.ok) {
+        if (res.status === 401) throw new Error('TELEGRAM_AUTH_401');
         throw new Error(data?.error || `HTTP ${res.status}`);
     }
 
@@ -2186,9 +2202,10 @@ function openFreeAudsModal() {
     openModal('free-auds-modal');
 }
 
-async function openAdminModal() {
+function openAdminModal() {
+    if (!isLocalAdmin()) return;
     openModal('admin-modal');
-    await loadAdminPanel();
+    loadAdminPanel();
 }
 
 function openDiagnosticsModal() {
@@ -2198,9 +2215,11 @@ function openDiagnosticsModal() {
 }
 
 function secretTap() {
-    // The UI can open the admin shell for any user, but every admin API call is
-    // still protected server-side by Telegram initData + ADMIN_IDS. This avoids
-    // a stale frontend ID hiding the panel from the real administrator.
+    // The hidden developer menu is completely restricted to the administrator
+    // Telegram account. Five quick taps open the admin menu; diagnostics is
+    // intentionally reachable only from the admin menu.
+    if (!isLocalAdmin()) return;
+
     secretTapCount++;
     clearTimeout(secretTapTimer);
 
@@ -3089,20 +3108,6 @@ function getLessonSubgroupLabel(l) { return getLessonSubgroups(l).join(', '); }
 
 function getLessonTypeClass(l) {
     if (l?.isWindow) return 'type-window';
-
-    // KGEU officially uses exact prefixes: "л" = lecture, "пр" = practice,
-    // "лр" = laboratory. If the subject itself starts with one of these
-    // markers, it is the strongest signal. The word-boundary check is critical:
-    // "Программирование" must NOT become practice merely because it starts with "пр".
-    const titleRaw = extractLessonTitle(l);
-    const titleMarker = String(titleRaw || '').trim().match(/^(?:📖\s*)?(лр|лаб(?:оратор(?:ная|ное|ный|ная)?|оратор)?|пр|практ|л)(?=\s|[.:;—–-]|$)/iu);
-    if (titleMarker) {
-        const marker = titleMarker[1].toLowerCase();
-        if (/^(?:лр|лаб|лаборатор)/iu.test(marker)) return 'type-lab';
-        if (/^(?:пр|практ)$/iu.test(marker)) return 'type-practice';
-        return 'type-lecture';
-    }
-
     if (l?.__kgeuTypeClass) return l.__kgeuTypeClass;
 
     const rawValues = [];
@@ -3129,11 +3134,10 @@ function getLessonTypeClass(l) {
     if (token('л') || /лекц|lecture/iu.test(raw) || compact === 'л') return 'type-lecture';
 
     const title = extractLessonTitle(l).toLowerCase();
-    if (/\b(?:лр|лабр?)\b/iu.test(title) || /лаборатор/iu.test(title)) return 'type-lab';
-    if (/\b(?:пр|практ)\b/iu.test(title) || /практик|семинар|practice|seminar/iu.test(title)) return 'type-practice';
-    if (/\bл\b/iu.test(title) || /лекц|lecture/iu.test(title)) return 'type-lecture';
+    if (/(^|[\s(\[\]{},.;:/\\-])(?:лр|лабр?)(?=$|[\s)\]}},.;:/\\-])/iu.test(title) || /лаборатор/iu.test(title)) return 'type-lab';
+    if (/(^|[\s(\[\]{},.;:/\\-])(?:пр|практ)(?=$|[\s)\]}},.;:/\\-])/iu.test(title) || /практик|семинар|practice|seminar/iu.test(title)) return 'type-practice';
+    if (/(^|[\s(\[\]{},.;:/\\-])л(?=$|[\s)\]}},.;:/\\-])/iu.test(title) || /лекц|lecture/iu.test(title)) return 'type-lecture';
 
-    // Unknown/undocumented type: do not invent a practice/lab classification.
     return 'type-lecture';
 }
 
@@ -3453,6 +3457,7 @@ function renderLessonHtml(l, lessonDateStr = '', isNextLesson = false, sourceLab
     const groups = l?.__kgeuGroups || extractLessonGroups(l);
     const teacherId = extractLessonTeacherId(l) || (teacher ? getKnownItemId('Teacher', teacher) : '');
     const roomId = extractLessonRoomId(l) || (room ? getKnownItemId('Aud', room) : '');
+    const duration = extractLessonDuration(l);
     const subgroupLabel = getLessonSubgroupLabel(l);
     const typeClass = getLessonTypeClass(l);
     const hasTime = !!parseTimeRange(timeStr);
@@ -3475,7 +3480,7 @@ function renderLessonHtml(l, lessonDateStr = '', isNextLesson = false, sourceLab
     const noteBlock = note ? `<div class="lesson-note" id="lesson-note-display-${token}"><span class="lesson-note-label">📝</span>${esc(note.task_text)} <button class="action-btn" style="margin-left:6px;" onclick="toggleLessonNoteEditor('${enc(noteKey)}','${enc(title)}','${enc(lessonDateStr)}','${enc(timeStr)}','${enc(room)}','${enc(String(getLessonSubgroupLabel(l)))}')">Изменить</button></div>` : '';
 
         const pairLabel = !hasTime && l?.__kgeuPairNumber ? `<span class="lesson-subgroup-badge">${l.__kgeuPairNumber} пара</span>` : '';
-    const timeBlock = `<div class="lesson-time-main ${hasTime ? '' : 'missing'}">🕒 ${esc(timeStr || 'Время не указано')} ${pairLabel}</div>`;
+    const timeBlock = `<div class="lesson-time-main ${hasTime ? '' : 'missing'}">🕒 ${esc(timeStr || 'Время не указано')} ${pairLabel}${duration ? ` · ${duration} мин` : ''}</div>`;
 
     return `<div class="lesson-card ${typeClass} ${currentClass}">
         <div class="lesson-title">📖 ${esc(title)} ${kindBadge} ${subgroupBadge} ${liveBadge}</div>
@@ -3495,12 +3500,12 @@ function renderLessonHtml(l, lessonDateStr = '', isNextLesson = false, sourceLab
 function renderLessons(rawLessons, container, dateStr) {
     const lessons = prepareLessonsForDisplay(rawLessons || [], dateStr);
     if (!lessons.length) {
-        container.innerHTML = '<div class="loading">🎉 На этот день пар нет!</div>';
+        container.innerHTML = renderLiveStatusBar([], dateStr) + '<div class="loading">🎉 На этот день пар нет!</div>';
         return;
     }
     const withBreaks = addWindowsToLessons(lessons);
     const nextLesson = getNextLessonForToday(withBreaks,dateStr);
-    container.innerHTML = withBreaks.map(l=>renderLessonHtml(l,dateStr,l===nextLesson)).join('');
+    container.innerHTML = renderLiveStatusBar(withBreaks,dateStr) + withBreaks.map(l=>renderLessonHtml(l,dateStr,l===nextLesson)).join('');
 }
 
 function createAbortError() {
@@ -3572,7 +3577,10 @@ async function fetchScheduleForDate(query, dateStr, signal, retries = 1) {
                     duration: Math.round(performance.now() - started),
                     at: Date.now()
                 };
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                if (!res.ok) {
+                    if (res.status === 401) throw new Error('TELEGRAM_AUTH_401');
+                    throw new Error(`HTTP ${res.status}`);
+                }
                 const data = await res.json();
                 lastApiError = null;
                 const parsed = extractLessonsFromAPIResponse(data, dateStr, { date: dateStr });
@@ -4735,16 +4743,7 @@ async function loadAdminPanel() {
             ${renderTopGroups(stats.topGroups || [])}
         `;
     } catch (e) {
-        const msg = String(e?.message || 'FORBIDDEN');
-        const tgId = getLocalTelegramId();
-        content.innerHTML = `
-            <div class="error-card">
-                <strong>❌ Нет доступа к админ-панели.</strong><br>
-                <span style="color:var(--text-secondary);">Сервер не подтвердил права администратора.</span>
-                ${tgId ? `<div style="margin-top:8px;">Telegram ID: <b>${esc(tgId)}</b></div>` : ''}
-                <div style="margin-top:6px;color:var(--text-secondary);font-size:12px;">Ошибка: ${esc(msg)}</div>
-            </div>
-        `;
+        content.innerHTML = '<div class="error-card">❌ Нет доступа к админ-панели.</div>';
     }
 }
 
