@@ -694,6 +694,33 @@ async function requireAdmin(request, env) {
 }
 
 // =====================================================
+// Telegram Bot API (server-side)
+// =====================================================
+
+const TELEGRAM_WEBHOOK_ALLOWED_UPDATES = ['message', 'edited_message'];
+
+async function telegramApi(env, method, payload = {}) {
+  const token = getBotToken(env);
+  if (!token) throw new Error('NO_BOT_TOKEN');
+
+  const res = await fetchWithTimeout(`https://api.telegram.org/bot${token}/${method}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }, 8000);
+
+  const parsed = safeJsonParse(await res.text());
+  if (!parsed) throw new Error(`TELEGRAM_NON_JSON_${res.status}`);
+  if (!parsed.ok) throw new Error(`TELEGRAM_${String(parsed.description || 'ERROR').slice(0, 160)}`);
+  return parsed.result;
+}
+
+// Публичный адрес этого воркера: Telegram должен стучаться именно сюда.
+function webhookUrlFrom(request) {
+  return `${new URL(request.url).origin}/webhook`;
+}
+
+// =====================================================
 // Telegram webhook
 // =====================================================
 
@@ -702,6 +729,10 @@ async function handleTelegramWebhook(request, env, ctx) {
     const expected = await getWebhookSecret(env);
     const provided = request.headers.get('X-Telegram-Bot-Api-Secret-Token') || '';
     if (!expected || provided !== expected) {
+      // Telegram присылает X-Telegram-Bot-Api-Secret-Token только если вебхук
+      // зарегистрирован с secret_token. Без него /start молча получает 401.
+      await safeLog(env, 'WEBHOOK_AUTH_FAIL',
+        `expected=${expected ? 'set' : 'none'} provided=${provided ? 'set' : 'none'}`);
       return textResponse('Unauthorized', '*', 401);
     }
 
@@ -2351,6 +2382,30 @@ async function handleAdmin(request, env, subPath, corsOrigin) {
     }, 200, corsOrigin);
   }
 
+  if (subPath === '/admin/webhook' && request.method === 'GET') {
+    const secret = await getWebhookSecret(env);
+    const expectedUrl = webhookUrlFrom(request);
+
+    let info = null;
+    let error = null;
+    try {
+      info = await telegramApi(env, 'getWebhookInfo');
+    } catch (e) {
+      error = String(e?.message || e);
+    }
+
+    const secretOk = !!info?.url && !!info?.has_custom_certificate === false && !info?.last_error_message;
+    return jsonResponse({
+      ok: !error,
+      error,
+      expectedUrl,
+      urlMatches: !info?.url || info.url === expectedUrl,
+      secretConfigured: !!secret,
+      telegram: info,
+      healthy: !error && info?.url === expectedUrl && !info?.last_error_message
+    }, 200, corsOrigin);
+  }
+
   if (subPath === '/admin/test' && request.method === 'GET') {
     const started = Date.now();
 
@@ -2379,6 +2434,36 @@ async function handleAdmin(request, env, subPath, corsOrigin) {
     try {
       body = await request.json();
     } catch (e) {}
+
+    if (subPath === '/admin/webhook') {
+      const secret = await getWebhookSecret(env);
+      if (!secret) {
+        return jsonResponse({ ok: false, error: 'NO_BOT_TOKEN', message: 'Не задан BOT_TOKEN' }, 400, corsOrigin);
+      }
+
+      const url = webhookUrlFrom(request);
+      try {
+        await telegramApi(env, 'setWebhook', {
+          url,
+          secret_token: secret,
+          allowed_updates: TELEGRAM_WEBHOOK_ALLOWED_UPDATES,
+          drop_pending_updates: false
+        });
+        const info = await telegramApi(env, 'getWebhookInfo');
+        await logAdmin(env, admin.id, 'setWebhook', { url });
+        return jsonResponse({
+          ok: true,
+          message: `Вебхук переустановлен на ${url}`,
+          telegram: info
+        }, 200, corsOrigin);
+      } catch (e) {
+        return jsonResponse({
+          ok: false,
+          error: 'TELEGRAM_ERROR',
+          message: String(e?.message || e)
+        }, 502, corsOrigin);
+      }
+    }
 
     if (subPath === '/admin/clearOldCache') {
       await env.DB.prepare(

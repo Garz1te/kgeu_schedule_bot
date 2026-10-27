@@ -5123,6 +5123,8 @@ async function loadAdminPanel() {
                 <button class="admin-btn" onclick="adminAction('clearLogs')">🗑 Очистить логи</button>
                 <button class="admin-btn" onclick="adminBroadcast()">📢 Рассылка пользователям</button>
                 <button class="admin-btn" onclick="focusAdminUsersSection()">👥 Пользователи: бан / разбан</button>
+                <button class="admin-btn" onclick="adminWebhookInfo()">🔗 Проверить вебхук</button>
+                <button class="admin-btn" onclick="adminSetWebhook()">🔧 Переустановить вебхук</button>
                 <button class="admin-btn" onclick="openDiagnosticsModal()">🛠 Открыть диагностику</button>
             </div>
 
@@ -5308,6 +5310,42 @@ function copyAdminUserId(telegramId) {
         }
     } catch (e) {}
     fallback();
+}
+
+async function adminWebhookInfo() {
+    try {
+        const res = await apiFetch('/api/admin/webhook');
+        const info = res.telegram || {};
+
+        const lines = [
+            res.error ? `Ошибка Telegram: ${res.error}` : null,
+            `URL в Telegram: ${info.url || '(не задан — бот не получает сообщения)'}`,
+            `Ожидаемый URL: ${res.expectedUrl}`,
+            info.url && info.url !== res.expectedUrl ? '⚠️ URL не совпадает с этим воркером' : null,
+            `Секрет: ${res.secretConfigured ? 'настроен' : 'НЕ настроен (нужен BOT_TOKEN)'}`,
+            `В очереди обновлений: ${info.pending_update_count ?? '—'}`,
+            info.last_error_message ? `⚠️ Последняя ошибка: ${info.last_error_message}` : 'Последней ошибки нет',
+            info.last_error_date ? `Когда: ${new Date(info.last_error_date * 1000).toLocaleString('ru-RU')}` : null,
+            res.healthy ? '✅ Вебхук в порядке' : '❌ Вебхук работает не так — нажмите «Переустановить вебхук»'
+        ].filter(Boolean);
+
+        alert(lines.join('\n'));
+    } catch (e) {
+        alert('Не удалось проверить вебхук: ' + describeApiError(e));
+    }
+}
+
+async function adminSetWebhook() {
+    if (!confirm('Переустановить вебхук на этот воркер и заново прописать секрет?')) return;
+
+    try {
+        const res = await apiFetch('/api/admin/webhook', { method: 'POST' });
+        const info = res.telegram || {};
+        alert((res.message || 'Готово') + (info.url ? `\nURL: ${info.url}` : '') + '\n\nТеперь отправьте боту /start.');
+        loadAdminPanel();
+    } catch (e) {
+        alert('Не удалось переустановить вебхук: ' + describeApiError(e));
+    }
 }
 
 async function adminAction(action) {
