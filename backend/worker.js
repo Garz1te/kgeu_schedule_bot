@@ -2281,6 +2281,76 @@ async function handleAdmin(request, env, subPath, corsOrigin) {
     }, 200, corsOrigin);
   }
 
+  if (subPath === '/admin/users' && request.method === 'GET') {
+    const params = new URL(request.url).searchParams;
+    const query = String(params.get('q') || '').trim().toLowerCase().slice(0, 100);
+    const filter = String(params.get('filter') || 'all').toLowerCase();
+    const page = Math.max(1, Math.min(200, Number(params.get('page') || 1) || 1));
+    const pageSize = Math.max(5, Math.min(50, Number(params.get('pageSize') || 20) || 20));
+
+    // Кириллица в SQLite не сворачивается регистром в LIKE, поэтому выборка
+    // берётся ограниченным срезом, а поиск и фильтр считаются в JS.
+    const USERS_SCAN_LIMIT = 3000;
+
+    const counts = await env.DB.prepare(
+      `SELECT COUNT(*) AS total,
+              SUM(CASE WHEN IFNULL(banned, 0) = 1 THEN 1 ELSE 0 END) AS banned
+       FROM app_users`
+    ).first().catch(() => null);
+
+    const rows = await env.DB.prepare(
+      `SELECT telegram_id, username, first_name, last_name, banned,
+              selected_name, selected_type, updated_at, created_at
+       FROM app_users
+       ORDER BY updated_at DESC
+       LIMIT ${USERS_SCAN_LIMIT}`
+    ).all().catch(() => ({ results: [] }));
+
+    const needle = query.replace(/^@/, '');
+    const matchesQuery = user => {
+      if (!needle) return true;
+      const haystack = [user.first_name, user.last_name, user.username, String(user.telegram_id)]
+        .map(value => String(value || '').toLowerCase())
+        .join(' ');
+      if (haystack.includes(needle)) return true;
+      // «иван петров» должно находить «Иван Петров» без учёта пробелов.
+      return haystack.replace(/\s+/g, '').includes(needle.replace(/\s+/g, ''));
+    };
+
+    const users = rows.results || [];
+    const filtered = users.filter(user => {
+      if (!matchesQuery(user)) return false;
+      const isBanned = Number(user.banned) === 1;
+      if (filter === 'banned') return isBanned;
+      if (filter === 'active') return !isBanned;
+      return true;
+    });
+
+    const offset = (page - 1) * pageSize;
+    const items = filtered.slice(offset, offset + pageSize).map(user => ({
+      telegram_id: Number(user.telegram_id),
+      username: user.username || '',
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      banned: Number(user.banned) === 1 ? 1 : 0,
+      selected_name: user.selected_name || '',
+      selected_type: user.selected_type || '',
+      updated_at: user.updated_at || '',
+      created_at: user.created_at || ''
+    }));
+
+    return jsonResponse({
+      ok: true,
+      items,
+      total: filtered.length,
+      page,
+      pageSize,
+      databaseTotal: Number(counts?.total || 0),
+      bannedTotal: Number(counts?.banned || 0),
+      truncated: users.length >= USERS_SCAN_LIMIT
+    }, 200, corsOrigin);
+  }
+
   if (subPath === '/admin/test' && request.method === 'GET') {
     const started = Date.now();
 

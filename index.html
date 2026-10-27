@@ -1101,6 +1101,57 @@
             border: 1px solid rgba(56,189,248,.32);
         }
 
+        .admin-user-card {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 9px 10px;
+            margin-bottom: 6px;
+        }
+
+        .admin-user-main {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .admin-user-name {
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .admin-user-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .admin-user-banned {
+            color: #ef4444;
+            font-weight: 700;
+        }
+
+        .admin-user-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 7px;
+        }
+
+        .admin-filter-btn {
+            font-size: 11px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .admin-filter-btn.active {
+            background: var(--accent);
+            color: var(--accent-text);
+            border-color: transparent;
+            font-weight: 700;
+        }
+
         .error-card {
             background: rgba(239,68,68,.09);
             border: 1px solid rgba(239,68,68,.35);
@@ -5071,12 +5122,15 @@ async function loadAdminPanel() {
                 <button class="admin-btn danger" onclick="adminAction('clearAllCache')">💣 Очистить весь кэш</button>
                 <button class="admin-btn" onclick="adminAction('clearLogs')">🗑 Очистить логи</button>
                 <button class="admin-btn" onclick="adminBroadcast()">📢 Рассылка пользователям</button>
-                <button class="admin-btn danger" onclick="adminBan()">🚫 Бан / разбан</button>
+                <button class="admin-btn" onclick="focusAdminUsersSection()">👥 Пользователи: бан / разбан</button>
                 <button class="admin-btn" onclick="openDiagnosticsModal()">🛠 Открыть диагностику</button>
             </div>
 
             ${renderTopGroups(stats.topGroups || [])}
+            ${renderAdminUsersSection()}
         `;
+
+        loadAdminUsers(true);
     } catch (e) {
         content.innerHTML = '<div class="error-card">❌ Нет доступа к админ-панели.</div>';
     }
@@ -5096,6 +5150,164 @@ function renderTopGroups(topGroups) {
             `).join('')}
         </div>
     `;
+}
+
+// =====================================================
+// Пользователи (бан / разбан)
+// =====================================================
+
+const adminUsersState = { q: '', filter: 'all', page: 1, pageSize: 20, total: 0, loaded: 0, busy: false };
+
+function renderAdminUsersSection() {
+    return `
+        <div style="margin-top:16px;" id="admin-users-section">
+            <div class="day-header" style="margin-top:0;">Пользователи</div>
+            <input class="form-input" id="admin-users-search" placeholder="Поиск: имя, фамилия, @username или ID" oninput="debouncedAdminUsersSearch(this.value)">
+            <div style="display:flex;gap:6px;margin-top:8px;">
+                <button class="admin-filter-btn active" data-filter="all" onclick="setAdminUsersFilter('all')">Все</button>
+                <button class="admin-filter-btn" data-filter="banned" onclick="setAdminUsersFilter('banned')">Забаненные</button>
+                <button class="admin-filter-btn" data-filter="active" onclick="setAdminUsersFilter('active')">Активные</button>
+            </div>
+            <div id="admin-users-summary" style="font-size:11px;color:var(--text-secondary);margin-top:6px;"></div>
+            <div id="admin-users-list" style="margin-top:8px;"></div>
+            <button class="admin-btn" id="admin-users-more" style="display:none;" onclick="loadAdminUsers(false)">Показать ещё</button>
+        </div>
+    `;
+}
+
+function focusAdminUsersSection() {
+    const section = document.getElementById('admin-users-section');
+    if (!section) return;
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const input = document.getElementById('admin-users-search');
+    if (input) setTimeout(() => input.focus(), 300);
+}
+
+function debouncedAdminUsersSearch(value) {
+    adminUsersState.q = String(value || '');
+    clearTimeout(debouncedAdminUsersSearch.timer);
+    debouncedAdminUsersSearch.timer = setTimeout(() => loadAdminUsers(true), 300);
+}
+
+function setAdminUsersFilter(filter) {
+    adminUsersState.filter = filter;
+    document.querySelectorAll('#admin-users-section .admin-filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
+    loadAdminUsers(true);
+}
+
+function formatUserLastSeen(value) {
+    if (!value) return 'активность неизвестна';
+    const raw = String(value);
+    const iso = raw.includes('T') ? raw : raw.replace(' ', 'T');
+    const date = new Date(iso.endsWith('Z') ? iso : `${iso}Z`);
+    if (Number.isNaN(date.getTime())) return raw;
+
+    const minutes = Math.round((Date.now() - date.getTime()) / 60000);
+    if (minutes < 1) return 'только что';
+    if (minutes < 60) return `${minutes} мин назад`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours} ч назад`;
+    const days = Math.round(hours / 24);
+    if (days < 30) return `${days} дн назад`;
+    return date.toLocaleDateString('ru-RU');
+}
+
+function renderAdminUserCard(user) {
+    const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || `ID ${user.telegram_id}`;
+    const username = user.username ? `@${user.username}` : 'без username';
+    const banned = Number(user.banned) === 1;
+    const icon = user.selected_type === 'Teacher' ? '👤' : user.selected_type === 'Aud' ? '🚪' : '👥';
+    const selection = user.selected_name ? `${icon} ${user.selected_name}` : 'объект не выбран';
+
+    return `
+        <div class="admin-user-card">
+            <div class="admin-user-main">
+                <span class="admin-user-name">${esc(name)}${banned ? ' <span class="admin-user-banned">· забанен</span>' : ''}</span>
+                <span class="admin-user-meta">${esc(username)}</span>
+            </div>
+            <div class="admin-user-meta">ID: ${esc(String(user.telegram_id))} · ${esc(selection)} · ${esc(formatUserLastSeen(user.updated_at))}</div>
+            <div class="admin-user-actions">
+                <button class="action-btn" onclick="toggleAdminUserBan(${Number(user.telegram_id)}, ${banned ? 0 : 1}, this)">${banned ? '✅ Разбанить' : '🚫 Забанить'}</button>
+                <button class="action-btn" onclick="copyAdminUserId(${Number(user.telegram_id)})">📋 ID</button>
+            </div>
+        </div>
+    `;
+}
+
+async function loadAdminUsers(reset = true) {
+    const list = document.getElementById('admin-users-list');
+    if (!list) return;
+    if (adminUsersState.busy) return;
+
+    const summary = document.getElementById('admin-users-summary');
+    const more = document.getElementById('admin-users-more');
+
+    adminUsersState.busy = true;
+    if (reset) {
+        adminUsersState.page = 1;
+        adminUsersState.loaded = 0;
+        list.innerHTML = '<div class="loading">⌛ Загружаю...</div>';
+    }
+
+    try {
+        const params = new URLSearchParams({
+            q: adminUsersState.q,
+            filter: adminUsersState.filter,
+            page: String(adminUsersState.page),
+            pageSize: String(adminUsersState.pageSize)
+        });
+        const data = await apiFetch(`/api/admin/users?${params.toString()}`);
+        if (!data.items) throw new Error('NO_ITEMS');
+
+        const html = data.items.map(renderAdminUserCard).join('');
+        if (reset) list.innerHTML = html || '<div class="my-schedule-empty">Никого не найдено.</div>';
+        else if (html) list.insertAdjacentHTML('beforeend', html);
+
+        adminUsersState.total = Number(data.total || 0);
+        adminUsersState.loaded += data.items.length;
+        adminUsersState.page += 1;
+
+        if (summary) {
+            summary.textContent = `Найдено: ${adminUsersState.total} из ${data.databaseTotal ?? '—'} · забанено ${data.bannedTotal ?? 0}`
+                + (data.truncated ? ' · показаны первые 3000 пользователей' : '');
+        }
+        if (more) more.style.display = adminUsersState.loaded < adminUsersState.total ? 'block' : 'none';
+    } catch (e) {
+        list.innerHTML = `<div class="error-card">⚠️ ${esc(describeApiError(e))}</div>`;
+    } finally {
+        adminUsersState.busy = false;
+    }
+}
+
+async function toggleAdminUserBan(telegramId, banned, button) {
+    const action = banned ? 'забанить' : 'разбанить';
+    if (!confirm(`Точно ${action} пользователя ${telegramId}?`)) return;
+
+    if (button) button.disabled = true;
+    try {
+        await apiFetch('/api/admin/ban', {
+            method: 'POST',
+            body: JSON.stringify({ target_id: Number(telegramId), banned: Number(banned) })
+        });
+        loadAdminUsers(true);
+    } catch (e) {
+        alert(`Не удалось ${action}: ${describeApiError(e)}`);
+        if (button) button.disabled = false;
+    }
+}
+
+function copyAdminUserId(telegramId) {
+    const text = String(telegramId);
+    const fallback = () => alert(`ID: ${text}`);
+    try {
+        if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(text).then(() => alert(`ID ${text} скопирован`)).catch(fallback);
+            return;
+        }
+    } catch (e) {}
+    fallback();
 }
 
 async function adminAction(action) {
