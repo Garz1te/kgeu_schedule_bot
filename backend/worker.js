@@ -1,13 +1,38 @@
-const ADMIN_IDS = [1116707989];
+// Админы задаются секретом ADMIN_IDS (строка "111,222", "111 222" или JSON).
+// Список по умолчанию нужен только чтобы не потерять доступ, если секрет пуст.
+const DEFAULT_ADMIN_IDS = [1116707989];
 
+function getAdminIds(env) {
+  const ids = new Set();
+  const push = value => {
+    const num = Number(String(value).trim());
+    if (Number.isFinite(num) && num > 0) ids.add(num);
+  };
+
+  const raw = env?.ADMIN_IDS;
+  if (Array.isArray(raw)) {
+    raw.forEach(push);
+  } else if (raw !== undefined && raw !== null && String(raw).trim()) {
+    const text = String(raw).trim();
+    if (text.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) parsed.forEach(push);
+      } catch (e) {}
+    }
+    if (!ids.size) text.split(/[,;\s]+/).forEach(push);
+  }
+
+  if (!ids.size) DEFAULT_ADMIN_IDS.forEach(push);
+  return ids;
+}
+
+// Легаси-роуты /group, /teacher, /aud удалены: upstream отдаёт на них 404.
 const ALLOWED_PROXY_PATHS = new Set([
   '/rasp',
   '/raspGrouplist',
   '/raspTeacherlist',
-  '/raspAudlist',
-  '/group',
-  '/teacher',
-  '/aud'
+  '/raspAudlist'
 ]);
 
 // Free-plan protection / deduplication. These maps live only for the lifetime
@@ -25,7 +50,7 @@ const EDGE_TTLS = {
   scheduleRangeToday: 5 * 60,
   scheduleRangeOther: 30 * 60,
   lists: 6 * 60 * 60,
-  freeAuds: 60
+  freeAuds: 300
 };
 
 const MAX_D1_CACHE_BYTES = 400_000;
@@ -33,7 +58,7 @@ const MAX_LOG_PER_KEY_MS = 5 * 60 * 1000;
 const FORCE_REFRESH_COOLDOWN_MS = 15 * 1000;
 const SCHEDULE_USER_LIMIT = 30;
 const RANGE_USER_LIMIT = 10;
-const FREE_AUD_USER_LIMIT = 10;
+const FREE_AUD_USER_LIMIT = 18;
 const USER_SYNC_WRITE_LIMIT = 6;
 const TASK_WRITE_LIMIT = 30;
 const REMINDER_WRITE_LIMIT = 20;
@@ -135,6 +160,7 @@ function jsonResponse(data, status = 200, corsOrigin = '*') {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Access-Control-Allow-Origin': corsOrigin,
+      'Vary': 'Origin',
       'Cache-Control': 'no-store'
     }
   });
@@ -174,6 +200,31 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
   }
 }
 
+function safeJsonParse(text) {
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    return null;
+  }
+}
+
+// API КГЭУ сообщает об ошибках HTTP-кодом 200 и полем state: -1. Раньше такие
+// ответы считались успешными и кэшировались как «пар нет».
+function assertKgeuPayload(parsed, url) {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return parsed;
+  if (!('state' in parsed)) return parsed;
+
+  const state = Number(parsed.state);
+  if (!Number.isFinite(state)) return parsed;
+  if (state < 0) {
+    throw new Error(`KGEU_API_ERROR: ${String(parsed.msg || 'unknown').slice(0, 120)} (${url})`);
+  }
+  if (parsed.data === null || parsed.data === undefined) {
+    throw new Error(`KGEU_API_ERROR: ${String(parsed.msg || 'empty data').slice(0, 120)} (${url})`);
+  }
+  return parsed;
+}
+
 async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 10000) {
   const res = await fetchWithTimeout(url, options, timeoutMs);
   const text = await res.text();
@@ -182,11 +233,12 @@ async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 10000) {
     throw new Error(`HTTP ${res.status} from ${url}`);
   }
 
-  try {
-    return JSON.parse(text);
-  } catch (e) {
+  const parsed = safeJsonParse(text);
+  if (!parsed) {
     throw new Error(`Non-JSON response from ${url}`);
   }
+
+  return assertKgeuPayload(parsed, url);
 }
 
 function takeUserRateSlot(userId, bucket, limit, windowMs = 60 * 1000) {
@@ -429,9 +481,15 @@ function serverRoom(l) {
   return value;
 }
 
-const TELEGRAM_INIT_DATA_MAX_AGE_SEC = 7 * 24 * 60 * 60;
+// initData живёт ограниченное время: сутки — компромисс между безопасностью
+// (перехваченный initData нельзя переиспользовать неделю) и тем, что человек
+// может держать мини-приложение открытым весь день.
+const TELEGRAM_INIT_DATA_MAX_AGE_SEC = 24 * 60 * 60;
 const TELEGRAM_INIT_DATA_CLOCK_SKEW_SEC = 10 * 60;
-let telegramHmacKeyPromise = null;
+
+// Ключ кэшируется вместе с токеном, из которого выведен: иначе после смены
+// секрета живой изолят продолжает проверять подписи старым ключом.
+let telegramHmacKeyCache = { token: '', promise: null };
 
 function getBotToken(env) {
   // BOT_TOKEN is the canonical secret. TELEGRAM_BOT_TOKEN is accepted as a
@@ -465,26 +523,29 @@ async function getTelegramHmacKey(env) {
 
   // Reuse the derived key inside the same isolate to avoid importing/deriving it
   // for every request. The secret itself never leaves the Worker.
-  if (!telegramHmacKeyPromise) {
-    telegramHmacKeyPromise = crypto.subtle.importKey(
-      'raw',
-      await crypto.subtle.sign(
-        'HMAC',
-        await crypto.subtle.importKey(
-          'raw',
-          new TextEncoder().encode('WebAppData'),
-          { name: 'HMAC', hash: 'SHA-256' },
-          false,
-          ['sign']
-        ),
-        new TextEncoder().encode(botToken)
-      ),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['verify']
-    );
+  if (telegramHmacKeyCache.token === botToken && telegramHmacKeyCache.promise) {
+    return telegramHmacKeyCache.promise;
   }
-  return telegramHmacKeyPromise;
+
+  const encoder = new TextEncoder();
+  const signingKey = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode('WebAppData'),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const secret = await crypto.subtle.sign('HMAC', signingKey, encoder.encode(botToken));
+  const verifyKey = await crypto.subtle.importKey(
+    'raw',
+    secret,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['verify']
+  );
+
+  telegramHmacKeyCache = { token: botToken, promise: Promise.resolve(verifyKey) };
+  return verifyKey;
 }
 
 function decodeHex(hex) {
@@ -628,7 +689,7 @@ async function requireUser(request, env) {
 async function requireAdmin(request, env) {
   const user = await requireUser(request, env);
   if (!user?.id) return null;
-  if (!ADMIN_IDS.includes(Number(user.id))) return null;
+  if (!getAdminIds(env).has(Number(user.id))) return null;
   return user;
 }
 
@@ -769,7 +830,7 @@ async function handleApi(request, env, ctx, url, corsOrigin) {
   }
 
   if (subPath === '/lists') {
-    return await handleLists(request, env, ctx, corsOrigin, false);
+    return await handleLists(request, env, ctx, corsOrigin, forceFresh);
   }
 
   if (subPath === '/schedule-range') {
@@ -786,14 +847,49 @@ async function handleApi(request, env, ctx, url, corsOrigin) {
 // =====================================================
 // Free classrooms
 // =====================================================
+//
+// API КГЭУ не отдаёт расписание всех аудиторий за один запрос и не принимает
+// списки id, поэтому занятость считается по одной аудитории. Чтобы уложиться
+// в лимиты Free-плана, клиент запрашивает аудитории порциями (ids=...),
+// каждый ответ кэшируется на edge на неделю, повторные поиски почти бесплатны.
+
+const FREE_AUD_CHUNK = 20;
+
+// KGEU_HEADERS используется всеми запросами к API вуза.
+function kgeuHeaders() {
+  return {
+    'Accept': 'application/json, text/plain, */*',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Referer': 'https://kabinet.kgeu.ru/'
+  };
+}
+
+function serverLessonTitle(l) {
+  const value = l?.дисциплина ?? l?.Дисциплина ?? l?.subject ?? l?.Subject ?? l?.name ?? l?.Name ?? l?.title ?? l?.Title ?? '';
+  if (value && typeof value === 'object') {
+    return String(value.name ?? value.Name ?? value.title ?? value.название ?? '').trim();
+  }
+  return String(value || '').trim();
+}
+
+function serverLessonGroups(l) {
+  const value = l?.группа ?? l?.Группа ?? l?.группы ?? l?.Группы ?? l?.ГруппыСтрокой ?? l?.group ?? l?.Group ?? '';
+  if (Array.isArray(value)) {
+    return value.map(item => String(item?.name ?? item ?? '').trim()).filter(Boolean);
+  }
+  return String(value || '')
+    .split(/[,;]+/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
 
 async function handleFreeAuds(request, env, url, corsOrigin) {
   const user = await requireUser(request, env);
   if (!user) return jsonResponse({ ok: false, error: 'UNAUTHORIZED' }, 401, corsOrigin);
 
-  const date = url.searchParams.get('date') || '';
-  const start = url.searchParams.get('start') || '';
-  const end = url.searchParams.get('end') || '';
+  const date = String(url.searchParams.get('date') || '').trim();
+  const start = String(url.searchParams.get('start') || '').trim();
+  const end = String(url.searchParams.get('end') || '').trim();
 
   if (!validateISODate(date)) {
     return jsonResponse({ ok: false, error: 'BAD_DATE' }, 400, corsOrigin);
@@ -801,12 +897,47 @@ async function handleFreeAuds(request, env, url, corsOrigin) {
 
   const startMin = parseHM(start);
   const endMin = parseHM(end);
-
   if (startMin === null || endMin === null || endMin <= startMin) {
     return jsonResponse({ ok: false, error: 'BAD_TIME' }, 400, corsOrigin);
   }
 
-  const cacheKey = `/api/free-auds?date=${date}&start=${start}&end=${end}`;
+  if (!takeUserRateSlot(user.id, 'free-auds', FREE_AUD_USER_LIMIT)) {
+    return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
+  }
+
+  let lists;
+  try {
+    lists = await buildLists(env, false);
+  } catch (e) {
+    await safeLog(env, 'ERROR', `free-auds lists: ${e?.message || e}`);
+    return jsonResponse({ ok: false, error: 'NO_AUDS' }, 502, corsOrigin);
+  }
+
+  const auds = Array.isArray(lists?.Aud) ? lists.Aud : [];
+  const byId = new Map();
+  for (const aud of auds) {
+    const id = String(aud?.id ?? '').trim();
+    if (id) byId.set(id, { id, name: String(aud?.name ?? '').trim() });
+  }
+  if (!byId.size) return jsonResponse({ ok: false, error: 'NO_AUDS' }, 502, corsOrigin);
+
+  // ids — порция аудиторий от клиента. Без параметра отдаём первую порцию,
+  // чтобы не сломать старый клиент.
+  const idsRaw = String(url.searchParams.get('ids') || '').trim();
+  let requested;
+  if (idsRaw) {
+    requested = [...new Set(idsRaw
+      .split(',')
+      .map(value => String(value).trim())
+      .filter(value => byId.has(value)))].slice(0, FREE_AUD_CHUNK);
+    if (!requested.length) {
+      return jsonResponse({ ok: false, error: 'BAD_ROOMS' }, 400, corsOrigin);
+    }
+  } else {
+    requested = [...byId.keys()].slice(0, FREE_AUD_CHUNK);
+  }
+
+  const cacheKey = `/api/free-auds?date=${date}&start=${start}&end=${end}&ids=${requested.join(',')}`;
   const edgeKey = new Request(`https://kgeu-cache.invalid${cacheKey}`);
 
   try {
@@ -814,125 +945,92 @@ async function handleFreeAuds(request, env, url, corsOrigin) {
     if (cached) return withCors(cached, corsOrigin);
   } catch (e) {}
 
-  if (!takeUserRateSlot(user.id, 'free-auds', FREE_AUD_USER_LIMIT)) {
-    return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
-  }
-
-  const started = Date.now();
-  try {
-    const existing = proxyInflight.get(`free:${cacheKey}`);
-    if (existing) {
-      const result = await existing;
-      return new Response(result.text, {
-        status: result.status,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': corsOrigin,
-          'Cache-Control': `public, max-age=${EDGE_TTLS.freeAuds}`
-        }
+  // Ответ API КГЭУ всегда содержит всю неделю, поэтому фильтрация по дате
+  // обязательна: без неё занятость берётся из чужого дня.
+  const results = await mapServerWithConcurrency(requested, 5, async roomId => {
+    const room = byId.get(roomId);
+    try {
+      const day = await fetchScheduleDayResult(env, 'Aud', roomId, date, false);
+      const parsed = JSON.parse(day.text);
+      const lessons = extractLessonsServer(parsed);
+      const dayLessons = filterLessonsByDateServer(lessons, date);
+      const busyLesson = dayLessons.find(lesson => {
+        const time = parseTimeServer(serverLessonTime(lesson));
+        return time && time.start < endMin && time.end > startMin;
       });
-    }
 
-    const promise = (async () => {
-      const lists = await buildLists(env, false);
-      const auds = lists.Aud || [];
-      if (!auds.length) throw new Error('NO_AUDS');
-
-      const data = await fetchJsonWithTimeout(
-        `${env.KABINET_API}/Rasp?date=${encodeURIComponent(date)}`,
-        {
-          headers: {
-            'Accept': 'application/json, text/plain, */*',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Referer': 'https://kabinet.kgeu.ru/'
-          }
-        },
-        12000
-      );
-
-      const lessons = extractLessonsServer(data);
-      const busyNames = new Set();
-      const busyIds = new Set();
-
-      for (const l of lessons) {
-        const t = parseTimeServer(serverLessonTime(l));
-        if (!t) continue;
-
-        if (t.start < endMin && t.end > startMin) {
-          const room = String(serverRoom(l) || '').trim();
-          if (room) busyNames.add(room.toLowerCase());
-
-          const roomId = l.audId ?? l.aud_id ?? l.idAud ?? l.idAudLine ?? l.auditoriumId ?? l.кодАудитории ?? null;
-          if (roomId !== null && roomId !== undefined) busyIds.add(String(roomId));
-        }
-      }
-
-      const free = auds.filter(a => {
-        const name = String(a.name || '').trim().toLowerCase();
-        const id = String(a.id || '');
-        return !busyNames.has(name) && !busyIds.has(id);
-      });
+      if (!busyLesson) return { room, busy: false };
 
       return {
-        status: 200,
-        text: JSON.stringify({
-          ok: true,
-          date,
-          start,
-          end,
-          total: auds.length,
-          busy: auds.length - free.length,
-          free: free.slice(0, 100)
-        })
-      };
-    })();
-
-    proxyInflight.set(`free:${cacheKey}`, promise);
-    const result = await promise;
-    proxyInflight.delete(`free:${cacheKey}`);
-
-    const response = new Response(result.text, {
-      status: result.status,
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Access-Control-Allow-Origin': corsOrigin,
-        'Cache-Control': `public, max-age=${EDGE_TTLS.freeAuds}`
-      }
-    });
-
-    try { cachePutText(edgeKey, result.text, 'application/json; charset=utf-8', EDGE_TTLS.freeAuds); } catch (e) {}
-    return response;
-  } catch (e) {
-    proxyInflight.delete(`free:${cacheKey}`);
-    console.error('free-auds external error:', e);
-    await safeLog(env, 'ERROR', `free-auds ${date}: ${e?.message || e}`);
-
-    // Preserve compatibility with the old D1 cache as a stale fallback.
-    const stale = await getCache(env, cacheKey);
-    if (stale) {
-      return new Response(stale, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Access-Control-Allow-Origin': corsOrigin,
-          'Cache-Control': 'public, max-age=30'
+        room,
+        busy: true,
+        occupiedBy: {
+          title: serverLessonTitle(busyLesson),
+          time: serverLessonTime(busyLesson),
+          groups: serverLessonGroups(busyLesson)
         }
-      });
+      };
+    } catch (e) {
+      return { room, busy: null, error: true };
     }
+  });
 
-    const code = e?.message === 'NO_AUDS' ? 'NO_AUDS' : 'EXTERNAL_API_UNAVAILABLE';
-    return jsonResponse({ ok: false, error: code, ms: Date.now() - started }, 502, corsOrigin);
+  const free = [];
+  const busyRooms = [];
+  let failed = 0;
+
+  for (const item of results) {
+    if (!item || item.busy === null) {
+      failed += 1;
+      continue;
+    }
+    if (item.busy) {
+      busyRooms.push({
+        id: item.room.id,
+        name: item.room.name,
+        title: item.occupiedBy?.title || '',
+        time: item.occupiedBy?.time || '',
+        groups: item.occupiedBy?.groups || []
+      });
+    } else {
+      free.push(item.room);
+    }
   }
-}
 
+  const payload = JSON.stringify({
+    ok: true,
+    date,
+    start,
+    end,
+    totalRooms: byId.size,
+    total: requested.length,
+    busy: busyRooms.length,
+    failed,
+    free,
+    busyRooms,
+    chunkSize: FREE_AUD_CHUNK,
+    nextIds: [...byId.keys()].filter(id => !requested.includes(id)).slice(0, FREE_AUD_CHUNK)
+  });
+
+  try {
+    cachePutText(edgeKey, payload, 'application/json; charset=utf-8', EDGE_TTLS.freeAuds);
+  } catch (e) {}
+
+  return new Response(payload, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': corsOrigin,
+      'Cache-Control': `public, max-age=${EDGE_TTLS.freeAuds}`
+    }
+  });
+}
 // =====================================================
 // Lists
 // =====================================================
 
 async function handleLists(request, env, ctx, corsOrigin, forceFresh) {
   const edgeKey = new Request('https://kgeu-cache.invalid/api/lists');
-
-  forceFresh = false;
 
   if (!forceFresh) {
     try {
@@ -952,12 +1050,17 @@ async function handleLists(request, env, ctx, corsOrigin, forceFresh) {
         'Cache-Control': `public, max-age=${EDGE_TTLS.lists}`
       }
     });
-    cachePutText(edgeKey, text, 'application/json; charset=utf-8', EDGE_TTLS.lists);
+
+    // Запись в edge-кэш должна жить дольше ответа, иначе Cloudflare её отбросит.
+    const put = cachePutText(edgeKey, text, 'application/json; charset=utf-8', EDGE_TTLS.lists);
+    if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(put);
+
     return response;
   } catch (e) {
     console.error('Lists error:', e);
     await safeLog(env, 'ERROR', `lists: ${e?.message || e}`);
 
+    // Единственный живой D1-фолбэк: списки действительно пишутся в schedule_cache.
     const stale = await getCache(env, '/api/lists');
     if (stale) {
       try {
@@ -965,7 +1068,8 @@ async function handleLists(request, env, ctx, corsOrigin, forceFresh) {
       } catch (e2) {}
     }
 
-    return jsonResponse({ Group: [], Teacher: [], Aud: [] }, 200, corsOrigin);
+    // Раньше клиент получал 200 с пустыми списками и молча ломался.
+    return jsonResponse({ ok: false, error: 'LISTS_UNAVAILABLE', Group: [], Teacher: [], Aud: [] }, 503, corsOrigin);
   }
 }
 
@@ -1004,6 +1108,10 @@ async function buildLists(env, forceFresh = false) {
       Teacher: normalizeList(teachersRes.status === 'fulfilled' ? teachersRes.value : []),
       Aud: normalizeList(audsRes.status === 'fulfilled' ? audsRes.value : [])
     };
+
+    if (!result.Group.length && !result.Teacher.length && !result.Aud.length) {
+      throw new Error('LISTS_UNAVAILABLE');
+    }
 
     const payload = JSON.stringify(result);
     await saveCache(env, cacheKey, payload);
@@ -1114,31 +1222,43 @@ async function handleProxy(request, env, ctx, url, subPath, corsOrigin, forceFre
     }
   }
 
-  const targetLower = targetPath.toLowerCase();
-  const isScheduleRequest = targetLower === '/rasp';
-  const isLegacyScheduleAlias = ['/group','/teacher','/aud'].includes(targetLower);
-  const isPublicListAlias = ['/raspgrouplist','/raspteacherlist','/raspaudlist'].includes(targetLower);
-  let user = null;
-  if (isScheduleRequest || isLegacyScheduleAlias) {
-    user = await requireUser(request, env);
-    if (!user) return jsonResponse({ ok: false, error: 'UNAUTHORIZED' }, 401, corsOrigin);
+  // Любой прокси-роут требует авторизации: раньше списки были открыты и
+  // превращали воркер в бесплатный прокси к API вуза с произвольным query.
+  const user = await requireUser(request, env);
+  if (!user) return jsonResponse({ ok: false, error: 'UNAUTHORIZED' }, 401, corsOrigin);
 
-    const id = incoming.get('idGroup') || incoming.get('idTeacher') || incoming.get('idAudLine') || '';
-    const date = incoming.get('sdate') || '';
-    if (!id || !validateISODate(date)) {
+  // /Rasp — канонический день. День, неделя и месяц идут через один helper,
+  // поэтому у них общий edge-ключ, общий stale-фолбэк и одинаковый контракт.
+  if (targetPath.toLowerCase() === '/rasp') {
+    const scheduleType = incoming.has('idTeacher') ? 'Teacher' : incoming.has('idAudLine') ? 'Aud' : 'Group';
+    const scheduleId = String(incoming.get(scheduleIdParam(scheduleType)) || '').trim();
+    const scheduleDate = String(incoming.get('sdate') || '').trim();
+
+    if (!scheduleId || !validateISODate(scheduleDate)) {
       return jsonResponse({ ok: false, error: 'BAD_REQUEST' }, 400, corsOrigin);
     }
+    if (!takeUserRateSlot(user.id, 'schedule', SCHEDULE_USER_LIMIT)) {
+      return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
+    }
+
+    try {
+      const result = await fetchScheduleDayResult(env, scheduleType, scheduleId, scheduleDate, forceFresh);
+      return makeProxyResponse(result, corsOrigin, getScheduleEdgeTtl(scheduleDate));
+    } catch (e) {
+      await safeLog(env, 'ERROR', `proxy /Rasp ${scheduleType}:${scheduleId}:${scheduleDate}: ${e?.message || e}`);
+      return jsonResponse({ ok: false, error: 'EXTERNAL_API_UNAVAILABLE' }, 502, corsOrigin);
+    }
+  }
+
+  if (!takeUserRateSlot(user.id, 'schedule', SCHEDULE_USER_LIMIT)) {
+    return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
   }
 
   const targetSearch = incoming.toString();
   const cacheKey = `/api${targetPath}${targetSearch ? `?${targetSearch}` : ''}`;
   const edgeKey = new Request(`https://kgeu-cache.invalid${cacheKey}`);
-  const ttl = isScheduleRequest
-    ? getScheduleEdgeTtl(incoming.get('sdate'))
-    : EDGE_TTLS.lists;
+  const ttl = EDGE_TTLS.lists;
 
-  // Edge cache is deliberately checked BEFORE D1. This is the main Free-plan
-  // optimization: normal schedule hits do not touch D1 at all.
   if (!forceFresh) {
     try {
       const cached = await caches.default.match(edgeKey);
@@ -1156,79 +1276,33 @@ async function handleProxy(request, env, ctx, url, subPath, corsOrigin, forceFre
     if (forceFresh) refreshGate.set(cacheKey, Date.now());
   }
 
-  if ((isScheduleRequest || isLegacyScheduleAlias) && !takeUserRateSlot(user.id, 'schedule', SCHEDULE_USER_LIMIT)) {
-    return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
-  }
-
-  // /api/Rasp is the canonical day endpoint. Use the same helper as the
-  // range endpoint so Day / Week / Month share one upstream contract, one edge
-  // cache key and the same stale-D1 fallback behaviour.
-  if (isScheduleRequest) {
-    const scheduleType = incoming.has('idTeacher') ? 'Teacher' : incoming.has('idAudLine') ? 'Aud' : 'Group';
-    const scheduleId = incoming.get(scheduleIdParam(scheduleType)) || '';
-    const scheduleDate = incoming.get('sdate') || '';
-    try {
-      const result = await fetchScheduleDayResult(env, scheduleType, scheduleId, scheduleDate, forceFresh);
-      return makeProxyResponse(result, corsOrigin, getScheduleEdgeTtl(scheduleDate));
-    } catch (e) {
-      await safeLog(env, 'ERROR', `proxy /Rasp ${scheduleType}:${scheduleId}:${scheduleDate}: ${e?.message || e}`);
-      return jsonResponse({ ok: false, error: 'EXTERNAL_API_UNAVAILABLE' }, 502, corsOrigin);
-    }
-  }
-
   const flightKey = `${forceFresh ? 'force' : 'normal'}:${cacheKey}`;
   const existing = proxyInflight.get(flightKey);
-  if (existing) {
-    const result = await existing;
-    return makeProxyResponse(result, corsOrigin, ttl);
-  }
+  if (existing) return makeProxyResponse(await existing, corsOrigin, ttl);
 
   const targetUrl = `${env.KABINET_API}${targetPath}${targetSearch ? `?${targetSearch}` : ''}`;
   const promise = (async () => {
     try {
-      const res = await fetchWithTimeout(targetUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json, text/plain, */*',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Referer': 'https://kabinet.kgeu.ru/'
-        }
-      }, 12000);
-
-      const text = await res.text();
-      const result = {
-        status: res.status,
-        text,
-        contentType: res.headers.get('Content-Type') || 'application/json; charset=utf-8'
-      };
-
-      if (res.ok) {
-        await cachePutText(edgeKey, text, result.contentType, ttl);
-      } else {
-        throw new Error(`HTTP ${res.status}`);
-      }
-
-      return result;
+      // fetchJsonWithTimeout проверяет state/msg API вуза: ответы вида
+      // {"state":-1} больше не считаются успешными и не попадают в кэш.
+      const data = await fetchJsonWithTimeout(targetUrl, { method: 'GET', headers: kgeuHeaders() }, 12000);
+      const text = JSON.stringify(data);
+      await cachePutText(edgeKey, text, 'application/json; charset=utf-8', ttl);
+      return { status: 200, text, contentType: 'application/json; charset=utf-8' };
     } catch (e) {
       console.error('Proxy error:', e);
       await safeLog(env, 'ERROR', `proxy ${targetPath}: ${e?.message || e}`);
-      const stale = await getCache(env, cacheKey);
-      if (stale) {
-        return { status: 200, text: stale, contentType: 'application/json; charset=utf-8', stale: true };
-      }
       return {
         status: 502,
         text: JSON.stringify({ ok: false, error: 'EXTERNAL_API_UNAVAILABLE' }),
-        contentType: 'application/json; charset=utf-8',
-        error: true
+        contentType: 'application/json; charset=utf-8'
       };
     }
   })();
 
   proxyInflight.set(flightKey, promise);
   try {
-    const result = await promise;
-    return makeProxyResponse(result, corsOrigin, ttl);
+    return makeProxyResponse(await promise, corsOrigin, ttl);
   } finally {
     proxyInflight.delete(flightKey);
   }
@@ -1265,10 +1339,16 @@ function cachePutText(cacheKeyRequest, text, contentType, ttlSeconds) {
   }
 }
 
+// Пользователи в Москве (UTC+3): ночью UTC-«сегодня» — это вчерашний день,
+// из-за чего «сегодня» кэшировалось как обычный день на 30 минут.
+function moscowDateStr(offsetDays = 0) {
+  const shifted = Date.now() + offsetDays * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000;
+  return new Date(shifted).toISOString().slice(0, 10);
+}
+
 function getScheduleEdgeTtl(dateStr) {
   if (!dateStr) return EDGE_TTLS.scheduleOther;
-  const today = new Date().toISOString().slice(0, 10);
-  return dateStr === today ? EDGE_TTLS.scheduleToday : EDGE_TTLS.scheduleOther;
+  return dateStr === moscowDateStr() ? EDGE_TTLS.scheduleToday : EDGE_TTLS.scheduleOther;
 }
 
 function validateISODate(value) {
@@ -1289,10 +1369,21 @@ function scheduleIdParam(type) {
 }
 
 
+// API КГЭУ отдаёт расписание всей недели, игнорируя sdate. Поэтому ключ кэша —
+// понедельник этой недели: иначе один и тот же ответ кэшировался 5 раз, а
+// запрос диапазона на 7 дней делал 7 одинаковых обращений к API вуза.
+function weekStartOf(dateStr) {
+  const date = new Date(`${dateStr}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return String(dateStr);
+  const weekday = date.getUTCDay();
+  date.setUTCDate(date.getUTCDate() + (weekday === 0 ? -6 : 1 - weekday));
+  return date.toISOString().slice(0, 10);
+}
+
 function buildScheduleDayCacheKey(type, id, dateStr) {
   const params = new URLSearchParams();
   params.set(scheduleIdParam(type), String(id));
-  params.set('sdate', String(dateStr));
+  params.set('sdate', weekStartOf(dateStr));
   return `/api/Rasp?${params.toString()}`;
 }
 
@@ -1345,6 +1436,10 @@ async function fetchScheduleDayResult(env, type, id, dateStr, forceFresh = false
 
       const text = await res.text();
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const parsed = safeJsonParse(text);
+      if (!parsed) throw new Error('NON_JSON_SCHEDULE');
+      assertKgeuPayload(parsed, targetUrl);
 
       const contentType = res.headers.get('Content-Type') || 'application/json; charset=utf-8';
       await cachePutText(edgeKey, text, contentType, ttl);
@@ -1600,7 +1695,10 @@ async function handleUserSync(request, env, corsOrigin) {
       .first()
       .catch(() => null);
 
-    return jsonResponse(row || {}, 200, corsOrigin);
+    return jsonResponse({
+      ...(row || {}),
+      isAdmin: getAdminIds(env).has(Number(user.id))
+    }, 200, corsOrigin);
   }
 
   if (request.method === 'POST') {
@@ -1609,61 +1707,43 @@ async function handleUserSync(request, env, corsOrigin) {
     }
     try {
       const body = await request.json();
-      const settings = body?.settings || {};
+      const settings = body?.settings;
+      if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+        return jsonResponse({ ok: false, error: 'BAD_REQUEST' }, 400, corsOrigin);
+      }
+
+      // Частичное обновление: клиент присылает только изменённые поля, и
+      // отсутствующие настройки больше не затираются значениями по умолчанию.
+      const columns = [
+        ['username', user.username || '', 100],
+        ['first_name', user.first_name || '', 120],
+        ['last_name', user.last_name || '', 120],
+        ['selected_id', settings.selected_id, 100],
+        ['selected_name', settings.selected_name, 200],
+        ['selected_type', settings.selected_type, 20],
+        ['theme', settings.theme, 80],
+        ['subgroup', settings.subgroup, 10],
+        ['favorites_json', settings.favorites_json, 30000],
+        ['selections_json', settings.selections_json, 10000]
+      ].filter(([, value]) => value !== undefined && value !== null);
+
+      // Строка должна существовать, чтобы UPDATE не потерял остальные поля.
+      await env.DB.prepare(
+        `INSERT INTO app_users (telegram_id, updated_at) VALUES (?, CURRENT_TIMESTAMP)
+         ON CONFLICT(telegram_id) DO NOTHING`
+      ).bind(user.id).run();
+
+      const assignments = [];
+      const values = [];
+      for (const [column, value, maxLength] of columns) {
+        assignments.push(`${column} = ?`);
+        values.push(String(value).slice(0, maxLength));
+      }
+      assignments.push('updated_at = CURRENT_TIMESTAMP');
 
       await env.DB.prepare(
-        `INSERT INTO app_users (
-          telegram_id,
-          username,
-          first_name,
-          last_name,
-          selected_id,
-          selected_name,
-          selected_type,
-          theme,
-          subgroup,
-          favorites_json,
-          selections_json,
-          banned,
-          updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
-        ON CONFLICT(telegram_id) DO UPDATE SET
-          username = excluded.username,
-          first_name = excluded.first_name,
-          last_name = excluded.last_name,
-          selected_id = excluded.selected_id,
-          selected_name = excluded.selected_name,
-          selected_type = excluded.selected_type,
-          theme = excluded.theme,
-          subgroup = excluded.subgroup,
-          favorites_json = excluded.favorites_json,
-          selections_json = excluded.selections_json,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE username IS NOT excluded.username
-           OR first_name IS NOT excluded.first_name
-           OR last_name IS NOT excluded.last_name
-           OR selected_id IS NOT excluded.selected_id
-           OR selected_name IS NOT excluded.selected_name
-           OR selected_type IS NOT excluded.selected_type
-           OR theme IS NOT excluded.theme
-           OR subgroup IS NOT excluded.subgroup
-           OR favorites_json IS NOT excluded.favorites_json
-           OR selections_json IS NOT excluded.selections_json`
-      )
-        .bind(
-          user.id,
-          user.username || '',
-          user.first_name || '',
-          user.last_name || '',
-          String(settings.selected_id || '').slice(0, 100),
-          String(settings.selected_name || '').slice(0, 200),
-          String(settings.selected_type || 'Group').slice(0, 20),
-          String(settings.theme || 'theme-purple').slice(0, 80),
-          String(settings.subgroup || '0').slice(0, 10),
-          String(settings.favorites_json || '[]').slice(0, 30000),
-          String(settings.selections_json || '{}').slice(0, 10000)
-        )
-        .run();
+        `UPDATE app_users SET ${assignments.join(', ')} WHERE telegram_id = ?`
+      ).bind(...values, user.id).run();
 
       return jsonResponse({ ok: true }, 200, corsOrigin);
     } catch (e) {
@@ -1710,7 +1790,7 @@ async function handleTasks(request, env, url, corsOrigin) {
       const lessonTime = String(body.lesson_time || '').slice(0, 50);
       const lessonRoom = String(body.lesson_room || '').slice(0, 100);
       const lessonSubgroup = String(body.lesson_subgroup || '0').slice(0, 10);
-      const noteType = 'note';
+      const noteType = String(body.note_type || 'note').slice(0, 20) || 'note';
 
       if (!taskText.trim()) {
         return jsonResponse({ ok: false, error: 'EMPTY_TASK' }, 400, corsOrigin);
@@ -1851,7 +1931,7 @@ async function handleReminders(request, env, url, corsOrigin) {
       const lessonStartAt = Number(body.lesson_start_at || 0);
       const leadMinutes = Number(body.lead_minutes ?? 15);
       const message = String(body.message || '').slice(0, 500);
-      const reminderKey = String(body.reminder_key || '').slice(0, 500);
+      const reminderKeyRaw = String(body.reminder_key || '').slice(0, 500);
 
       if (!Number.isFinite(clientRemindAt) || clientRemindAt <= 0 || !message.trim()) {
         return jsonResponse({ ok: false, error: 'BAD_REQUEST' }, 400, corsOrigin);
@@ -1867,9 +1947,10 @@ async function handleReminders(request, env, url, corsOrigin) {
         return jsonResponse({ ok: false, error: 'LESSON_ALREADY_STARTED' }, 400, corsOrigin);
       }
 
-      // The authoritative reminder timestamp is calculated server-side from the
-      // lesson start and the selected 5-minute lead time.
-      const remindAt = Math.round(lessonStartAt - leadMinutes * 60 * 1000);
+      // Авторитетная метка считается на сервере из начала пары и выбранного
+      // (кратного 5 минутам) времени.
+      const lessonStartRounded = Math.round(lessonStartAt);
+      const remindAt = Math.round(lessonStartRounded - leadMinutes * 60 * 1000);
       if (!Number.isFinite(remindAt) || remindAt <= 0 || remindAt < nowMs - 60 * 1000) {
         return jsonResponse({ ok: false, error: 'REMINDER_IN_PAST' }, 400, corsOrigin);
       }
@@ -1880,8 +1961,19 @@ async function handleReminders(request, env, url, corsOrigin) {
         return jsonResponse({ ok: false, error: 'REMINDER_TOO_FAR' }, 400, corsOrigin);
       }
 
-      // Atomic duplicate protection: check + insert is one SQLite statement,
-      // so simultaneous taps cannot create duplicate pending reminders.
+      // Пустой ключ раньше означал «только одно напоминание на пользователя».
+      // Теперь ключом становится начало пары, чтобы напоминания не схлопывались.
+      const reminderKey = reminderKeyRaw || `lesson:${lessonStartRounded}`;
+
+      // Одна пара — одно напоминание: при смене «за N минут» старое заменяется,
+      // иначе пользователь получал два уведомления на одну пару.
+      await env.DB.prepare(
+        `DELETE FROM reminders
+         WHERE telegram_id = ? AND sent = 0
+           AND lesson_start_at = ? AND reminder_key <> ?`
+      ).bind(user.id, lessonStartRounded, reminderKey).run().catch(() => {});
+
+      // Атомарная защита от дублей: проверка и вставка — один SQL-оператор.
       const insert = await env.DB.prepare(
         `INSERT INTO reminders (
           telegram_id, remind_at, message, sent, attempts,
@@ -1893,9 +1985,8 @@ async function handleReminders(request, env, url, corsOrigin) {
           WHERE telegram_id = ? AND reminder_key = ? AND sent = 0
         )`
       ).bind(
-        user.id, Math.round(remindAt), message,
-        lessonStartAt ? Math.round(lessonStartAt) : 0,
-        leadMinutes, reminderKey, user.id, reminderKey
+        user.id, remindAt, message,
+        lessonStartRounded, leadMinutes, reminderKey, user.id, reminderKey
       ).run();
 
       const changes = Number(insert?.meta?.changes ?? insert?.changes ?? 0);
@@ -2013,8 +2104,71 @@ async function mapServerWithConcurrency(items, limit, workerFn) {
   return results;
 }
 
+const BROADCAST_FILL_CHUNK = 200;
+
+// D1 не даёт вставить тысячи строк в одном invocation, поэтому очередь
+// наполняется порциями (200 за тик крона), а не обрезается лимитом.
+async function fillBroadcastQueue(env, jobId, total, limit = BROADCAST_FILL_CHUNK) {
+  const limitNum = Math.max(1, Number(limit) || BROADCAST_FILL_CHUNK);
+  const totalNum = Math.max(0, Number(total) || 0);
+  if (!jobId || !totalNum) return 0;
+
+  const queuedRow = await env.DB.prepare(
+    `SELECT COUNT(*) AS c FROM broadcast_queue WHERE job_id = ?`
+  ).bind(jobId).first().catch(() => null);
+  let queued = Number(queuedRow?.c || 0);
+
+  let inserted = 0;
+  while (queued < totalNum && inserted < limitNum) {
+    const batchSize = Math.min(100, totalNum - queued, limitNum - inserted);
+    const page = await env.DB.prepare(
+      `SELECT telegram_id FROM app_users
+       WHERE IFNULL(banned, 0) = 0 AND updated_at >= datetime('now', '-30 days')
+       ORDER BY telegram_id ASC
+       LIMIT ? OFFSET ?`
+    ).bind(batchSize, queued).all().catch(() => ({ results: [] }));
+
+    const recipients = page.results || [];
+    if (!recipients.length) break;
+
+    const statements = recipients.map(row =>
+      env.DB.prepare(`INSERT INTO broadcast_queue (job_id, telegram_id) VALUES (?, ?)`)
+        .bind(jobId, row.telegram_id)
+    );
+    await env.DB.batch(statements);
+
+    queued += recipients.length;
+    inserted += recipients.length;
+    if (recipients.length < batchSize) break;
+  }
+
+  return queued;
+}
+
+async function refillBroadcastQueues(env) {
+  const jobs = await env.DB.prepare(
+    `SELECT id, total FROM broadcast_jobs
+     WHERE status IN ('queued', 'sending') AND finished_at IS NULL
+     ORDER BY id ASC LIMIT 5`
+  ).all().catch(() => ({ results: [] }));
+
+  for (const job of jobs.results || []) {
+    const total = Number(job.total || 0);
+    if (!total) continue;
+    const queued = await fillBroadcastQueue(env, job.id, total).catch(() => 0);
+    if (queued > 0) {
+      await env.DB.prepare(
+        `UPDATE broadcast_jobs SET status = 'sending' WHERE id = ? AND status = 'queued'`
+      ).bind(job.id).run().catch(() => {});
+    }
+  }
+}
+
 async function processBroadcastQueue(env) {
   try {
+    // Сначала догоняем очередь текущих рассылок, потом отправляем.
+    await refillBroadcastQueues(env);
+
     const rowsResult = await env.DB.prepare(
       `SELECT q.id, q.job_id, q.telegram_id, q.attempts, j.message
        FROM broadcast_queue q
@@ -2030,7 +2184,12 @@ async function processBroadcastQueue(env) {
     const botToken = getBotToken(env);
     if (!rows.length || !botToken) return;
 
-    await env.DB.prepare(`UPDATE broadcast_jobs SET status = 'sending' WHERE id = ?`).bind(rows[0].job_id).run().catch(() => {});
+    const activeJobIds = [...new Set(rows.map(row => row.job_id))];
+    for (const jobId of activeJobIds) {
+      await env.DB.prepare(
+        `UPDATE broadcast_jobs SET status = 'sending' WHERE id = ? AND status = 'queued'`
+      ).bind(jobId).run().catch(() => {});
+    }
 
     const results = await mapServerWithConcurrency(rows, 5, async row => {
       const ok = await sendTelegramMessage(botToken, row.telegram_id, row.message);
@@ -2220,18 +2379,13 @@ async function handleAdmin(request, env, subPath, corsOrigin) {
         return jsonResponse({ ok: false, message: 'Пустое сообщение' }, 400, corsOrigin);
       }
 
-      const users = await env.DB.prepare(
-        `SELECT telegram_id
-         FROM app_users
-         WHERE banned = 0 AND updated_at >= datetime('now', '-30 days')
-         ORDER BY telegram_id ASC
-         LIMIT 1000`
-      )
-        .all()
-        .catch(() => ({ results: [] }));
+      const countRow = await env.DB.prepare(
+        `SELECT COUNT(*) AS c FROM app_users
+         WHERE IFNULL(banned, 0) = 0 AND updated_at >= datetime('now', '-30 days')`
+      ).first().catch(() => null);
+      const total = Number(countRow?.c || 0);
 
-      const recipients = users.results || [];
-      if (!recipients.length) {
+      if (!total) {
         return jsonResponse({ ok: true, message: 'Нет активных пользователей для рассылки' }, 200, corsOrigin);
       }
 
@@ -2239,7 +2393,7 @@ async function handleAdmin(request, env, subPath, corsOrigin) {
         `INSERT INTO broadcast_jobs (admin_id, message, total, status)
          VALUES (?, ?, ?, 'queued')`
       )
-        .bind(admin.id, message, recipients.length)
+        .bind(admin.id, message, total)
         .run();
 
       const jobId = Number(job?.meta?.last_row_id || job?.lastRowId || 0);
@@ -2247,23 +2401,18 @@ async function handleAdmin(request, env, subPath, corsOrigin) {
         return jsonResponse({ ok: false, message: 'Не удалось создать задачу рассылки' }, 500, corsOrigin);
       }
 
-      for (let i = 0; i < recipients.length; i += 100) {
-        const chunk = recipients.slice(i, i + 100);
-        const statements = chunk.map(row =>
-          env.DB.prepare(
-            `INSERT INTO broadcast_queue (job_id, telegram_id) VALUES (?, ?)`
-          ).bind(jobId, row.telegram_id)
-        );
-        await env.DB.batch(statements);
-      }
+      // Первую порцию ставим сразу, остальное догоняет крон: раньше LIMIT 1000
+      // молча отрезал всех, кто не влез в лимит.
+      const queued = await fillBroadcastQueue(env, jobId, total).catch(() => 0);
 
-      await logAdmin(env, admin.id, 'broadcast_queued', { jobId, total: recipients.length, length: message.length });
+      await logAdmin(env, admin.id, 'broadcast_queued', { jobId, total, queued, length: message.length });
 
       return jsonResponse({
         ok: true,
-        message: `Рассылка поставлена в очередь: ${recipients.length} пользователей. Отправка продолжится автоматически.`,
+        message: `Рассылка создана: ${total} получателей, в очереди ${queued}. Остальные добавятся автоматически.`,
         jobId,
-        total: recipients.length
+        total,
+        queued
       }, 200, corsOrigin);
     }
   }
@@ -2392,6 +2541,7 @@ async function ensureSchema(env) {
     `CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders(sent, remind_at)`,
     `CREATE INDEX IF NOT EXISTS idx_reminders_key ON reminders(telegram_id, reminder_key, sent)`,
     `CREATE INDEX IF NOT EXISTS idx_reminders_user ON reminders(telegram_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_reminders_lesson ON reminders(telegram_id, sent, lesson_start_at)`,
     `CREATE INDEX IF NOT EXISTS idx_app_users_updated ON app_users(updated_at)`,
     `CREATE INDEX IF NOT EXISTS idx_app_users_selected ON app_users(selected_type, selected_name)`,
     `CREATE INDEX IF NOT EXISTS idx_cache_updated ON schedule_cache(updated_at)`,

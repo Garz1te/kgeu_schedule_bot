@@ -467,7 +467,9 @@
             margin-bottom: 6px;
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
             gap: 6px;
+            min-width: 0;
         }
 
         .lesson-subgroup-badge {
@@ -1086,7 +1088,11 @@
             font-size: 11px;
             font-weight: 800;
             margin-left: auto;
-            white-space: nowrap;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            flex: 0 1 auto;
+            max-width: 100%;
+            text-align: center;
         }
 
         .lesson-next-badge {
@@ -1743,14 +1749,28 @@ function getLocalTelegramId() {
     }
 }
 
+// Список админов живёт в секрете воркера: клиент узнаёт флаг из /api/user/sync.
+let cloudAdminFlag = false;
+
 function isLocalAdmin() {
     const id = Number(getLocalTelegramId());
-    return ADMIN_IDS.includes(id);
+    if (ADMIN_IDS.includes(id)) return true;
+    return cloudAdminFlag === true;
 }
 
 // =====================================================
 // API helper
 // =====================================================
+
+function describeApiError(error) {
+    const message = String(error?.message || '');
+    if (message === 'TELEGRAM_AUTH_401') return 'Сессия Telegram устарела. Закрой мини-приложение и открой его снова.';
+    if (message === 'RATE_LIMITED') return 'Слишком много запросов. Подожди минуту и обнови.';
+    if (message === 'EXTERNAL_API_UNAVAILABLE') return 'API вуза не отвечает. Попробуй позже.';
+    if (/^HTTP 5/.test(message)) return 'Сервер расписания недоступен. Попробуй позже.';
+    if (/^HTTP 4/.test(message)) return 'Запрос отклонён сервером. Обнови данные.';
+    return message || 'Попробуйте обновить данные.';
+}
 
 async function apiFetch(path, options = {}) {
     const headers = {
@@ -1773,9 +1793,13 @@ async function apiFetch(path, options = {}) {
         data = await res.json();
     } catch (e) {}
 
-    if (!res.ok) {
-        if (res.status === 401) throw new Error('TELEGRAM_AUTH_401');
-        throw new Error(data?.error || `HTTP ${res.status}`);
+    if (res.status === 401) throw new Error('TELEGRAM_AUTH_401');
+    if (!res.ok) throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+
+    // Воркер умеет отвечать 200 с {ok:false, error}: раньше это считалось успехом
+    // и ошибки молча проглатывались.
+    if (data && typeof data === 'object' && !Array.isArray(data) && data.ok === false) {
+        throw new Error(data.error || data.message || 'REQUEST_FAILED');
     }
 
     return data;
@@ -1912,28 +1936,76 @@ function minutesToTime(minutes) {
 // UI core
 // =====================================================
 
+// Таймеры скрытия модалок. Раньше closeModals() ставил display:none через
+// 300 мс всем модалкам без исключений, поэтому «быстрое» открытие следующей
+// модалки (диагностика → админка) через 60 мс тут же гасилось старым таймером.
+const modalHideTimers = new Map();
+let modalZIndex = 1000;
+
+function modalBackButton() {
+    try {
+        return window.Telegram?.WebApp?.BackButton || null;
+    } catch (e) {
+        return null;
+    }
+}
+
 function openModal(id) {
     const modal = document.getElementById(id);
     if (!modal) return;
 
+    // Отменяем отложенное скрытие именно этой модалки.
+    const pending = modalHideTimers.get(id);
+    if (pending) {
+        clearTimeout(pending);
+        modalHideTimers.delete(id);
+    }
+
+    // Последняя открытая модалка всегда сверху: иначе админ-панель,
+    // объявленная ниже в разметке, перекрывает диагностику.
+    modalZIndex += 1;
+    modal.style.zIndex = String(modalZIndex);
     modal.style.display = 'block';
     document.body.classList.add('modal-open');
 
-    setTimeout(() => modal.classList.add('show'), 10);
+    requestAnimationFrame(() => {
+        if (modal.style.display === 'none') return;
+        modal.classList.add('show');
+    });
+
+    const back = modalBackButton();
+    if (back) {
+        try { back.show(); } catch (e) {}
+    }
 }
 
 function closeModals() {
     document.querySelectorAll('.modal').forEach(modal => {
         modal.classList.remove('show');
-        setTimeout(() => {
+        const id = modal.id || '';
+        const existing = modalHideTimers.get(id);
+        if (existing) clearTimeout(existing);
+
+        const timer = setTimeout(() => {
+            modalHideTimers.delete(id);
+            // Если за эти 300 мс модалку открыли снова — не скрываем её.
+            if (modal.classList.contains('show')) return;
+            if (modal.style.display === 'none') return;
             modal.style.display = 'none';
         }, 300);
+
+        if (id) modalHideTimers.set(id, timer);
     });
 
     document.body.classList.remove('modal-open');
 
     const dropdown = document.getElementById('autocomplete-dropdown');
     if (dropdown) dropdown.classList.remove('active');
+
+    const back = modalBackButton();
+    if (back) {
+        try { back.hide(); } catch (e) {}
+    }
 }
 
 function setupModals() {
@@ -2119,7 +2191,7 @@ function toggleFavorite() {
     favorites = normalized;
     renderFavorites();
     document.getElementById('star-btn').innerText = isFavorite() ? '★' : '☆';
-    safeSetStorage('kgeu_favorites', JSON.stringify(favorites));
+    safeSetStorage(getUserScopedStorageKey('favorites'), JSON.stringify(favorites));
     syncCloud();
 }
 
@@ -2138,7 +2210,7 @@ function renderFavorites() {
             ${esc(f.name)}
         </div>
     `).join('');
-    safeSetStorage('kgeu_favorites', JSON.stringify(favorites));
+    safeSetStorage(getUserScopedStorageKey('favorites'), JSON.stringify(favorites));
     if (typeof updateFavoritesScrollIndicator === 'function') updateFavoritesScrollIndicator();
 }
 
@@ -2368,7 +2440,12 @@ function changeDate(direction) {
     } else if (currentTab === 'week') {
         currentDate.setDate(currentDate.getDate() + direction * 7);
     } else {
+        // 31 января + 1 месяц раньше давало 3 марта: день месяца фиксируем.
+        const day = currentDate.getDate();
+        currentDate.setDate(1);
         currentDate.setMonth(currentDate.getMonth() + direction);
+        const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+        currentDate.setDate(Math.min(day, daysInMonth));
     }
 
     navigateView(loadCurrent);
@@ -2422,9 +2499,11 @@ async function loadCurrent(requestId, signal) {
     }
 }
 
-function forceRefreshCurrentView() {
+function forceRefreshCurrentView(force = false) {
     const now = Date.now();
-    if (now - lastForcedRefreshAt < 15 * 1000) return;
+    // Смена подгруппы и кнопка «Обновить» должны срабатывать сразу, а не
+    // гаснуть в 15-секундном троттлинге от предыдущего обновления.
+    if (!force && now - lastForcedRefreshAt < 15 * 1000) return;
 
     lastForcedRefreshAt = now;
     const btn = document.querySelector('.quick-action-refresh');
@@ -2487,7 +2566,10 @@ async function mapWithConcurrency(items, limit, workerFn) {
 
 function getApiIdentifier(mode = currentMode) {
     const resolved = resolveListItem(mode, currentName, currentId);
-    return resolved?.id || currentId || currentName;
+    const id = String(resolved?.id ?? currentId ?? '').trim();
+    // API вуза принимает только числовые id. Раньше при незагруженных списках
+    // сюда попадало имя группы и вместо ошибки показывалось пустое расписание.
+    return /^\d+$/.test(id) ? id : '';
 }
 
 function buildScheduleQuery(mode, id) {
@@ -3361,7 +3443,7 @@ function addWindowsToLessons(lessons) {
         if (i < items.length - 1) {
             const gap = items[i+1].time.start - items[i].time.end;
             if (gap > 30) {
-                result.push({ isWindow:true, title:'☕ Перерыв', time:`${minutesToTime(items[i].time.end)} - ${minutesToTime(items[i+1].time.start)}`, duration:`${gap} мин` });
+                result.push({ isWindow:true, title:'☕ Перерыв', time:`${minutesToTime(items[i].time.end)} - ${minutesToTime(items[i+1].time.start)}`, duration:formatRelativeMinutes(gap) });
             }
         }
     }
@@ -3426,22 +3508,9 @@ function getLessonLiveInfo(l, lessonDateStr, isNextLesson = false) {
     const t = parseTimeRange(extractLessonTime(l));
     if (!t) return '';
     const nowMin = new Date().getHours()*60 + new Date().getMinutes();
-    if (nowMin >= t.start && nowMin < t.end) return `<span class="lesson-live-badge">ИДЕТ ПАРА · до конца ${formatRelativeMinutes(t.end-nowMin)}</span>`;
+    if (nowMin >= t.start && nowMin < t.end) return `<span class="lesson-live-badge">ИДЁТ ПАРА · до конца ${formatRelativeMinutes(t.end-nowMin)}</span>`;
     if (isNextLesson && t.start > nowMin) return `<span class="lesson-live-badge lesson-next-badge">через ${formatRelativeMinutes(t.start-nowMin)}</span>`;
     return '';
-}
-
-function renderLiveStatusBar(lessons, dateStr) {
-    if (dateStr !== formatDate(new Date())) return '';
-    const real = (lessons || []).filter(l => !l?.isWindow);
-    const nowMin = new Date().getHours()*60 + new Date().getMinutes();
-    const current = real.find(l => { const t=parseTimeRange(extractLessonTime(l)); return t && nowMin>=t.start && nowMin<t.end; });
-    const next = real.map(l=>({lesson:l,time:parseTimeRange(extractLessonTime(l))})).filter(x=>x.time && x.time.start>nowMin).sort((a,b)=>a.time.start-b.time.start)[0]?.lesson || null;
-    if (!current && !next) return '';
-    const rows=[];
-    if (current) { const t=parseTimeRange(extractLessonTime(current)); rows.push(`<div class="live-status-row"><span>🟢 <b>Сейчас:</b> ${esc(extractLessonTitle(current))}</span><span>До конца ${formatRelativeMinutes(t.end-nowMin)}</span></div>`); }
-    if (next) { const t=parseTimeRange(extractLessonTime(next)); rows.push(`<div class="live-status-row"><span>➡️ <b>Следующая:</b> ${esc(extractLessonTitle(next))}</span><span>${esc(extractLessonTime(next))} · через ${formatRelativeMinutes(t.start-nowMin)}</span></div>`); }
-    return `<div class="live-status-card">${rows.join('')}</div>`;
 }
 
 function buildLessonNoteKey(dateStr, title, timeStr, room, subgroup = 0) {
@@ -3500,12 +3569,145 @@ function renderLessonHtml(l, lessonDateStr = '', isNextLesson = false, sourceLab
 function renderLessons(rawLessons, container, dateStr) {
     const lessons = prepareLessonsForDisplay(rawLessons || [], dateStr);
     if (!lessons.length) {
-        container.innerHTML = renderLiveStatusBar([], dateStr) + '<div class="loading">🎉 На этот день пар нет!</div>';
+        container.innerHTML = '<div class="loading">🎉 На этот день пар нет!</div>';
         return;
     }
     const withBreaks = addWindowsToLessons(lessons);
     const nextLesson = getNextLessonForToday(withBreaks,dateStr);
-    container.innerHTML = renderLiveStatusBar(withBreaks,dateStr) + withBreaks.map(l=>renderLessonHtml(l,dateStr,l===nextLesson)).join('');
+    container.innerHTML = withBreaks.map(l=>renderLessonHtml(l,dateStr,l===nextLesson)).join('');
+}
+
+// =====================================================
+// Полный список групп пары
+// =====================================================
+// API КГЭУ отдаёт по одной строке на группу, поэтому при поиске по группе в
+// карточке видна только она одна. Расписание преподавателя содержит ту же пару
+// с полным списком групп ("М-1-25, М-2-25") — используем его как источник.
+// Ответы кэшируются на edge, поэтому догрузка почти ничего не стоит.
+
+const teacherDayGroupsCache = new Map();
+const TEACHER_GROUPS_MAX_AGE_MS = 30 * 60 * 1000;
+
+function lessonGroupsMatchKey(timeStr, title, room) {
+    const time = parseTimeRange(timeStr);
+    return [
+        time ? `${time.start}-${time.end}` : String(timeStr || '').trim().toLowerCase(),
+        String(title || '').trim().toLowerCase(),
+        String(room || '').trim().toLowerCase()
+    ].join('|');
+}
+
+async function fetchTeacherDayGroups(teacherId, dateStr) {
+    const cacheKey = `${teacherId}|${dateStr}`;
+    const cached = teacherDayGroupsCache.get(cacheKey);
+    if (cached && Date.now() - cached.at < TEACHER_GROUPS_MAX_AGE_MS && cached.promise) {
+        return cached.promise;
+    }
+
+    if (!getInitData()) return null;
+
+    const promise = (async () => {
+        const url = `${WORKER_URL}/api/Rasp?idTeacher=${encodeURIComponent(teacherId)}&sdate=${encodeURIComponent(dateStr)}`;
+        const res = await fetch(url, { headers: { 'X-Telegram-Init-Data': getInitData() } });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const lessons = extractLessonsFromAPIResponse(data, dateStr, { date: dateStr });
+
+        const rows = new Map();
+        for (const lesson of filterLessonsByDate(lessons, dateStr)) {
+            const groups = extractLessonGroups(lesson);
+            if (groups.length < 2) continue;
+            const key = lessonGroupsMatchKey(extractLessonTime(lesson), extractLessonTitle(lesson), extractLessonRoom(lesson));
+            const existing = rows.get(key);
+            rows.set(key, existing ? dedupeGroups([...existing, ...groups]) : groups);
+        }
+        return rows;
+    })();
+
+    teacherDayGroupsCache.set(cacheKey, { at: Date.now(), promise });
+    try {
+        return await promise;
+    } catch (e) {
+        teacherDayGroupsCache.delete(cacheKey);
+        return null;
+    }
+}
+
+// dayLessons: { 'YYYY-MM-DD': [raw lessons] }. budget ограничивает число
+// дополнительных запросов, чтобы не упираться в рейт-лимит воркера.
+async function enrichLessonGroups(dayLessons, budget = 8) {
+    const plan = [];
+    const seen = new Set();
+
+    for (const [dateStr, lessons] of Object.entries(dayLessons || {})) {
+        if (!Array.isArray(lessons)) continue;
+        for (const lesson of lessons) {
+            const teacherId = String(extractLessonTeacherId(lesson) || '').trim();
+            if (!teacherId) continue;
+            const key = `${teacherId}|${dateStr}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            plan.push({ teacherId, dateStr, key });
+            if (plan.length >= budget) break;
+        }
+        if (plan.length >= budget) break;
+    }
+
+    if (!plan.length) return false;
+
+    const loaded = new Map();
+    await mapWithConcurrency(plan, 3, async item => {
+        const rows = await fetchTeacherDayGroups(item.teacherId, item.dateStr);
+        if (rows && rows.size) loaded.set(item.key, rows);
+    });
+
+    if (!loaded.size) return false;
+
+    let changed = false;
+    for (const [dateStr, lessons] of Object.entries(dayLessons || {})) {
+        if (!Array.isArray(lessons)) continue;
+        for (const lesson of lessons) {
+            const teacherId = String(extractLessonTeacherId(lesson) || '').trim();
+            const rows = loaded.get(`${teacherId}|${dateStr}`);
+            if (!rows) continue;
+
+            const key = lessonGroupsMatchKey(extractLessonTime(lesson), extractLessonTitle(lesson), extractLessonRoom(lesson));
+            const fullGroups = rows.get(key);
+            if (!fullGroups || fullGroups.length < 2) continue;
+
+            const own = extractLessonGroups(lesson);
+            const merged = dedupeGroups([...own, ...fullGroups]);
+            if (merged.length > own.length) {
+                lesson.__kgeuGroups = merged;
+                changed = true;
+            }
+        }
+    }
+    return changed;
+}
+
+async function enrichGroupsAndRerender(rawLessons, dateStr, container, cacheKey) {
+    const requestId = viewRequestId;
+    try {
+        const changed = await enrichLessonGroups({ [dateStr]: rawLessons }, 8);
+        if (!changed) return;
+        if (requestId !== viewRequestId) return;
+        if (currentTab !== 'day' || formatDate(currentDate) !== dateStr) return;
+
+        const clean = prepareLessonsForDisplay(rawLessons, dateStr);
+        dayLessonsCache[cacheKey] = clean;
+        dayLessonsCacheAt[cacheKey] = Date.now();
+        renderLessons(clean, container, dateStr);
+    } catch (e) {}
+}
+
+async function enrichWeekGroupsAndRerender(rawWeek, container) {
+    const requestId = viewRequestId;
+    try {
+        const changed = await enrichLessonGroups(rawWeek, 12);
+        if (!changed || requestId !== viewRequestId || currentTab !== 'week') return;
+        renderWeekSchedule(rawWeek, container);
+    } catch (e) {}
 }
 
 function createAbortError() {
@@ -3641,21 +3843,22 @@ async function fetchScheduleRange(mode, id, startDate, days, signal) {
                 duration: Math.round(performance.now() - started),
                 at: Date.now()
             };
+            // 401 нельзя лечить повторными запросами: каскад из 7 (а для месяца —
+            // из 31) запросов только выбивал рейт-лимит воркера.
+            if (res.status === 401) throw new Error('TELEGRAM_AUTH_401');
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
-            if (!data?.ok && data?.error) throw new Error(data.error);
+            if (data && data.ok === false) throw new Error(data.error || 'RANGE_ERROR');
 
             const rawDays = data?.data && typeof data.data === 'object' ? data.data : {};
+            const serverErrors = data?.errors && typeof data.errors === 'object' ? data.errors : {};
             const normalized = {};
             for (const [dayKey, dayPayload] of Object.entries(rawDays)) {
                 normalized[dayKey] = extractLessonsFromAPIResponse(dayPayload, dayKey, { date: dayKey });
             }
 
-            // Defensive parity fallback: if the range endpoint is unavailable or
-            // returns only some days, fetch the missing days through the same /api/Rasp
-            // path used by the Day view. This keeps the proven server↔frontend contract
-            // intact without multiplying requests on healthy range responses.
-            const missingDates = dates.filter(d => !(d in normalized));
+            // Дни, про которые воркер уже сказал «не удалось», повторно не тянем.
+            const missingDates = dates.filter(d => !(d in normalized) && !(d in serverErrors));
             if (missingDates.length) {
                 const direct = await mapWithConcurrency(missingDates, 3, async d => {
                     try {
@@ -3670,15 +3873,20 @@ async function fetchScheduleRange(mode, id, startDate, days, signal) {
                 });
             }
 
-            lastApiError = null;
+            if (Object.keys(serverErrors).length) {
+                lastApiError = 'Часть дней не удалось загрузить: API вуза не ответил.';
+            } else {
+                lastApiError = null;
+            }
             return normalized;
         } catch (e) {
             rangeError = e;
             if (e?.name === 'AbortError') throw e;
-            lastApiError = `${startDate}: ${e?.message || 'ошибка запроса диапазона'}`;
+            if (e?.message === 'TELEGRAM_AUTH_401') throw e;
+            lastApiError = `${startDate}: ${describeApiError(e)}`;
         }
 
-        // Full fallback: when range itself fails, reuse the stable single-day endpoint.
+        // Полный фолбэк: диапазон не ответил — пробуем по одному дню.
         const direct = await mapWithConcurrency(dates, 3, async d => {
             try {
                 const lessons = await fetchScheduleForDate(buildScheduleQuery(mode, id), d, null, 1);
@@ -3697,7 +3905,7 @@ async function fetchScheduleRange(mode, id, startDate, days, signal) {
 
     if (!force) scheduleInflight.set(key, work);
     try {
-        return await awaitWithAbort(work, signal);
+        return awaitWithAbort(work, signal);
     } finally {
         if (!force) scheduleInflight.delete(key);
     }
@@ -3709,7 +3917,10 @@ async function loadSchedule(requestId=viewRequestId, signal=activeRequestControl
     const dateLabel=document.getElementById('date-label');
     const dateStr=formatDate(currentDate);
     const identifier=getApiIdentifier();
-    if(!identifier) return;
+    if(!identifier){
+        renderErrorState(container,'Не удалось определить объект расписания','Списки групп, преподавателей и аудиторий не загрузились. Обнови страницу или проверь связь.');
+        return;
+    }
     document.getElementById('global-search-input').value='';
     updateTodayButtonVisibility();
 
@@ -3717,7 +3928,9 @@ async function loadSchedule(requestId=viewRequestId, signal=activeRequestControl
         dateLabel.innerText=formatDisplayDate(currentDate);
         const cacheKey=`${currentMode}_${identifier}_${userSubgroup}_${dateStr}`;
         if(!forceNetworkRefresh && dayLessonsCache[cacheKey] && cacheFresh(dayLessonsCacheAt[cacheKey],getDayCacheTTL(dateStr))){
-            renderLessons(dayLessonsCache[cacheKey],container,dateStr); return;
+            renderLessons(dayLessonsCache[cacheKey],container,dateStr);
+            enrichGroupsAndRerender(dayLessonsCache[cacheKey],dateStr,container,cacheKey);
+            return;
         }
         // На refresh допускаем показ предыдущих данных во время обновления, но поверх них
         // всегда будет установлен свежий ответ или ошибка.
@@ -3727,7 +3940,9 @@ async function loadSchedule(requestId=viewRequestId, signal=activeRequestControl
             const clean=prepareLessonsForDisplay(raw,dateStr);
             dayLessonsCache[cacheKey]=clean; dayLessonsCacheAt[cacheKey]=Date.now();
             renderLessons(clean,container,dateStr); forceNetworkRefresh=false;
-        }catch(e){if(e.name==='AbortError')return; renderErrorState(container,'Не удалось загрузить расписание.',lastApiError);}
+            // Полный список групп пары догружается в фоне (см. enrichLessonGroups).
+            enrichGroupsAndRerender(raw,dateStr,container,cacheKey);
+        }catch(e){if(e.name==='AbortError')return; renderErrorState(container,'Не удалось загрузить расписание.',describeApiError(e));}
         return;
     }
 
@@ -3736,18 +3951,31 @@ async function loadSchedule(requestId=viewRequestId, signal=activeRequestControl
         dateLabel.innerText=`Неделя от ${monday.getDate()} ${MONTH_NAMES_GENITIVE[monday.getMonth()]}`;
         const weekKey=`${currentMode}_${identifier}_${formatDate(monday)}`;
         const cached=weekCache[weekKey];
-        if(!forceNetworkRefresh && cached && cacheFresh(cached.at,15*60*1000)){ lastWeekData=cached.data; renderWeekSchedule(cached.data,container); return; }
+        if(!forceNetworkRefresh && cached && cacheFresh(cached.at,15*60*1000)){
+            lastWeekData=cached.data;
+            renderWeekSchedule(cached.data,container);
+            enrichWeekGroupsAndRerender(cached.data,container);
+            return;
+        }
         container.innerHTML='<div class="loading">⌛ Загрузка недели...</div>';
         try{
             const weekData=await fetchScheduleRange(currentMode,identifier,formatDate(monday),7,signal);
             const dates=Array.from({length:7},(_,i)=>{const d=new Date(monday);d.setDate(d.getDate()+i);return formatDate(d);});
             weekErrors={};
-            dates.forEach(d=>{if(!(d in weekData))weekErrors[d]=true;});
             const rawWeek={};
-            dates.forEach(d=>{if(d in weekData)rawWeek[d]=Array.isArray(weekData[d]) ? weekData[d] : extractLessonsFromAPIResponse(weekData[d] || [], d, { date: d });});
+            dates.forEach(d=>{
+                if(d in weekData){
+                    rawWeek[d]=Array.isArray(weekData[d]) ? weekData[d] : extractLessonsFromAPIResponse(weekData[d] || [], d, { date: d });
+                }else{
+                    // День не пришёл — помечаем явно, иначе карточка дня молча исчезает.
+                    rawWeek[d]=null;
+                    weekErrors[d]=true;
+                }
+            });
             weekCache[weekKey]={data:rawWeek,at:Date.now()}; lastWeekData=rawWeek;
             renderWeekSchedule(rawWeek,container); forceNetworkRefresh=false;
-        }catch(e){if(e.name==='AbortError')return;renderErrorState(container,'Не удалось загрузить неделю.',lastApiError);}
+            enrichWeekGroupsAndRerender(rawWeek,container);
+        }catch(e){if(e.name==='AbortError')return;renderErrorState(container,'Не удалось загрузить неделю.',describeApiError(e));}
     }
 }
 
@@ -3781,7 +4009,10 @@ function pruneMonthLocalCache(){
 async function loadMonthView(requestId=viewRequestId,signal=activeRequestController?.signal){
     if(!currentName || requestId!==viewRequestId || currentTab!=='month')return;
     const year=currentDate.getFullYear(), month=currentDate.getMonth(), identifier=getApiIdentifier();
-    if(!identifier)return;
+    if(!identifier){
+        renderErrorState(document.getElementById('schedule-container'),'Не удалось определить объект расписания','Списки групп, преподавателей и аудиторий не загрузились. Обнови страницу или проверь связь.');
+        return;
+    }
     document.getElementById('date-label').innerText=`${MONTH_NAMES[month]} ${year} г.`;
     document.getElementById('global-search-input').value=''; pruneMonthLocalCache(); updateTodayButtonVisibility();
     const monthId=`${year}-${String(month+1).padStart(2,'0')}`;
@@ -3801,7 +4032,9 @@ async function loadMonthView(requestId=viewRequestId,signal=activeRequestControl
                 let complete=true;
                 for(let day=1;day<=totalDaysLocal;day++){
                     const d=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                    if(!(d in monthLessonsCache) && !emptyDays.has(d) && !monthErrors[d]) { complete=false; break; }
+                    // День с ошибкой не считается загруженным: раньше неполный
+                    // месяц кэшировался как полный и висел до 24 часов.
+                    if(!(d in monthLessonsCache) && !emptyDays.has(d)) { complete=false; break; }
                 }
                 if(complete){renderMonthGrid(year,month,false);return;}
             }
@@ -3850,14 +4083,32 @@ function renderMonthGrid(year,month,isLoading=false){
 function selectMonthDay(dateStr,element){
     document.querySelectorAll('.calendar-day').forEach(el=>el.classList.remove('selected')); element.classList.add('selected');
     const preview=document.getElementById('month-preview-content'); if(!preview)return;
-    preview.classList.add('page-exit');
-    setTimeout(()=>{
+    const requestId=viewRequestId;
+
+    // Превью перерисовывается дважды: сразу и после догрузки групп пары.
+    const renderPreview=()=>{
+        const target=document.getElementById('month-preview-content'); if(!target)return;
         const dt=new Date(dateStr+'T00:00:00'); const lessons=prepareLessonsForDisplay(monthLessonsCache[dateStr]||[],dateStr); const withBreaks=addWindowsToLessons(lessons);
         let html=`<div class="day-header" style="margin-top:0;">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div>`;
         if(monthErrors[dateStr])html+='<div class="error-card">⚠️ Не удалось получить данные за этот день.</div>';
         else if(!withBreaks.length)html+='<div style="text-align:center;padding:15px;font-weight:500;">🎉 На этот день пар нет!</div>';
         else{const next=getNextLessonForToday(withBreaks,dateStr);html+=withBreaks.map(l=>renderLessonHtml(l,dateStr,l===next)).join('');}
-        preview.innerHTML=html;preview.classList.remove('page-exit');preview.classList.add('page-enter');setTimeout(()=>preview.classList.remove('page-enter'),300);
+        target.innerHTML=html;
+    };
+
+    preview.classList.add('page-exit');
+    setTimeout(async()=>{
+        renderPreview();
+        const target=document.getElementById('month-preview-content');
+        if(!target)return;
+        target.classList.remove('page-exit');target.classList.add('page-enter');setTimeout(()=>target.classList.remove('page-enter'),300);
+
+        const raw=monthLessonsCache[dateStr]||[];
+        if(!Array.isArray(raw)||!raw.length)return;
+        if(await enrichLessonGroups({[dateStr]:raw},8)){
+            if(requestId!==viewRequestId||currentTab!=='month')return;
+            renderPreview();
+        }
     },150);
 }
 
@@ -3948,13 +4199,26 @@ async function loadMySchedule() {
                     dayLessonsCache[cacheKey] = lessons;
                     dayLessonsCacheAt[cacheKey] = Date.now();
                 }
-                return { source, lessons: prepareLessonsForDisplay(lessons || [], dateStr), error: null };
+                return { source, raw: lessons || [], lessons: prepareLessonsForDisplay(lessons || [], dateStr), error: null };
             } catch (e) {
                 return { source, lessons: [], error: e.message || 'ошибка' };
             }
         });
 
         if (requestId !== myScheduleRequestId) return;
+
+        // Полный список групп пары: API отдаёт по строке на группу, поэтому
+        // догружаем расписание преподавателей (как в дневном виде).
+        const rawAll = results.flatMap(result => (Array.isArray(result.raw) ? result.raw : []));
+        if (rawAll.length) {
+            const changed = await enrichLessonGroups({ [dateStr]: rawAll }, 8);
+            if (requestId !== myScheduleRequestId) return;
+            if (changed) {
+                results.forEach(result => {
+                    if (Array.isArray(result.raw)) result.lessons = prepareLessonsForDisplay(result.raw, dateStr);
+                });
+            }
+        }
 
         const combinedMap = new Map();
         const errors = [];
@@ -3983,7 +4247,7 @@ async function loadMySchedule() {
         });
 
         let html = renderMyScheduleNavigation();
-        html += `<div class="summary-card"><div class="summary-title">${esc(getMyScheduleDayLabel(myScheduleDate))} · ${combined.length} пар</div><div class="summary-meta"><span>Источников: ${sources.length}</span></div></div>`;
+        html += `<div class="summary-card"><div class="summary-title">${esc(getMyScheduleDayLabel(myScheduleDate))} · ${combined.length} пар</div><div class="summary-meta"><span>Источников: ${safeSources.length}</span></div></div>`;
 
         if (errors.length) html += `<div class="error-card">⚠️ Часть источников не загрузилась:<br>${errors.map(e => `• ${esc(e)}`).join('<br>')}</div>`;
 
@@ -4161,7 +4425,7 @@ function changeSubgroup(value) {
     userSubgroup = value;
     safeSetStorage('kgeu_subgroup', value);
     syncCloud();
-    forceRefreshCurrentView();
+    forceRefreshCurrentView(true);
 }
 
 // =====================================================
@@ -4203,6 +4467,8 @@ async function loadCloud() {
     try {
         const data = await apiFetch('/api/user/sync');
         if (!data || !data.telegram_id) return;
+
+        cloudAdminFlag = data.isAdmin === true;
 
         if (data.theme) setTheme(data.theme, false);
         if (data.subgroup) {
@@ -4247,9 +4513,11 @@ async function loadCloud() {
 // Notes
 // =====================================================
 
+// Ключи привязаны к telegram id: иначе второй аккаунт на том же устройстве
+// видел и перезаписывал заметки первого.
 function getLocalNotes() {
     try {
-        const raw = safeGetStorage('kgeu_notes_local');
+        const raw = safeGetStorage(getUserScopedStorageKey('notes_local'));
         const parsed = raw ? JSON.parse(raw) : [];
         return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
@@ -4258,32 +4526,42 @@ function getLocalNotes() {
 }
 
 function saveLocalNotes(list) {
-    safeSetStorage('kgeu_notes_local', JSON.stringify(list));
+    safeSetStorage(getUserScopedStorageKey('notes_local'), JSON.stringify(list));
 }
 
-async function loadNotesIndex() {
-    if (notesLoaded) return;
+async function loadNotesIndex(force = false) {
+    if (notesLoaded && !force) return;
+
+    if (!getInitData()) {
+        notesByKey = {};
+        getLocalNotes().forEach(n => { if (n?.note_key) notesByKey[n.note_key] = n; });
+        return;
+    }
 
     try {
-        let notes = [];
-        if (getInitData()) notes = await apiFetch('/api/tasks');
-        if (!Array.isArray(notes)) notes = [];
+        const remote = await apiFetch('/api/tasks');
+        const notes = Array.isArray(remote) ? remote : [];
 
-        const local = getLocalNotes();
-        const merged = [...local];
-        notes.forEach(remote => {
-            const idx = merged.findIndex(n => n.note_key && n.note_key === remote.note_key);
-            if (idx >= 0) merged[idx] = remote;
-            else merged.push(remote);
+        const merged = [...getLocalNotes()];
+        notes.forEach(item => {
+            const index = merged.findIndex(n => n.note_key && n.note_key === item.note_key);
+            if (index >= 0) merged[index] = item;
+            else merged.push(item);
         });
 
         notesByKey = {};
         merged.forEach(n => { if (n?.note_key) notesByKey[n.note_key] = n; });
+
+        // Сервер — источник правды: локальная копия полностью повторяет его.
+        // Иначе удалённая на другом устройстве заметка «воскресала» из кэша.
+        saveLocalNotes(notes.filter(n => n?.note_key));
         notesLoaded = true;
     } catch (e) {
         notesByKey = {};
         getLocalNotes().forEach(n => { if (n?.note_key) notesByKey[n.note_key] = n; });
-        notesLoaded = true;
+        // notesLoaded намеренно не выставляем: при следующем открытии список
+        // заметок перезапросится, а не останется навсегда неполным.
+        console.warn('Notes load error:', e);
     }
 }
 
@@ -4366,10 +4644,15 @@ async function deleteLessonNote(keyEnc) {
         if (Number.isFinite(Number(note.id))) {
             await apiFetch(`/api/tasks?id=${Number(note.id)}`, { method: 'DELETE' });
         }
-    } catch (e) {}
+    } catch (e) {
+        // Раньше ошибка глушилась и заметка «воскресала» при следующей загрузке.
+        alert(`Не удалось удалить заметку: ${describeApiError(e)}`);
+        return;
+    }
 
     delete notesByKey[key];
     saveLocalNotes(getLocalNotes().filter(n => n.note_key !== key));
+    if (document.getElementById('notes-modal')?.classList.contains('show')) loadNotes();
     refreshVisibleScheduleNotes();
 }
 
@@ -4410,7 +4693,10 @@ async function clearAllNotes() {
 
     try {
         await apiFetch('/api/tasks?all=1', { method: 'DELETE' });
-    } catch (e) {}
+    } catch (e) {
+        alert(`Не удалось удалить заметки: ${describeApiError(e)}`);
+        return;
+    }
 
     notesByKey = {};
     saveLocalNotes([]);
@@ -4580,6 +4866,12 @@ function formatDateTime(ms) {
 // Free classrooms
 // =====================================================
 
+const FREE_AUD_CHUNK_SIZE = 20;
+let freeAudsRequestId = 0;
+let freeAudsBusy = false;
+
+// API вуза не отдаёт занятость всех аудиторий сразу, поэтому аудитории
+// проверяются порциями по 40 (лимит subrequest'ов Free-плана на запрос).
 async function searchFreeAuds() {
     const date = document.getElementById('free-date').value;
     const start = document.getElementById('free-start').value;
@@ -4590,37 +4882,80 @@ async function searchFreeAuds() {
         alert('Заполни дату и время.');
         return;
     }
+    if (freeAudsBusy) return;
+
+    const auds = (listsData.Aud || []).map(normalizeListItem).filter(Boolean);
+    if (!auds.length) {
+        box.innerHTML = '<div class="error-card">⚠️ Список аудиторий не загружен. Проверь связь и попробуй снова.</div>';
+        return;
+    }
+
+    const requestId = ++freeAudsRequestId;
+    freeAudsBusy = true;
+
+    const button = document.querySelector('#free-auds-modal .btn-primary');
+    if (button) {
+        button.dataset.label = button.textContent;
+        button.disabled = true;
+        button.textContent = '⌛ Проверяю...';
+    }
+
+    const chunks = [];
+    for (let i = 0; i < auds.length; i += FREE_AUD_CHUNK_SIZE) {
+        chunks.push(auds.slice(i, i + FREE_AUD_CHUNK_SIZE));
+    }
+
+    const free = new Map();
+    const busy = new Map();
+    let checked = 0;
+    let failed = 0;
+
+    const renderProgress = () => {
+        if (requestId !== freeAudsRequestId) return;
+
+        const freeList = [...free.values()].filter(item => !busy.has(String(item.id)));
+        const body = freeList.length
+            ? `<div class="free-auds-wrap">${freeList.map(item => `<div class="favorite-chip" onclick="jumpToEnc('${enc('Aud')}', '${enc(item.name)}', '${enc(item.id)}')">${esc(item.name)}</div>`).join('')}</div>`
+            : (checked < auds.length
+                ? '<div class="loading">⌛ Проверяю аудитории...</div>'
+                : '<div class="my-schedule-empty">В это время свободных аудиторий не найдено.</div>');
+
+        box.innerHTML = `
+            <div class="summary-card">
+                <div class="summary-title">Свободно: ${freeList.length} из ${auds.length}</div>
+                <div class="summary-meta"><span>${esc(date)} · ${esc(start)}–${esc(end)}</span><span>Проверено ${checked}/${auds.length}${failed ? ` · ошибок: ${failed}` : ''}</span></div>
+            </div>
+            ${body}
+            <div style="font-size:10px;color:var(--text-secondary);margin-top:6px;">Нажми на аудиторию, чтобы открыть её расписание.</div>
+        `;
+    };
 
     box.innerHTML = '<div class="loading">⌛ Ищу свободные аудитории...</div>';
 
     try {
-        const res = await apiFetch(`/api/free-auds?date=${encodeURIComponent(date)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
-
-        if (!res.free || !res.free.length) {
-            box.innerHTML = '<div class="my-schedule-empty">В это время свободных аудиторий не найдено.</div>';
-            return;
+        await mapWithConcurrency(chunks, 2, async chunk => {
+            if (requestId !== freeAudsRequestId) return;
+            const ids = chunk.map(item => String(item.id)).join(',');
+            try {
+                const res = await apiFetch(`/api/free-auds?date=${encodeURIComponent(date)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ids=${encodeURIComponent(ids)}`);
+                (res.free || []).forEach(item => free.set(String(item.id), item));
+                (res.busyRooms || []).forEach(item => busy.set(String(item.id), item));
+                failed += Number(res.failed || 0);
+            } catch (e) {
+                failed += chunk.length;
+            }
+            checked += chunk.length;
+            renderProgress();
+        });
+        if (requestId === freeAudsRequestId) renderProgress();
+    } finally {
+        if (requestId === freeAudsRequestId) {
+            freeAudsBusy = false;
+            if (button) {
+                button.disabled = false;
+                button.textContent = button.dataset.label || 'Найти свободные';
+            }
         }
-
-        box.innerHTML = `
-            <div class="summary-card">
-                <div class="summary-title">Свободно: ${res.free.length} из ${res.total}</div>
-                <div class="summary-meta"><span>${esc(date)} · ${esc(start)}–${esc(end)}</span></div>
-            </div>
-            <div class="free-auds-wrap">
-                ${res.free.map(a => `
-                    <div class="favorite-chip" onclick="jumpToEnc('${enc('Aud')}', '${enc(a.name)}', '${enc(a.id)}')">
-                        ${esc(a.name)}
-                    </div>
-                `).join('')}
-            </div>
-            <div style="font-size:10px;color:var(--text-secondary);margin-top:6px;">Нажми на аудиторию, чтобы открыть её расписание.</div>
-        `;
-    } catch (e) {
-        const msg = e.message === 'EXTERNAL_API_UNAVAILABLE'
-            ? 'API вуза не отдаёт общее расписание за дату. Попробуй позже или выбери другое время.'
-            : e.message;
-
-        box.innerHTML = `<div class="error-card">⚠️ ${esc(msg)}</div>`;
     }
 }
 
@@ -4862,21 +5197,35 @@ function refreshLiveSchedule() {
 
     if (dateStr !== formatDate(new Date())) return;
 
-    const key = `${currentMode}_${getApiIdentifier()}_${dateStr}`;
+    // Ключ должен совпадать с тем, что пишет loadSchedule: подгруппа входит в ключ.
+    const key = `${currentMode}_${getApiIdentifier()}_${userSubgroup}_${dateStr}`;
 
-    if (dayLessonsCache[key]) {
-        renderLessons(dayLessonsCache[key], document.getElementById('schedule-container'), dateStr);
-    }
+    const cached = dayLessonsCache[key];
+    if (!cached) return;
+
+    const container = document.getElementById('schedule-container');
+    if (!container || !container.querySelector('.lesson-card')) return;
+    // Не перерисовываем поверх открытого редактора заметки.
+    if (container.querySelector('.lesson-note-editor')) return;
+
+    renderLessons(cached, container, dateStr);
 }
 
 // =====================================================
 // Init
 // =====================================================
 
+function applyStoredBackground() {
+    const bg = safeGetStorage('kgeu_bg');
+    if (!bg) return false;
+    let colors = null;
+    try { const raw = safeGetStorage('kgeu_bg_colors'); colors = raw ? JSON.parse(raw) : null; } catch (e) {}
+    try { applyCustomBackground(bg, false, colors); return true; } catch (e) { return false; }
+}
+
 function loadLocal() {
     const theme = safeGetStorage('kgeu_theme'); if (theme) setTheme(theme,false);
-    const bg = safeGetStorage('kgeu_bg'); const bgColors = safeGetStorage('kgeu_bg_colors');
-    if (bg) { try { applyCustomBackground(bg,false,bgColors ? JSON.parse(bgColors) : null); } catch (e) {} }
+    applyStoredBackground();
 
     readModeSelectionsFromStorage();
     const mode = safeGetStorage('kgeu_mode');
@@ -4891,7 +5240,7 @@ function loadLocal() {
 
     const subgroup=safeGetStorage('kgeu_subgroup');
     if (subgroup) { userSubgroup=subgroup; const select=document.getElementById('subgroup-select'); if(select)select.value=subgroup; }
-    const favRaw=safeGetStorage('kgeu_favorites');
+    const favRaw=safeGetStorage(getUserScopedStorageKey('favorites'))||safeGetStorage('kgeu_favorites');
     if(favRaw){try{const parsed=JSON.parse(favRaw);if(Array.isArray(parsed))favorites=parsed.map(normalizeFavorite).filter(Boolean);}catch(e){}}
     renderFavorites();
 }
@@ -4901,6 +5250,17 @@ async function init() {
         if (window.Telegram?.WebApp) {
             window.Telegram.WebApp.ready();
             window.Telegram.WebApp.expand();
+            // Модалки — нижние шторки со свайпом вниз: без этого iOS закрывает
+            // всё мини-приложение вертикальным свайпом.
+            if (typeof window.Telegram.WebApp.disableVerticalSwipes === 'function') {
+                window.Telegram.WebApp.disableVerticalSwipes();
+            }
+            const back = window.Telegram.WebApp.BackButton;
+            if (back && typeof back.onClick === 'function') {
+                back.onClick(() => {
+                    if (document.body.classList.contains('modal-open')) closeModals();
+                });
+            }
         }
     } catch (e) {}
 
@@ -4917,6 +5277,9 @@ async function init() {
 
     await loadLists();
     await loadCloud();
+
+    // loadCloud применяет облачную тему и сбрасывает фон — возвращаем локальный.
+    applyStoredBackground();
     for (const mode of ['Group','Teacher','Aud']) {
         const sel = modeSelections[mode];
         if (sel?.name || sel?.id) {

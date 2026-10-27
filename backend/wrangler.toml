@@ -14,3 +14,9 @@ database_id = "b2dac2d5-d025-439b-9159-4493005059f8"
 
 [triggers]
 crons = ["*/5 * * * *"]
+
+# Секреты задаются отдельно, в git их быть не должно:
+#   npx wrangler secret put BOT_TOKEN
+#   npx wrangler secret put WEBHOOK_SECRET   # необязательно, иначе выводится из BOT_TOKEN
+[observability]
+enabled = true

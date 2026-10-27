@@ -109,6 +109,7 @@ CREATE INDEX IF NOT EXISTS idx_logs_created ON system_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_tasks_user ON tasks(telegram_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_note_key ON tasks(telegram_id, note_key);
 CREATE INDEX IF NOT EXISTS idx_reminders_user ON reminders(telegram_id);
+CREATE INDEX IF NOT EXISTS idx_reminders_lesson ON reminders(telegram_id, sent, lesson_start_at);
 CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders(sent, remind_at);
 CREATE INDEX IF NOT EXISTS idx_reminders_key ON reminders(telegram_id, reminder_key, sent);
 CREATE INDEX IF NOT EXISTS idx_admin_events_created ON admin_events(created_at);
