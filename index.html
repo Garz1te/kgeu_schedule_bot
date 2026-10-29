@@ -2784,12 +2784,14 @@ function extractLessonsFromAPIResponse(data, seedDate = '', seedContext = {}) {
         try { return extractLessonTime(obj); } catch (_) { return ''; }
     };
 
+    // Одиночные буквы здесь использовать нельзя: в custom1 лежат инициалы
+    // преподавателя («Замалетдинова Л.Р.»), и «Л» превращала практику в лекцию.
     const typeFromValue = value => {
         const raw = String(value ?? '').trim();
         if (!raw) return '';
-        if (/(?:^|[^\p{L}\p{N}])(?:лр|лабр?)(?:$|[^\p{L}\p{N}])/iu.test(raw) || /лаборатор/iu.test(raw)) return 'type-lab';
-        if (/(?:^|[^\p{L}\p{N}])(?:пр|практ|практика|семинар)(?:$|[^\p{L}\p{N}])/iu.test(raw) || /практик|семинар/iu.test(raw)) return 'type-practice';
-        if (/(?:^|[^\p{L}\p{N}])л(?:$|[^\p{L}\p{N}])/iu.test(raw) || /лекц/iu.test(raw)) return 'type-lecture';
+        if (/(?:^|[^\p{L}\p{N}])(?:лр|лаб|лаба|лабр)(?:$|[^\p{L}\p{N}])/iu.test(raw) || /лаборатор/iu.test(raw)) return 'type-lab';
+        if (/(?:^|[^\p{L}\p{N}])(?:пр|практ|практика|практикум|сем|семинар)(?:$|[^\p{L}\p{N}])/iu.test(raw) || /практик|семинар/iu.test(raw)) return 'type-practice';
+        if (/(?:^|[^\p{L}\p{N}])(?:лек|лекц|лекция)(?:$|[^\p{L}\p{N}])/iu.test(raw) || /лекц/iu.test(raw)) return 'type-lecture';
         return '';
     };
 
@@ -2798,7 +2800,7 @@ function extractLessonsFromAPIResponse(data, seedDate = '', seedContext = {}) {
         const vals = [obj.__kgeuType, obj.типЗанятия, obj.ТипЗанятия, obj.тип, obj.Тип, obj.видЗанятия, obj.ВидЗанятия,
             obj.вид, obj.ВидЗанятия, obj.type, obj.Type, obj.typeName, obj.TypeName, obj.lesson_type, obj.lessonType, obj.kind, obj.Kind,
             obj.kindName, obj.KindName, obj.ТипПары, obj.ВидПары, obj.pairType, obj.ТипЗанятияКод, obj.видЗанятияКод,
-            obj.lessonTypeName, obj.lesson_kind, obj.lessonKind, obj.custom1, obj.custom2];
+            obj.lessonTypeName, obj.lesson_kind, obj.lessonKind];
         for (const v of vals) {
             if (typeof v === 'object' && v) {
                 const nested = [v.name, v.Name, v.title, v.Title, v.value, v.Value, v.type, v.Type, v.code, v.код, v.Наименование, v.название].map(x => typeFromValue(x)).find(Boolean);
@@ -3768,12 +3770,19 @@ async function fetchDayGroupsFrom(sourceKind, sourceId, dateStr) {
     }
 }
 
-function applyLoadedGroups(lessons, dateStr, rowsBySource, sourceKind) {
-    const rows = rowsBySource.get(`${sourceKind}|${dateStr}`);
-    if (!rows || !rows.size) return false;
+function applyLoadedGroups(lessons, dateStr, rowsBySource, sourceKind, idOfLesson) {
+    if (!rowsBySource || !rowsBySource.size) return false;
 
     let changed = false;
     for (const lesson of lessons) {
+        // Ключ кэша — «источник|id|дата» (у каждой карточки свой преподаватель
+        // или аудитория), раньше здесь искалось «источник|дата» и догрузка
+        // молча ничего не применяла.
+        const sourceId = String(idOfLesson(lesson) || '').trim();
+        if (!sourceId) continue;
+        const rows = rowsBySource.get(`${sourceKind}|${sourceId}|${dateStr}`);
+        if (!rows || !rows.size) continue;
+
         const key = lessonGroupsMatchKey(extractLessonTime(lesson), extractLessonTitle(lesson), extractLessonRoom(lesson));
         const fullGroups = rows.get(key);
         if (!fullGroups || fullGroups.length < 2) continue;
@@ -3827,7 +3836,7 @@ async function enrichLessonGroups(dayLessons, budget = 6) {
             if (rows && rows.size) teacherRows.set(item.key, rows);
         });
         for (const [dateStr, lessons] of entries) {
-            if (applyLoadedGroups(lessons, dateStr, teacherRows, 'teacher')) changed = true;
+            if (applyLoadedGroups(lessons, dateStr, teacherRows, 'teacher', lesson => extractLessonTeacherId(lesson))) changed = true;
         }
     }
 
@@ -3855,7 +3864,8 @@ async function enrichLessonGroups(dayLessons, budget = 6) {
             if (rows && rows.size) roomRows.set(item.key, rows);
         });
         for (const [dateStr, lessons] of entries) {
-            if (applyLoadedGroups(lessons, dateStr, roomRows, 'room')) changed = true;
+            if (applyLoadedGroups(lessons, dateStr, roomRows, 'room',
+                lesson => extractLessonRoomId(lesson) || getKnownItemId('Aud', extractLessonRoom(lesson)))) changed = true;
         }
     }
 
