@@ -1217,16 +1217,49 @@
             display: none;
         }
 
+        /* Поиск: обычная нижняя шторка на всю высоту, список занимает свободное место */
         #search-modal .modal-content {
-            top: 6vh;
-            bottom: auto;
+            top: auto;
+            bottom: 0;
+            height: 88dvh;
             max-height: 88dvh;
-            border-radius: 22px;
-            transform: translateY(-20px);
+            border-radius: 22px 22px 0 0;
+            overflow: hidden;
+            transform: translateY(100%);
         }
 
         #search-modal.show .modal-content {
             transform: translateY(0);
+        }
+
+        #search-modal .form-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+            margin-bottom: 10px;
+        }
+
+        #search-modal .autocomplete-dropdown {
+            position: static;
+            top: auto;
+            margin-top: 8px;
+            max-height: none;
+            flex: 1 1 auto;
+            min-height: 0;
+            border-radius: 12px;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #search-modal .autocomplete-dropdown:not(.active) {
+            display: none;
+        }
+
+        #search-modal .autocomplete-item {
+            min-height: 52px;
+            display: flex;
+            align-items: center;
         }
 
         .quick-actions {
@@ -3685,15 +3718,6 @@ function renderLessons(rawLessons, container, dateStr) {
 // Ответы кэшируются на edge, поэтому догрузка почти ничего не стоит.
 
 
-function lessonGroupsMatchKey(timeStr, title, room) {
-    const time = parseTimeRange(timeStr);
-    return [
-        time ? `${time.start}-${time.end}` : String(timeStr || '').trim().toLowerCase(),
-        String(title || '').trim().toLowerCase(),
-        String(room || '').trim().toLowerCase()
-    ].join('|');
-}
-
 function groupFacultyKey(group) {
     const id = String(group?.id || '').trim();
     const name = String(group?.name || '').trim().toLowerCase();
@@ -3719,12 +3743,23 @@ function keepOwnFacultyGroups(groups, ownGroups) {
 const lessonGroupsCache = new Map();
 const LESSON_GROUPS_MAX_AGE_MS = 30 * 60 * 1000;
 
+// «лек Метрология, стандартизация  и сертификация» и та же строка с одним
+// пробелом — разные ключи. Из-за этого догрузка групп срабатывала через раз.
+function normalizeMatchText(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/ё/g, 'е')
+        .replace(/\s+/g, ' ')
+        .replace(/\s*([,.;:()\-])\s*/g, '$1')
+        .trim();
+}
+
 function lessonGroupsMatchKey(timeStr, title, room) {
     const time = parseTimeRange(timeStr);
     return [
-        time ? `${time.start}-${time.end}` : String(timeStr || '').trim().toLowerCase(),
-        String(title || '').trim().toLowerCase(),
-        String(room || '').trim().toLowerCase()
+        time ? `${time.start}-${time.end}` : normalizeMatchText(timeStr),
+        normalizeMatchText(title),
+        normalizeMatchText(room)
     ].join('|');
 }
 
@@ -3764,8 +3799,10 @@ async function fetchDayGroupsFrom(sourceKind, sourceId, dateStr) {
         return await promise;
     } catch (e) {
         lessonGroupsCache.delete(cacheKey);
-        // Упёрлись в лимит — до конца сессии догрузку не повторяем.
-        if (String(e?.message || '').includes('429')) groupsEnrichmentDisabled = true;
+        // Упёрлись в лимит — притормаживаем догрузку на минуту, потом пробуем снова.
+        if (String(e?.message || '').includes('429')) {
+            groupsEnrichmentBlockedUntil = Date.now() + 60 * 1000;
+        }
         return null;
     }
 }
@@ -3799,48 +3836,21 @@ function applyLoadedGroups(lessons, dateStr, rowsBySource, sourceKind, idOfLesso
 
 // dayLessons: { 'YYYY-MM-DD': [raw lessons] }. budget ограничивает число
 // дополнительных запросов, чтобы не упираться в рейт-лимит воркера.
-let groupsEnrichmentDisabled = false;
+let groupsEnrichmentBlockedUntil = 0;
 
 async function enrichLessonGroups(dayLessons, budget = 6) {
     // В расписании преподавателя и аудитории группы уже перечислены в строке —
     // догрузка нужна только в режиме группы.
-    if (groupsEnrichmentDisabled || normalizeMode(currentMode) !== 'Group') return false;
+    if (Date.now() < groupsEnrichmentBlockedUntil) return false;
+    if (normalizeMode(currentMode) !== 'Group') return false;
 
     const entries = Object.entries(dayLessons || {}).filter(([, lessons]) => Array.isArray(lessons) && lessons.length);
     if (!entries.length) return false;
 
     let changed = false;
 
-    // 1) По преподавателю: в его строке перечислены все группы потока.
-    const teacherPlan = [];
-    const seenTeachers = new Set();
-    for (const [dateStr, lessons] of entries) {
-        for (const lesson of lessons) {
-            // если группы уже известны — преподаватель не нужен
-            if (extractLessonGroups(lesson).length >= 2) continue;
-            const teacherId = String(extractLessonTeacherId(lesson) || '').trim();
-            if (!teacherId) continue;
-            const key = `teacher|${teacherId}|${dateStr}`;
-            if (seenTeachers.has(key)) continue;
-            seenTeachers.add(key);
-            teacherPlan.push({ kind: 'teacher', id: teacherId, dateStr, key });
-            if (teacherPlan.length >= budget) break;
-        }
-        if (teacherPlan.length >= budget) break;
-    }
-
-    if (teacherPlan.length) {
-        const teacherRows = new Map();
-        await mapWithConcurrency(teacherPlan, 3, async item => {
-            const rows = await fetchDayGroupsFrom(item.kind, item.id, item.dateStr);
-            if (rows && rows.size) teacherRows.set(item.key, rows);
-        });
-        for (const [dateStr, lessons] of entries) {
-            if (applyLoadedGroups(lessons, dateStr, teacherRows, 'teacher', lesson => extractLessonTeacherId(lesson))) changed = true;
-        }
-    }
-
-    // 2) По аудитории — для карточек, где по преподавателю данных не нашлось.
+    // Сначала аудитория: её строка есть почти для каждой пары, и в ней КГЭУ
+    // перечисляет всех, кто там сидит. Преподаватель — второй источник.
     const roomPlan = [];
     const seenRooms = new Set();
     for (const [dateStr, lessons] of entries) {
@@ -3852,9 +3862,9 @@ async function enrichLessonGroups(dayLessons, budget = 6) {
             if (seenRooms.has(key)) continue;
             seenRooms.add(key);
             roomPlan.push({ kind: 'room', id: roomId, dateStr, key });
-            if (roomPlan.length >= 4) break;
+            if (roomPlan.length >= Math.max(4, budget)) break;
         }
-        if (roomPlan.length >= 4) break;
+        if (roomPlan.length >= Math.max(4, budget)) break;
     }
 
     if (roomPlan.length) {
@@ -3866,6 +3876,33 @@ async function enrichLessonGroups(dayLessons, budget = 6) {
         for (const [dateStr, lessons] of entries) {
             if (applyLoadedGroups(lessons, dateStr, roomRows, 'room',
                 lesson => extractLessonRoomId(lesson) || getKnownItemId('Aud', extractLessonRoom(lesson)))) changed = true;
+        }
+    }
+
+    const teacherPlan = [];
+    const seenTeachers = new Set();
+    for (const [dateStr, lessons] of entries) {
+        for (const lesson of lessons) {
+            if (extractLessonGroups(lesson).length >= 2) continue;
+            const teacherId = String(extractLessonTeacherId(lesson) || '').trim();
+            if (!teacherId) continue;
+            const key = `teacher|${teacherId}|${dateStr}`;
+            if (seenTeachers.has(key)) continue;
+            seenTeachers.add(key);
+            teacherPlan.push({ kind: 'teacher', id: teacherId, dateStr, key });
+            if (teacherPlan.length >= 4) break;
+        }
+        if (teacherPlan.length >= 4) break;
+    }
+
+    if (teacherPlan.length) {
+        const teacherRows = new Map();
+        await mapWithConcurrency(teacherPlan, 3, async item => {
+            const rows = await fetchDayGroupsFrom(item.kind, item.id, item.dateStr);
+            if (rows && rows.size) teacherRows.set(item.key, rows);
+        });
+        for (const [dateStr, lessons] of entries) {
+            if (applyLoadedGroups(lessons, dateStr, teacherRows, 'teacher', lesson => extractLessonTeacherId(lesson))) changed = true;
         }
     }
 
