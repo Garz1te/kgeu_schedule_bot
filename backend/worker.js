@@ -1061,7 +1061,7 @@ async function handleFreeAuds(request, env, url, corsOrigin) {
 // =====================================================
 
 async function handleLists(request, env, ctx, corsOrigin, forceFresh) {
-  const edgeKey = new Request('https://kgeu-cache.invalid/api/lists');
+  const edgeKey = new Request('https://kgeu-cache.invalid/api/lists?v=2');
 
   if (!forceFresh) {
     try {
@@ -1092,7 +1092,7 @@ async function handleLists(request, env, ctx, corsOrigin, forceFresh) {
     await safeLog(env, 'ERROR', `lists: ${e?.message || e}`);
 
     // Единственный живой D1-фолбэк: списки действительно пишутся в schedule_cache.
-    const stale = await getCache(env, '/api/lists');
+    const stale = await getCache(env, '/api/lists?v=2');
     if (stale) {
       try {
         return jsonResponse(JSON.parse(stale), 200, corsOrigin);
@@ -1105,7 +1105,8 @@ async function handleLists(request, env, ctx, corsOrigin, forceFresh) {
 }
 
 async function buildLists(env, forceFresh = false) {
-  const cacheKey = '/api/lists';
+  // v2: в списках появились faculty/facultyId, старый кэш не подходит.
+  const cacheKey = '/api/lists?v=2';
   const flightKey = forceFresh ? 'force' : 'normal';
   const existing = listInflight.get(flightKey);
   if (existing) return await existing;
@@ -1220,9 +1221,18 @@ function normalizeListItem(item) {
 
   if (!cleanName) return null;
 
+  // Факультет нужен клиенту, чтобы не подмешивать чужие группы из расписания
+  // преподавателя (КГЭУ перечисляет там весь поток, включая другие факультеты).
+  const faculty = item.facul ?? item.faculty ?? item.Факультет ?? '';
+  const facultyId = item.facultyID ?? item.facultyId ?? item.faculty_id ?? '';
+  const course = item.kurs ?? item.course ?? item.Курс ?? '';
+
   return {
     id: cleanId,
-    name: cleanName
+    name: cleanName,
+    ...(String(faculty).trim() ? { faculty: String(faculty).trim() } : {}),
+    ...(String(facultyId).trim() ? { facultyId: String(facultyId).trim() } : {}),
+    ...(String(course).trim() ? { course: String(course).trim() } : {})
   };
 }
 

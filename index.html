@@ -464,12 +464,21 @@
         .lesson-title {
             font-size: 15px;
             font-weight: 700;
-            margin-bottom: 6px;
+            margin: 0 0 4px;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .lesson-badges {
             display: flex;
             align-items: center;
             flex-wrap: wrap;
             gap: 6px;
-            min-width: 0;
+            margin-bottom: 8px;
+        }
+
+        .lesson-badges .lesson-live-badge {
+            margin-left: auto;
         }
 
         .lesson-subgroup-badge {
@@ -2392,7 +2401,10 @@ function normalizeListItem(item) {
 
     return {
         id: String(item.id ?? item.name).trim(),
-        name: String(item.name).trim()
+        name: String(item.name).trim(),
+        faculty: String(item.faculty ?? item.facul ?? '').trim(),
+        facultyId: String(item.facultyId ?? item.facultyID ?? '').trim(),
+        course: String(item.course ?? item.kurs ?? '').trim()
     };
 }
 
@@ -3239,39 +3251,58 @@ function getLessonSubgroups(l) {
 function getLessonSubgroup(l) { return getLessonSubgroups(l)[0] || 0; }
 function getLessonSubgroupLabel(l) { return getLessonSubgroups(l).join(', '); }
 
+// Тип занятия определяется по префиксу названия («лек …», «пр …», «лаб …») — так
+// это размечено в расписании КГЭУ. Раньше в анализ попадали custom1/custom2
+// (преподаватель + аудитория), и инициал «Л.Р.» превращал практику в лекцию.
+const LESSON_TYPE_PREFIX_RULES = [
+    [/^(?:лек|лекц|лекция|лк)(?=$|[\s.,:;)])/iu, 'type-lecture'],
+    [/^(?:лаб|лабораторн[а-яё]*|лр)(?=$|[\s.,:;)])/iu, 'type-lab'],
+    [/^(?:пр|практ[а-яё]*|практикум|сем|семинар[а-яё]*)(?=$|[\s.,:;)])/iu, 'type-practice']
+];
+
+function classifyLessonTypePrefix(text) {
+    const value = String(text || '').trim();
+    if (!value) return '';
+    for (const [re, type] of LESSON_TYPE_PREFIX_RULES) {
+        if (re.test(value)) return type;
+    }
+    return '';
+}
+
+function classifyLessonTypeText(text) {
+    const value = String(text || '').toLowerCase();
+    if (!value.trim()) return '';
+
+    const word = re => re.test(value);
+    if (word(/(?:^|[^а-яёa-z])(лаб(?:оратор)?|лабораторн[а-яё]*|лр)(?:$|[^а-яёa-z])/u) || word(/\blab(?:oratory)?\b/u)) return 'type-lab';
+    if (word(/практик|практикум|семинар|practice|seminar/u)) return 'type-practice';
+    if (word(/лекц|lecture/u)) return 'type-lecture';
+    return '';
+}
+
 function getLessonTypeClass(l) {
     if (l?.isWindow) return 'type-window';
     if (l?.__kgeuTypeClass) return l.__kgeuTypeClass;
 
-    const rawValues = [];
-    const addTypeValue = value => {
-        if (value === undefined || value === null || value === '') return;
-        if (typeof value === 'object') {
-            [value.name, value.Name, value.title, value.Title, value.value, value.Value, value.type, value.Type, value.code, value.код, value.название, value.Наименование]
-                .filter(v => v !== undefined && v !== null && String(v).trim() !== '')
-                .forEach(v => rawValues.push(String(v)));
-            return;
-        }
-        rawValues.push(String(value));
-    };
+    // 1. Явное поле типа занятия — только если вуз его действительно прислал.
+    const fieldValues = [l?.типЗанятия, l?.ТипЗанятия, l?.видЗанятия, l?.ВидЗанятия,
+        l?.lesson_type, l?.lessonType, l?.type, l?.Type, l?.kind, l?.Kind]
+        .filter(value => value !== undefined && value !== null && String(value).trim() !== '')
+        .map(value => (value && typeof value === 'object')
+            ? [value.name, value.Name, value.title, value.value, value.название, value.Наименование].filter(Boolean).join(' ')
+            : String(value))
+        .join(' ');
 
-    [l?.типЗанятия, l?.ТипЗанятия, l?.тип, l?.Тип, l?.видЗанятия, l?.ВидЗанятия, l?.вид, l?.type, l?.Type,
-        l?.lesson_type, l?.lessonType, l?.kind, l?.Kind, l?.custom1, l?.custom2].forEach(addTypeValue);
+    const byField = classifyLessonTypeText(fieldValues);
+    if (byField) return byField;
 
-    const raw = rawValues.join(' ').toLowerCase().trim();
-    const compact = raw.replace(/[\s._-]+/g, '');
-    const token = t => new RegExp(`(^|[^\\p{L}\\p{N}])${t}(?=$|[^\\p{L}\\p{N}])`, 'iu').test(raw);
+    // 2. Префикс названия пары — основной признак.
+    const title = extractLessonTitle(l);
+    const byPrefix = classifyLessonTypePrefix(title);
+    if (byPrefix) return byPrefix;
 
-    if (token('лр') || /(?:^|[^а-яёa-z])(лаб(?:оратор)?|лабораторная|лабораторное|лабораторно)(?:$|[^а-яёa-z])/iu.test(raw) || compact === 'лр' || /\blab(?:oratory)?\b/i.test(raw)) return 'type-lab';
-    if (token('пр') || /практик|семинар|practice|seminar/iu.test(raw) || compact === 'пр') return 'type-practice';
-    if (token('л') || /лекц|lecture/iu.test(raw) || compact === 'л') return 'type-lecture';
-
-    const title = extractLessonTitle(l).toLowerCase();
-    if (/(^|[\s(\[\]{},.;:/\\-])(?:лр|лабр?)(?=$|[\s)\]}},.;:/\\-])/iu.test(title) || /лаборатор/iu.test(title)) return 'type-lab';
-    if (/(^|[\s(\[\]{},.;:/\\-])(?:пр|практ)(?=$|[\s)\]}},.;:/\\-])/iu.test(title) || /практик|семинар|practice|seminar/iu.test(title)) return 'type-practice';
-    if (/(^|[\s(\[\]{},.;:/\\-])л(?=$|[\s)\]}},.;:/\\-])/iu.test(title) || /лекц|lecture/iu.test(title)) return 'type-lecture';
-
-    return 'type-lecture';
+    // 3. Ключевые слова в названии.
+    return classifyLessonTypeText(title) || 'type-lecture';
 }
 
 
@@ -3602,8 +3633,11 @@ function renderLessonHtml(l, lessonDateStr = '', isNextLesson = false, sourceLab
         const pairLabel = !hasTime && l?.__kgeuPairNumber ? `<span class="lesson-subgroup-badge">${l.__kgeuPairNumber} пара</span>` : '';
     const timeBlock = `<div class="lesson-time-main ${hasTime ? '' : 'missing'}">🕒 ${esc(timeStr || 'Время не указано')} ${pairLabel}${duration ? ` · ${duration} мин` : ''}</div>`;
 
+    const badgesRow = `<div class="lesson-badges">${kindBadge}${subgroupBadge}${liveBadge}</div>`;
+
     return `<div class="lesson-card ${typeClass} ${currentClass}">
-        <div class="lesson-title">📖 ${esc(title)} ${kindBadge} ${subgroupBadge} ${liveBadge}</div>
+        <div class="lesson-title">📖 ${esc(title)}</div>
+        ${badgesRow}
         ${timeBlock}
         ${sourceBlock}${groupBlock}
         <div class="lesson-info">${roomBlock}</div>
@@ -3684,6 +3718,28 @@ async function fetchTeacherDayGroups(teacherId, dateStr) {
     }
 }
 
+function groupFacultyKey(group) {
+    const id = String(group?.id || '').trim();
+    const name = String(group?.name || '').trim().toLowerCase();
+    const known = (listsData.Group || [])
+        .map(normalizeListItem)
+        .filter(Boolean)
+        .find(item => (id && String(item.id) === id) || (name && String(item.name).trim().toLowerCase() === name));
+    return known ? String(known.facultyId || known.faculty || '').trim().toLowerCase() : '';
+}
+
+// КГЭУ в расписании преподавателя перечисляет весь поток, включая группы других
+// факультетов, у которых этой пары в их собственном расписании нет (например
+// С-1-25 из ИЦТЭ на лекции ИАТЭ). Чужие факультеты отбрасываем.
+function keepOwnFacultyGroups(groups, ownGroups) {
+    const ownFaculty = (ownGroups || []).map(groupFacultyKey).find(Boolean) || '';
+    if (!ownFaculty) return groups || [];
+    return (groups || []).filter(group => {
+        const faculty = groupFacultyKey(group);
+        return !faculty || faculty === ownFaculty;
+    });
+}
+
 // dayLessons: { 'YYYY-MM-DD': [raw lessons] }. budget ограничивает число
 // дополнительных запросов, чтобы не упираться в рейт-лимит воркера.
 async function enrichLessonGroups(dayLessons, budget = 8) {
@@ -3727,7 +3783,7 @@ async function enrichLessonGroups(dayLessons, budget = 8) {
             if (!fullGroups || fullGroups.length < 2) continue;
 
             const own = extractLessonGroups(lesson);
-            const merged = dedupeGroups([...own, ...fullGroups]);
+            const merged = dedupeGroups([...own, ...keepOwnFacultyGroups(fullGroups, own)]);
             if (merged.length > own.length) {
                 lesson.__kgeuGroups = merged;
                 changed = true;
