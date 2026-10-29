@@ -57,6 +57,9 @@ const MAX_D1_CACHE_BYTES = 400_000;
 const MAX_LOG_PER_KEY_MS = 5 * 60 * 1000;
 const FORCE_REFRESH_COOLDOWN_MS = 15 * 1000;
 const SCHEDULE_USER_LIMIT = 30;
+// Догрузка групп идёт через расписание преподавателя/аудитории: это отдельный,
+// более щедрый бюджет, иначе 4–8 запросов на карточку выбивали лимит 30/мин.
+const DETAIL_USER_LIMIT = 90;
 const RANGE_USER_LIMIT = 10;
 const FREE_AUD_USER_LIMIT = 18;
 const USER_SYNC_WRITE_LIMIT = 6;
@@ -1287,7 +1290,9 @@ async function handleProxy(request, env, ctx, url, subPath, corsOrigin, forceFre
     if (!scheduleId || !validateISODate(scheduleDate)) {
       return jsonResponse({ ok: false, error: 'BAD_REQUEST' }, 400, corsOrigin);
     }
-    if (!takeUserRateSlot(user.id, 'schedule', SCHEDULE_USER_LIMIT)) {
+    const rateBucket = scheduleType === 'Group' ? 'schedule' : 'schedule-detail';
+    const rateLimit = scheduleType === 'Group' ? SCHEDULE_USER_LIMIT : DETAIL_USER_LIMIT;
+    if (!takeUserRateSlot(user.id, rateBucket, rateLimit)) {
       return jsonResponse({ ok: false, error: 'RATE_LIMITED' }, 429, corsOrigin);
     }
 

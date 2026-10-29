@@ -9,7 +9,7 @@ WEBAPP_URL = "https://garz1te.github.io/kgeu_schedule_bot"
 
 # Версия сборки подставляется деплой-скриптом: она попадает в ссылку кнопки
 # «Открыть расписание», чтобы Telegram не показывал закэшированный index.html.
-APP_BUILD = "dev"
+APP_BUILD = "202610290630"
 
 [[d1_databases]]
 binding = "DB"

@@ -1825,10 +1825,12 @@ function isLocalAdmin() {
 function describeApiError(error) {
     const message = String(error?.message || '');
     if (message === 'TELEGRAM_AUTH_401') return 'Сессия Telegram устарела. Закрой мини-приложение и открой его снова.';
-    if (message === 'RATE_LIMITED') return 'Слишком много запросов. Подожди минуту и обнови.';
+    if (message === 'RATE_LIMITED' || /\b429\b/.test(message)) {
+        return 'Слишком много запросов за минуту. Подожди немного и нажми «Повторить» — данные уже частично закэшированы.';
+    }
     if (message === 'EXTERNAL_API_UNAVAILABLE') return 'API вуза не отвечает. Попробуй позже.';
     if (/^HTTP 5/.test(message)) return 'Сервер расписания недоступен. Попробуй позже.';
-    if (/^HTTP 4/.test(message)) return 'Запрос отклонён сервером. Обнови данные.';
+    if (/^HTTP 4/.test(message)) return `Запрос отклонён сервером (${message.replace('HTTP ', '')}). Обнови данные.`;
     return message || 'Попробуйте обновить данные.';
 }
 
@@ -3760,6 +3762,8 @@ async function fetchDayGroupsFrom(sourceKind, sourceId, dateStr) {
         return await promise;
     } catch (e) {
         lessonGroupsCache.delete(cacheKey);
+        // Упёрлись в лимит — до конца сессии догрузку не повторяем.
+        if (String(e?.message || '').includes('429')) groupsEnrichmentDisabled = true;
         return null;
     }
 }
@@ -3786,7 +3790,13 @@ function applyLoadedGroups(lessons, dateStr, rowsBySource, sourceKind) {
 
 // dayLessons: { 'YYYY-MM-DD': [raw lessons] }. budget ограничивает число
 // дополнительных запросов, чтобы не упираться в рейт-лимит воркера.
-async function enrichLessonGroups(dayLessons, budget = 8) {
+let groupsEnrichmentDisabled = false;
+
+async function enrichLessonGroups(dayLessons, budget = 6) {
+    // В расписании преподавателя и аудитории группы уже перечислены в строке —
+    // догрузка нужна только в режиме группы.
+    if (groupsEnrichmentDisabled || normalizeMode(currentMode) !== 'Group') return false;
+
     const entries = Object.entries(dayLessons || {}).filter(([, lessons]) => Array.isArray(lessons) && lessons.length);
     if (!entries.length) return false;
 
@@ -3797,6 +3807,8 @@ async function enrichLessonGroups(dayLessons, budget = 8) {
     const seenTeachers = new Set();
     for (const [dateStr, lessons] of entries) {
         for (const lesson of lessons) {
+            // если группы уже известны — преподаватель не нужен
+            if (extractLessonGroups(lesson).length >= 2) continue;
             const teacherId = String(extractLessonTeacherId(lesson) || '').trim();
             if (!teacherId) continue;
             const key = `teacher|${teacherId}|${dateStr}`;
@@ -3831,9 +3843,9 @@ async function enrichLessonGroups(dayLessons, budget = 8) {
             if (seenRooms.has(key)) continue;
             seenRooms.add(key);
             roomPlan.push({ kind: 'room', id: roomId, dateStr, key });
-            if (roomPlan.length >= 6) break;
+            if (roomPlan.length >= 4) break;
         }
-        if (roomPlan.length >= 6) break;
+        if (roomPlan.length >= 4) break;
     }
 
     if (roomPlan.length) {
@@ -3945,7 +3957,14 @@ async function fetchScheduleForDate(query, dateStr, signal, retries = 1) {
                 };
                 if (!res.ok) {
                     if (res.status === 401) throw new Error('TELEGRAM_AUTH_401');
-                    throw new Error(`HTTP ${res.status}`);
+                    let code = '';
+                    try {
+                        const body = await res.clone().json();
+                        code = String(body?.error || body?.message || '');
+                    } catch (e) {}
+                    const apiError = new Error(code || `HTTP ${res.status}`);
+                    apiError.status = res.status;
+                    throw apiError;
                 }
                 const data = await res.json();
                 lastApiError = null;
@@ -3955,7 +3974,8 @@ async function fetchScheduleForDate(query, dateStr, signal, retries = 1) {
                 if (e?.name === 'AbortError') throw e;
                 lastError = e;
                 lastApiError = `${dateStr}: ${e?.message || 'ошибка запроса'}`;
-                if (attempt < retries) await sleep(250 * (attempt + 1));
+                // 4xx (в том числе 429) повтором не лечится — только сжигает лимит.
+                if (attempt < retries && !(e?.status >= 400 && e?.status < 500)) await sleep(250 * (attempt + 1));
             }
         }
         throw lastError || new Error('Не удалось получить расписание');
