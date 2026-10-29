@@ -7,6 +7,10 @@ workers_dev = true
 KABINET_API = "https://kabinet.kgeu.ru/api"
 WEBAPP_URL = "https://garz1te.github.io/kgeu_schedule_bot"
 
+# Версия сборки подставляется деплой-скриптом: она попадает в ссылку кнопки
+# «Открыть расписание», чтобы Telegram не показывал закэшированный index.html.
+APP_BUILD = "dev"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "kgeu_schedule_db"

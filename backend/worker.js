@@ -716,6 +716,15 @@ async function telegramApi(env, method, payload = {}) {
 }
 
 // Публичный адрес этого воркера: Telegram должен стучаться именно сюда.
+// Telegram/WebView агрессивно кэширует index.html: без версии в URL после
+// деплоя пользователь продолжает работать со старым JS.
+function webAppUrlWithVersion(env) {
+  const base = String(env.WEBAPP_URL || 'https://garz1te.github.io/kgeu_schedule_bot').trim();
+  const build = String(env.APP_BUILD || '').trim();
+  if (!build) return base;
+  return `${base}${base.includes('?') ? '&' : '?'}v=${encodeURIComponent(build)}`;
+}
+
 function webhookUrlFrom(request) {
   return `${new URL(request.url).origin}/webhook`;
 }
@@ -756,7 +765,7 @@ async function handleTelegramWebhook(request, env, ctx) {
       }
 
       if (!banned && getBotToken(env)) {
-        const webAppUrl = env.WEBAPP_URL || 'https://garz1te.github.io/kgeu_schedule_bot';
+        const webAppUrl = webAppUrlWithVersion(env);
         await sendTelegramMessage(
           getBotToken(env),
           update.message.chat.id,

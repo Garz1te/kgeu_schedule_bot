@@ -3311,6 +3311,42 @@ function getLessonTypeLabel(l) {
     return type === 'type-lab' ? 'Лабораторная' : type === 'type-practice' ? 'Практика' : type === 'type-window' ? 'Перерыв' : 'Лекция';
 }
 
+function isWordChar(ch) {
+    return !!ch && /[\p{L}\p{N}]/u.test(ch);
+}
+
+// Ищет названия групп внутри строки вида «ИПК-1-25, ИМС-1-25».
+// Специально без new RegExp: в шаблонной строке «\p{L}» превращается в «p{L}»,
+// из-за чего проверка границ слова ломалась и «С-1-25» находилась внутри
+// «ИМС-1-25» — в карточке появлялась группа, которой на паре нет.
+function findKnownNamesInText(text, items) {
+    const haystack = String(text || '').toLowerCase();
+    if (!haystack) return [];
+
+    const found = [];
+    for (const item of items || []) {
+        const name = String(item?.name || '').trim();
+        if (!name) continue;
+        if (found.some(x => String(x.id) === String(item.id) || x.name === item.name)) continue;
+
+        const needle = name.toLowerCase();
+        let from = 0;
+        while (from <= haystack.length) {
+            const index = haystack.indexOf(needle, from);
+            if (index < 0) break;
+
+            const before = index > 0 ? haystack[index - 1] : '';
+            const after = haystack[index + needle.length] || '';
+            if (!isWordChar(before) && !isWordChar(after)) {
+                found.push({ name: item.name, id: String(item.id ?? item.name) });
+                break;
+            }
+            from = index + 1;
+        }
+    }
+    return found;
+}
+
 function extractLessonGroups(l) {
     if (Array.isArray(l?.__kgeuGroups)) return dedupeGroups(l.__kgeuGroups);
 
@@ -3383,33 +3419,7 @@ function extractLessonGroups(l) {
         } else {
             const raw = String(groups).trim();
             const known = (listsData.Group || []).map(normalizeListItem).filter(Boolean).sort((a,b)=>b.name.length-a.name.length);
-            const matched = [];
-            for (const item of known) {
-                const n = String(item.name || '').trim();
-                if (!n) continue;
-                const safe = n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const re = new RegExp(`(^|[^\p{L}\p{N}])${safe}(?=$|[^\p{L}\p{N}])`, 'iu');
-                if (re.test(raw) && !matched.some(x => x.id === item.id || x.name === item.name)) {
-                    matched.push({ name: item.name, id: item.id });
-                }
-            }
-
-            const parts = raw
-                .split(/[,;|\n]+|\s*\/\s*|\s+и\s+/iu)
-                .map(v => v.trim())
-                .filter(Boolean);
-            for (const part of parts) {
-                const resolved = resolveListItem('Group', part, '');
-                const normalizedPart = String(part).trim().toLowerCase();
-                const exists = matched.some(x =>
-                    String(x.id || '') === String(resolved?.id || '') ||
-                    String(x.name || '').trim().toLowerCase() === normalizedPart
-                );
-                if (!exists) matched.push({
-                    name: String(resolved?.name || part).trim(),
-                    id: String(resolved?.id || getKnownItemId('Group', part) || part).trim()
-                });
-            }
+            const matched = findKnownNamesInText(raw, known);
             result = matched;
         }
     }
@@ -3670,8 +3680,6 @@ function renderLessons(rawLessons, container, dateStr) {
 // с полным списком групп ("М-1-25, М-2-25") — используем его как источник.
 // Ответы кэшируются на edge, поэтому догрузка почти ничего не стоит.
 
-const teacherDayGroupsCache = new Map();
-const TEACHER_GROUPS_MAX_AGE_MS = 30 * 60 * 1000;
 
 function lessonGroupsMatchKey(timeStr, title, room) {
     const time = parseTimeRange(timeStr);
@@ -3682,17 +3690,55 @@ function lessonGroupsMatchKey(timeStr, title, room) {
     ].join('|');
 }
 
-async function fetchTeacherDayGroups(teacherId, dateStr) {
-    const cacheKey = `${teacherId}|${dateStr}`;
-    const cached = teacherDayGroupsCache.get(cacheKey);
-    if (cached && Date.now() - cached.at < TEACHER_GROUPS_MAX_AGE_MS && cached.promise) {
+function groupFacultyKey(group) {
+    const id = String(group?.id || '').trim();
+    const name = String(group?.name || '').trim().toLowerCase();
+    const known = (listsData.Group || [])
+        .map(normalizeListItem)
+        .filter(Boolean)
+        .find(item => (id && String(item.id) === id) || (name && String(item.name).trim().toLowerCase() === name));
+    return known ? String(known.facultyId || known.faculty || '').trim().toLowerCase() : '';
+}
+
+// КГЭУ в расписании преподавателя перечисляет весь поток, включая группы других
+// факультетов, у которых этой пары в собственном расписании нет (С-1-25 из ИЦТЭ
+// на лекции ИАТЭ). Чужие факультеты отбрасываем.
+function keepOwnFacultyGroups(groups, ownGroups) {
+    const ownFaculty = (ownGroups || []).map(groupFacultyKey).find(Boolean) || '';
+    if (!ownFaculty) return groups || [];
+    return (groups || []).filter(group => {
+        const faculty = groupFacultyKey(group);
+        return !faculty || faculty === ownFaculty;
+    });
+}
+
+const lessonGroupsCache = new Map();
+const LESSON_GROUPS_MAX_AGE_MS = 30 * 60 * 1000;
+
+function lessonGroupsMatchKey(timeStr, title, room) {
+    const time = parseTimeRange(timeStr);
+    return [
+        time ? `${time.start}-${time.end}` : String(timeStr || '').trim().toLowerCase(),
+        String(title || '').trim().toLowerCase(),
+        String(room || '').trim().toLowerCase()
+    ].join('|');
+}
+
+// sourceKind: 'teacher' (idTeacher) или 'room' (idAudLine). В обеих выдачах КГЭУ
+// перечисляет все группы пары, поэтому источников два — если по преподавателю
+// данных нет, выручает строка аудитории.
+async function fetchDayGroupsFrom(sourceKind, sourceId, dateStr) {
+    const cacheKey = `${sourceKind}|${sourceId}|${dateStr}`;
+    const cached = lessonGroupsCache.get(cacheKey);
+    if (cached && Date.now() - cached.at < LESSON_GROUPS_MAX_AGE_MS && cached.promise) {
         return cached.promise;
     }
 
     if (!getInitData()) return null;
 
+    const param = sourceKind === 'room' ? 'idAudLine' : 'idTeacher';
     const promise = (async () => {
-        const url = `${WORKER_URL}/api/Rasp?idTeacher=${encodeURIComponent(teacherId)}&sdate=${encodeURIComponent(dateStr)}`;
+        const url = `${WORKER_URL}/api/Rasp?${param}=${encodeURIComponent(sourceId)}&sdate=${encodeURIComponent(dateStr)}`;
         const res = await fetch(url, { headers: { 'X-Telegram-Init-Data': getInitData() } });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -3709,87 +3755,98 @@ async function fetchTeacherDayGroups(teacherId, dateStr) {
         return rows;
     })();
 
-    teacherDayGroupsCache.set(cacheKey, { at: Date.now(), promise });
+    lessonGroupsCache.set(cacheKey, { at: Date.now(), promise });
     try {
         return await promise;
     } catch (e) {
-        teacherDayGroupsCache.delete(cacheKey);
+        lessonGroupsCache.delete(cacheKey);
         return null;
     }
 }
 
-function groupFacultyKey(group) {
-    const id = String(group?.id || '').trim();
-    const name = String(group?.name || '').trim().toLowerCase();
-    const known = (listsData.Group || [])
-        .map(normalizeListItem)
-        .filter(Boolean)
-        .find(item => (id && String(item.id) === id) || (name && String(item.name).trim().toLowerCase() === name));
-    return known ? String(known.facultyId || known.faculty || '').trim().toLowerCase() : '';
-}
+function applyLoadedGroups(lessons, dateStr, rowsBySource, sourceKind) {
+    const rows = rowsBySource.get(`${sourceKind}|${dateStr}`);
+    if (!rows || !rows.size) return false;
 
-// КГЭУ в расписании преподавателя перечисляет весь поток, включая группы других
-// факультетов, у которых этой пары в их собственном расписании нет (например
-// С-1-25 из ИЦТЭ на лекции ИАТЭ). Чужие факультеты отбрасываем.
-function keepOwnFacultyGroups(groups, ownGroups) {
-    const ownFaculty = (ownGroups || []).map(groupFacultyKey).find(Boolean) || '';
-    if (!ownFaculty) return groups || [];
-    return (groups || []).filter(group => {
-        const faculty = groupFacultyKey(group);
-        return !faculty || faculty === ownFaculty;
-    });
+    let changed = false;
+    for (const lesson of lessons) {
+        const key = lessonGroupsMatchKey(extractLessonTime(lesson), extractLessonTitle(lesson), extractLessonRoom(lesson));
+        const fullGroups = rows.get(key);
+        if (!fullGroups || fullGroups.length < 2) continue;
+
+        const own = extractLessonGroups(lesson);
+        const merged = dedupeGroups([...own, ...keepOwnFacultyGroups(fullGroups, own)]);
+        if (merged.length > own.length) {
+            lesson.__kgeuGroups = merged;
+            changed = true;
+        }
+    }
+    return changed;
 }
 
 // dayLessons: { 'YYYY-MM-DD': [raw lessons] }. budget ограничивает число
 // дополнительных запросов, чтобы не упираться в рейт-лимит воркера.
 async function enrichLessonGroups(dayLessons, budget = 8) {
-    const plan = [];
-    const seen = new Set();
+    const entries = Object.entries(dayLessons || {}).filter(([, lessons]) => Array.isArray(lessons) && lessons.length);
+    if (!entries.length) return false;
 
-    for (const [dateStr, lessons] of Object.entries(dayLessons || {})) {
-        if (!Array.isArray(lessons)) continue;
+    let changed = false;
+
+    // 1) По преподавателю: в его строке перечислены все группы потока.
+    const teacherPlan = [];
+    const seenTeachers = new Set();
+    for (const [dateStr, lessons] of entries) {
         for (const lesson of lessons) {
             const teacherId = String(extractLessonTeacherId(lesson) || '').trim();
             if (!teacherId) continue;
-            const key = `${teacherId}|${dateStr}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
-            plan.push({ teacherId, dateStr, key });
-            if (plan.length >= budget) break;
+            const key = `teacher|${teacherId}|${dateStr}`;
+            if (seenTeachers.has(key)) continue;
+            seenTeachers.add(key);
+            teacherPlan.push({ kind: 'teacher', id: teacherId, dateStr, key });
+            if (teacherPlan.length >= budget) break;
         }
-        if (plan.length >= budget) break;
+        if (teacherPlan.length >= budget) break;
     }
 
-    if (!plan.length) return false;
+    if (teacherPlan.length) {
+        const teacherRows = new Map();
+        await mapWithConcurrency(teacherPlan, 3, async item => {
+            const rows = await fetchDayGroupsFrom(item.kind, item.id, item.dateStr);
+            if (rows && rows.size) teacherRows.set(item.key, rows);
+        });
+        for (const [dateStr, lessons] of entries) {
+            if (applyLoadedGroups(lessons, dateStr, teacherRows, 'teacher')) changed = true;
+        }
+    }
 
-    const loaded = new Map();
-    await mapWithConcurrency(plan, 3, async item => {
-        const rows = await fetchTeacherDayGroups(item.teacherId, item.dateStr);
-        if (rows && rows.size) loaded.set(item.key, rows);
-    });
-
-    if (!loaded.size) return false;
-
-    let changed = false;
-    for (const [dateStr, lessons] of Object.entries(dayLessons || {})) {
-        if (!Array.isArray(lessons)) continue;
+    // 2) По аудитории — для карточек, где по преподавателю данных не нашлось.
+    const roomPlan = [];
+    const seenRooms = new Set();
+    for (const [dateStr, lessons] of entries) {
         for (const lesson of lessons) {
-            const teacherId = String(extractLessonTeacherId(lesson) || '').trim();
-            const rows = loaded.get(`${teacherId}|${dateStr}`);
-            if (!rows) continue;
+            if (extractLessonGroups(lesson).length >= 2) continue;
+            const roomId = String(extractLessonRoomId(lesson) || getKnownItemId('Aud', extractLessonRoom(lesson)) || '').trim();
+            if (!roomId || !/^\d+$/.test(roomId)) continue;
+            const key = `room|${roomId}|${dateStr}`;
+            if (seenRooms.has(key)) continue;
+            seenRooms.add(key);
+            roomPlan.push({ kind: 'room', id: roomId, dateStr, key });
+            if (roomPlan.length >= 6) break;
+        }
+        if (roomPlan.length >= 6) break;
+    }
 
-            const key = lessonGroupsMatchKey(extractLessonTime(lesson), extractLessonTitle(lesson), extractLessonRoom(lesson));
-            const fullGroups = rows.get(key);
-            if (!fullGroups || fullGroups.length < 2) continue;
-
-            const own = extractLessonGroups(lesson);
-            const merged = dedupeGroups([...own, ...keepOwnFacultyGroups(fullGroups, own)]);
-            if (merged.length > own.length) {
-                lesson.__kgeuGroups = merged;
-                changed = true;
-            }
+    if (roomPlan.length) {
+        const roomRows = new Map();
+        await mapWithConcurrency(roomPlan, 3, async item => {
+            const rows = await fetchDayGroupsFrom(item.kind, item.id, item.dateStr);
+            if (rows && rows.size) roomRows.set(item.key, rows);
+        });
+        for (const [dateStr, lessons] of entries) {
+            if (applyLoadedGroups(lessons, dateStr, roomRows, 'room')) changed = true;
         }
     }
+
     return changed;
 }
 
@@ -5612,3 +5669,4 @@ init();
 </script>
 </body>
 </html>
+
