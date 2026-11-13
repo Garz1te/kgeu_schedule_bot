@@ -6,1468 +6,1415 @@
     <title>КГЭУ Расписание</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.85);
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --accent: #38bdf8;
-            --accent-text: #0f172a;
-            --border-color: rgba(255, 255, 255, 0.1);
-            --modal-bg: #1e293b;
-        }
-
-        body.theme-light { --bg-color: #f1f5f9; --card-bg: rgba(255, 255, 255, 0.9); --text-primary: #0f172a; --text-secondary: #64748b; --accent: #0284c7; --accent-text: #ffffff; --border-color: rgba(0, 0, 0, 0.1); --modal-bg: #ffffff; }
-        body.theme-blue { --bg-color: #0c4a6e; --card-bg: rgba(7, 89, 133, 0.85); --text-primary: #f0f9ff; --text-secondary: #7dd3fc; --accent: #38bdf8; --accent-text: #0c4a6e; --border-color: rgba(255, 255, 255, 0.15); --modal-bg: #0284c7; }
-        body.theme-black { --bg-color: #000000; --card-bg: rgba(20, 20, 20, 0.9); --text-primary: #ffffff; --text-secondary: #a1a1aa; --accent: #f43f5e; --accent-text: #ffffff; --border-color: rgba(255, 255, 255, 0.15); --modal-bg: #18181b; }
-        body.theme-pink { --bg-color: #9d174d; --card-bg: rgba(190, 24, 93, 0.92); --text-primary: #fff7fb; --text-secondary: #fbcfe8; --accent: #f472b6; --accent-text: #500724; --border-color: rgba(255, 255, 255, 0.2); --modal-bg: #be185d; }
-        body.theme-purple { --bg-color: #3b0764; --card-bg: rgba(88, 28, 135, 0.85); --text-primary: #f3e8ff; --text-secondary: #d8b4fe; --accent: #c084fc; --accent-text: #ffffff; --border-color: rgba(255, 255, 255, 0.15); --modal-bg: #6b21a8; }
-        body.theme-green { --bg-color: #064e3b; --card-bg: rgba(6, 78, 59, 0.85); --text-primary: #ecfdf5; --text-secondary: #6ee7b7; --accent: #34d399; --accent-text: #064e3b; --border-color: rgba(255, 255, 255, 0.15); --modal-bg: #047857; }
-        body.theme-amber { --bg-color: #451a03; --card-bg: rgba(120, 53, 15, 0.85); --text-primary: #fef3c7; --text-secondary: #fcd34d; --accent: #fbbf24; --accent-text: #451a03; --border-color: rgba(255, 255, 255, 0.15); --modal-bg: #92400e; }
-        body.theme-cyber { --bg-color: #26313a; --card-bg: rgba(48, 61, 72, 0.92); --text-primary: #f3f5f7; --text-secondary: #b7c1c9; --accent: #9db7c9; --accent-text: #20303b; --border-color: rgba(255,255,255,0.11); --modal-bg: #34414c; }
-
-        body.custom-bg-theme {
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body.modal-open {
-            overflow: hidden;
-            overscroll-behavior: none;
-            touch-action: none;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            min-height: 100vh;
-            padding-bottom: calc(30px + env(safe-area-inset-bottom));
-            transition: background 0.4s ease, color 0.4s ease;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 12px;
-        }
-
-        .header {
-            background: var(--card-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border-color);
-            border-radius: 18px;
-            padding: 16px;
-            margin-bottom: 12px;
-            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
-            transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, transform 0.25s ease;
-        }
-
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 0;
-            font-weight: 800;
-            font-size: 18px;
-            letter-spacing: 0.5px;
-        }
-
-        .badge-type {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--accent);
-            color: var(--accent-text);
-            padding: 9px 18px;
-            margin-left: 4px;
-            border-radius: 11px;
-            font-size: 16px;
-            line-height: 1.1;
-            font-weight: 900;
-            text-transform: uppercase;
-            box-shadow: 0 3px 10px rgba(0,0,0,.10);
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .icon-btn {
-            background: var(--border-color);
-            border: none;
-            color: var(--text-primary);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 16px;
-            transition: transform 0.2s, background 0.3s;
-        }
-
-        .icon-btn:active {
-            transform: scale(0.9);
-        }
-
-        /* Девиз темы — видимый блок под шапкой */
-        .creator-note {
-            text-align: left;
-            font-size: 12px;
-            line-height: 1.45;
-            color: var(--text-secondary);
-            margin: 0 2px 10px;
-            opacity: 0.95;
-            user-select: none;
-            padding: 8px 10px;
-            border-left: 3px solid var(--accent);
-            background: rgba(255,255,255,0.04);
-            border-radius: 0 9px 9px 0;
-            transition: color 0.35s ease, border-color 0.35s ease, background 0.35s ease;
-        }
-
-        .name-display-box {
-            background: var(--border-color);
-            padding: 10px 14px;
-            border-radius: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            margin-bottom: 10px;
-            transition: background 0.3s ease;
-        }
-
-        .name-display-box:active {
-            opacity: 0.8;
-        }
-
-        .name-display-box span {
-            font-weight: 700;
-            font-size: 15px;
-        }
-
-        .favorites-scroll {
-            display: flex;
-            gap: 7px;
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding: 2px 2px 7px;
-            margin-bottom: 10px;
-            scrollbar-width: thin;
-            scrollbar-color: var(--accent) transparent;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-x: contain;
-            scroll-behavior: smooth;
-            scroll-snap-type: x proximity;
-        }
-
-        .favorites-scroll::-webkit-scrollbar {
-            height: 4px;
-        }
-
-        .favorites-scroll::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .favorites-scroll::-webkit-scrollbar-thumb {
-            background: var(--accent);
-            border-radius: 999px;
-        }
-
-        .favorite-chip {
-            flex: 0 0 auto;
-            scroll-snap-align: start;
-            background: var(--border-color);
-            border: 1px solid var(--border-color);
-            padding: 6px 11px;
-            border-radius: 20px;
-            font-size: 12px;
-            white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-            transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
-        }
-
-        .favorite-chip:active {
-            background: var(--accent);
-            color: var(--accent-text);
-            transform: scale(0.95);
-        }
-
-        .free-auds-wrap {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .subgroup-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 13px;
-            color: var(--text-secondary);
-            background: var(--border-color);
-            padding: 8px 12px;
-            border-radius: 8px;
-        }
-
-        .settings-subgroup {
-            margin-top: 4px;
-            margin-bottom: 14px;
-        }
-
-        .subgroup-select {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            font-weight: 600;
-            font-size: 13px;
-            outline: none;
-            cursor: pointer;
-            padding: 6px 28px 6px 12px;
-            border-radius: 8px;
-            appearance: none;
-            -webkit-appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 8px center;
-            background-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        .subgroup-select:focus {
-            border-color: var(--accent);
-        }
-
-        .subgroup-select option {
-            background: var(--modal-bg);
-            color: var(--text-primary);
-            padding: 8px;
-        }
-
-        .nav-modes {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
-            margin-bottom: 12px;
-        }
-
-        .nav-item {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 8px 4px;
-            border-radius: 12px;
-            text-align: center;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            color: var(--text-secondary);
-            backdrop-filter: blur(8px);
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .nav-item.active {
-            background: var(--accent);
-            color: var(--accent-text);
-            border-color: transparent;
-            transform: translateY(-2px);
-        }
-
-        .controls-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 10px;
-            margin-bottom: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            backdrop-filter: blur(8px);
-        }
-
-        .tabs-row {
-            display: flex;
-            background: var(--border-color);
-            border-radius: 8px;
-            padding: 2px;
-        }
-
-        .tab-btn {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            padding: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.25s ease, color 0.25s ease, transform 0.15s ease, box-shadow 0.25s ease;
-        }
-
-        .tab-btn.active {
-            background: var(--card-bg);
-            color: var(--text-primary);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .tab-btn:active {
-            transform: scale(0.96);
-        }
-
-        .date-nav-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .date-label {
-            font-weight: 700;
-            font-size: 14px;
-        }
-
-        .today-btn-small {
-            background: var(--border-color);
-            border: none;
-            color: var(--accent);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .today-btn-small:active {
-            transform: scale(0.9);
-        }
-
-        .global-search-input {
-            width: 100%;
-            background: var(--border-color);
-            border: 1px solid var(--border-color);
-            padding: 8px 12px;
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 13px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        .global-search-input:focus {
-            border-color: var(--accent);
-        }
-
-        .global-search-input::placeholder {
-            color: var(--text-secondary);
-        }
-
-        #schedule-container,
-        #month-preview-content {
-            transition: opacity 0.15s ease, transform 0.15s ease;
-        }
-
-        .page-exit {
-            opacity: 0 !important;
-            transform: translateY(6px) !important;
-        }
-
-        .page-enter {
-            animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        @keyframes slideUpFade {
-            from {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .lesson-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 14px;
-            margin-bottom: 10px;
-            position: relative;
-            overflow: hidden;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            animation: fadeIn 0.4s ease forwards;
-            will-change: transform, opacity;
-            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
-        }
-
-        .lesson-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .lesson-card:active {
-            transform: translateY(0) scale(0.995);
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ЦВЕТА ТИПОВ ПАР: лекция — синий, практика — оранжевый, лаба — фиолетовый */
-        .lesson-card.type-lecture {
-            border-left: 4px solid #3b82f6;
-        }
-
-        .lesson-card.type-practice {
-            border-left: 4px solid #f97316;
-        }
-
-        .lesson-card.type-lab {
-            border-left: 4px solid #a855f7;
-        }
-
-        .lesson-card.type-window {
-            border-left: 4px dashed var(--text-secondary);
-            background: rgba(0,0,0,0.05);
-        }
-
-        .lesson-title {
-            font-size: 15px;
-            font-weight: 700;
-            margin: 0 0 4px;
-            min-width: 0;
-            overflow-wrap: anywhere;
-        }
-
-        .lesson-badges {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 8px;
-        }
-
-        .lesson-badges .lesson-live-badge {
-            margin-left: auto;
-        }
-
-        .lesson-subgroup-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 2px 7px;
-            border-radius: 999px;
-            background: var(--border-color);
-            color: var(--text-secondary);
-            font-size: 10px;
-            font-weight: 700;
-            white-space: nowrap;
-            flex: 0 0 auto;
-        }
-
-        .lesson-kind-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 2px 7px;
-            border-radius: 999px;
-            font-size: 9px;
-            line-height: 1.1;
-            font-weight: 800;
-            white-space: nowrap;
-            background: var(--border-color);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-color);
-        }
-        .lesson-kind-badge.type-lecture { border-color: rgba(56,189,248,.45); color: #7dd3fc; }
-        .lesson-kind-badge.type-practice { border-color: rgba(249,115,22,.45); color: #fdba74; }
-        .lesson-kind-badge.type-lab { border-color: rgba(168,85,247,.45); color: #d8b4fe; }
-
-        .lesson-time-main {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin: 2px 0 7px;
-            padding: 5px 8px;
-            border-radius: 8px;
-            background: var(--border-color);
-            color: var(--text-primary);
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: .1px;
-        }
-
-        .lesson-time-main.missing {
-            color: var(--text-secondary);
-            font-weight: 600;
-        }
-
-        .lesson-groups {
-            margin: 5px 0 6px;
-            padding: 5px 7px;
-            border-radius: 8px;
-            background: var(--border-color);
-            color: var(--text-primary);
-            font-size: 11px;
-            line-height: 1.35;
-            font-weight: 700;
-        }
-
-        .lesson-groups {
-            display: block;
-        }
-
-        .lesson-groups-label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--text-secondary);
-            font-weight: 800;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: .25px;
-        }
-
-        .lesson-group-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-        }
-
-        .lesson-group-link {
-            display: inline-flex;
-            align-items: center;
-            min-height: 24px;
-            padding: 3px 8px;
-            border-radius: 999px;
-            color: var(--text-primary);
-            text-decoration: none;
-            background: rgba(127,127,127,.12);
-            border: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: color .18s ease, opacity .18s ease, transform .18s ease;
-            font-weight: 700;
-        }
-
-        .lesson-group-link:active {
-            color: var(--accent);
-            opacity: .78;
-            transform: scale(.97);
-        }
-
-        .lesson-card.type-lecture {
-            border-left: 4px solid #3b82f6;
-            background: linear-gradient(90deg, rgba(59,130,246,.09), transparent 68%);
-        }
-
-        .lesson-card.type-practice {
-            border-left: 4px solid #f97316;
-            background: linear-gradient(90deg, rgba(249,115,22,.09), transparent 68%);
-        }
-
-        .lesson-card.type-lab {
-            border-left: 4px solid #a855f7;
-            background: linear-gradient(90deg, rgba(168,85,247,.09), transparent 68%);
-        }
-
-        .lesson-info {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-bottom: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .clickable-badge {
-            background: var(--border-color);
-            padding: 2px 8px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            color: var(--text-primary);
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 12px;
-            transition: 0.2s;
-        }
-
-        .clickable-badge:active {
-            background: var(--accent);
-            color: var(--accent-text);
-            transform: scale(0.95);
-        }
-
-        .lesson-actions {
-            margin-top: 10px;
-            display: flex;
-            gap: 6px;
-        }
-
-        .action-btn {
-            background: var(--border-color);
-            border: none;
-            color: var(--text-primary);
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .action-btn:active {
-            background: var(--accent);
-            color: var(--accent-text);
-        }
-
-        .current-lesson {
-            box-shadow: 0 0 15px var(--accent);
-            border: 1px solid var(--accent);
-        }
-
-        .live-progress {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 3px;
-            background: var(--accent);
-            transition: width 0.5s linear;
-        }
-
-        .day-header {
-            font-size: 14px;
-            font-weight: 800;
-            color: var(--accent);
-            margin: 16px 0 8px 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 30px;
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-
-        .month-calendar {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 10px;
-            margin-bottom: 12px;
-            backdrop-filter: blur(8px);
-        }
-
-        .weekdays-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            text-align: center;
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-        }
-
-        .days-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-        }
-
-        .calendar-day {
-            aspect-ratio: 1;
-            background: var(--border-color);
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            position: relative;
-            transition: background-color 0.2s ease, transform 0.15s ease, border-color 0.2s ease, color 0.2s ease;
-        }
-
-        .calendar-day:active {
-            transform: scale(0.9);
-        }
-
-        .calendar-day.empty {
-            background: transparent;
-            cursor: default;
-            pointer-events: none;
-        }
-
-        .calendar-day.today {
-            border: 1px solid var(--accent);
-        }
-
-        .calendar-day.selected {
-            background: var(--accent) !important;
-            color: var(--accent-text) !important;
-            transform: scale(1.05);
-        }
-
-        .dots-container {
-            display: flex;
-            gap: 2px;
-            margin-top: 2px;
-        }
-
-        .dot {
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            background: var(--text-primary);
-            box-shadow: 0 0 0 1px rgba(255,255,255,.18);
-            flex: 0 0 5px;
-        }
-
-        /* Точки календаря в новых цветах */
-        .dot.type-lecture {
-            background: #22c55e;
-            box-shadow: 0 0 0 1px rgba(34,197,94,.35), 0 0 5px rgba(34,197,94,.28);
-        }
-
-        .dot.type-practice {
-            background: #f97316;
-            box-shadow: 0 0 0 1px rgba(249,115,22,.35), 0 0 5px rgba(249,115,22,.24);
-        }
-
-        .dot.type-lab {
-            background: #a855f7;
-            box-shadow: 0 0 0 1px rgba(168,85,247,.35), 0 0 5px rgba(168,85,247,.24);
-        }
-
-        .dot.type-window {
-            background: var(--border-color);
-            box-shadow: 0 0 0 1px var(--text-secondary);
-        }
-
-        body.theme-light .dot.type-lecture {
-            background:#16a34a;
-            box-shadow:0 0 0 1px rgba(22,163,74,.28);
-        }
-
-        body.theme-light .dot.type-practice {
-            background:#ea580c;
-            box-shadow:0 0 0 1px rgba(234,88,12,.28);
-        }
-
-        body.theme-light .dot.type-lab {
-            background:#9333ea;
-            box-shadow:0 0 0 1px rgba(147,51,234,.28);
-        }
-
-        .month-preview {
-            margin-top: 10px;
-            min-height: 100px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .modal.show {
-            display: block;
-            opacity: 1;
-        }
-
-        .modal-content {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: var(--modal-bg);
-            border-top: 1px solid var(--border-color);
-            border-radius: 22px 22px 0 0;
-            padding: 14px 20px 20px;
-            max-height: 78dvh;
-            display: flex;
-            flex-direction: column;
-            overflow: visible;
-            box-shadow: 0 -12px 44px rgba(0,0,0,0.38);
-            transform: translateY(100%);
-            transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
-            padding-bottom: calc(20px + env(safe-area-inset-bottom));
-            touch-action: pan-y;
-            overscroll-behavior: contain;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            will-change: transform;
-        }
-
-        .modal.show .modal-content {
-            transform: translateY(0);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-        }
-
-        .modal-title {
-            font-size: 16px;
-            font-weight: 700;
-        }
-
-        .form-group {
-            margin-bottom: 14px;
-            position: relative;
-        }
-
-        .form-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-            display: block;
-        }
-
-        .form-input {
-            width: 100%;
-            background: var(--border-color);
-            border: 1px solid var(--border-color);
-            padding: 10px 14px;
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        .form-input:focus {
-            border-color: var(--accent);
-        }
-
-        textarea.form-input {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .autocomplete-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            width: 100%;
-            max-height: 230px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
-            background: var(--modal-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 0 0 10px 10px;
-            z-index: 10;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-            opacity: 0;
-            transform: translateY(-8px);
-            pointer-events: none;
-            visibility: hidden;
-            display: block;
-            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
-        }
-
-        .autocomplete-dropdown.active {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-            pointer-events: auto;
-            visibility: visible;
-        }
-
-        .autocomplete-item {
-            min-height: 46px;
-            padding: 11px 14px;
-            font-size: 13px;
-            cursor: pointer;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            transition: background 0.2s ease, color 0.2s ease, padding-left 0.2s ease;
-        }
-
-        .autocomplete-item:last-child {
-            border-bottom: none;
-        }
-
-        .autocomplete-item:hover {
-            background: rgba(255,255,255,0.06);
-            padding-left: 17px;
-        }
-
-        .autocomplete-item:active {
-            background: var(--accent);
-            color: var(--accent-text);
-        }
-
-        .btn-primary {
-            width: 100%;
-            background: var(--accent);
-            color: var(--accent-text);
-            border: none;
-            padding: 12px;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 14px;
-            cursor: pointer;
-            margin-top: 6px;
-            transition: transform 0.2s, filter 0.2s;
-        }
-
-        .btn-primary:active {
-            transform: scale(0.98);
-            filter: brightness(0.9);
-        }
-
-        .themes-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-bottom: 14px;
-        }
-
-        .theme-option {
-            background: var(--border-color);
-            border: 1px solid var(--border-color);
-            padding: 10px;
-            border-radius: 10px;
-            text-align: center;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .theme-option:active {
-            transform: scale(0.95);
-            background: var(--accent);
-            color: var(--accent-text);
-        }
-
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 6px;
-            margin-top: 8px;
-        }
-
-        .quick-action-btn {
-            min-width: 0;
-            background: var(--border-color);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-            padding: 9px 6px;
-            border-radius: 9px;
-            font-size: 11px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: transform .18s ease, background .25s ease, color .25s ease;
-        }
-
-        .quick-action-refresh {
-            grid-column: 1 / -1 !important;
-            width: 100% !important;
-            min-height: 64px;
-            padding: 14px 18px;
-            font-size: 15px;
-            letter-spacing: .15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .quick-action-btn:disabled { opacity: .55; cursor: wait; }
-
-        .quick-action-btn:active {
-            transform: scale(.97);
-            background: var(--accent);
-            color: var(--accent-text);
-        }
-
-        .reminder-picker-content {
-            top: 6vh;
-            bottom: auto;
-            max-height: 88dvh;
-        }
-        .reminder-option-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 7px;
-        }
-        .reminder-option {
-            border: 1px solid var(--border-color);
-            background: var(--border-color);
-            color: var(--text-primary);
-            padding: 10px 8px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-        .reminder-option.selected {
-            border-color: var(--accent);
-            background: color-mix(in srgb, var(--accent) 18%, transparent);
-            color: var(--accent);
-        }
-        .reminder-custom-row {
-            margin-top: 10px;
-            margin-bottom: 0;
-        }
-
-        .summary-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 12px;
-            margin-bottom: 10px;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 18px rgba(0,0,0,.08);
-        }
-
-        .summary-title {
-            font-size: 12px;
-            font-weight: 800;
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: .4px;
-        }
-
-        .summary-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            color: var(--text-secondary);
-            font-size: 12px;
-        }
-
-        .summary-empty {
-            color: var(--text-secondary);
-            font-size: 13px;
-            line-height: 1.4;
-        }
-
-        .lesson-live-badge {
-            background: var(--accent);
-            color: var(--accent-text);
-            padding: 3px 7px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 800;
-            margin-left: auto;
-            white-space: normal;
-            overflow-wrap: anywhere;
-            flex: 0 1 auto;
-            max-width: 100%;
-            text-align: center;
-        }
-
-        .lesson-next-badge {
-            background: rgba(56,189,248,.16);
-            color: var(--text-primary);
-            border: 1px solid rgba(56,189,248,.32);
-        }
-
-        .admin-user-card {
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 9px 10px;
-            margin-bottom: 6px;
-        }
-
-        .admin-user-main {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            gap: 8px;
-        }
-
-        .admin-user-name {
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .admin-user-meta {
-            font-size: 11px;
-            color: var(--text-secondary);
-        }
-
-        .admin-user-banned {
-            color: #ef4444;
-            font-weight: 700;
-        }
-
-        .admin-user-actions {
-            display: flex;
-            gap: 6px;
-            margin-top: 7px;
-        }
-
-        .admin-filter-btn {
-            font-size: 11px;
-            padding: 5px 10px;
-            border-radius: 999px;
-            border: 1px solid var(--border-color);
-            background: transparent;
-            color: var(--text-secondary);
-        }
-
-        .admin-filter-btn.active {
-            background: var(--accent);
-            color: var(--accent-text);
-            border-color: transparent;
-            font-weight: 700;
-        }
-
-        .error-card {
-            background: rgba(239,68,68,.09);
-            border: 1px solid rgba(239,68,68,.35);
-            color: var(--text-primary);
-            border-radius: 12px;
-            padding: 11px 12px;
-            margin-bottom: 10px;
-            font-size: 12px;
-            line-height: 1.45;
-        }
-
-        .diagnostic-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 7px;
-            margin-top: 8px;
-        }
-
-        .diagnostic-item {
-            background: var(--border-color);
-            border-radius: 9px;
-            padding: 8px;
-            min-width: 0;
-        }
-
-        .diagnostic-label {
-            color: var(--text-secondary);
-            font-size: 10px;
-            margin-bottom: 3px;
-        }
-
-        .diagnostic-value {
-            font-size: 11px;
-            font-weight: 700;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .modal-scroll {
-            overflow-y: auto;
-            max-height: 62vh;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
-        }
-
-        .modal-scroll, .autocomplete-dropdown, .favorites-scroll {
-            scrollbar-width: none;
-        }
-
-        .modal-scroll::-webkit-scrollbar, .autocomplete-dropdown::-webkit-scrollbar, .favorites-scroll::-webkit-scrollbar {
-            width: 0;
-            height: 0;
-            display: none;
-        }
-
-        /* Поиск: обычная нижняя шторка на всю высоту, список занимает свободное место */
-        #search-modal .modal-content {
-            top: auto;
-            bottom: 0;
-            height: 88dvh;
-            max-height: 88dvh;
-            border-radius: 22px 22px 0 0;
-            overflow: hidden;
-            transform: translateY(100%);
-        }
-
-        #search-modal.show .modal-content {
-            transform: translateY(0);
-        }
-
-        #search-modal .form-group {
-            display: flex;
-            flex-direction: column;
-            flex: 1 1 auto;
-            min-height: 0;
-            margin-bottom: 10px;
-        }
-
-        #search-modal .autocomplete-dropdown {
-            position: static;
-            top: auto;
-            margin-top: 8px;
-            max-height: none;
-            flex: 1 1 auto;
-            min-height: 0;
-            border-radius: 12px;
-            box-shadow: none;
-            transform: none;
-        }
-
-        #search-modal .autocomplete-dropdown:not(.active) {
-            display: none;
-        }
-
-        #search-modal .autocomplete-item {
-            min-height: 52px;
-            display: flex;
-            align-items: center;
-        }
-
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 7px;
-        }
-
-        .notes-toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-
-        .lesson-note {
-            margin-top: 9px;
-            padding: 9px 10px;
-            border-radius: 9px;
-            background: var(--border-color);
-            color: var(--text-primary);
-            font-size: 12px;
-            line-height: 1.4;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .lesson-note-label {
-            color: var(--accent);
-            font-weight: 800;
-            margin-right: 4px;
-        }
-
-        .lesson-note-editor {
-            margin-top: 9px;
-            padding: 9px;
-            border-radius: 10px;
-            background: var(--border-color);
-        }
-
-        .lesson-note-editor textarea {
-            width: 100%;
-            min-height: 72px;
-            resize: vertical;
-            background: rgba(0,0,0,.08);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            border-radius: 8px;
-            padding: 8px 9px;
-            outline: none;
-            font: inherit;
-            font-size: 12px;
-        }
-
-        .lesson-note-editor-actions {
-            display: flex;
-            gap: 6px;
-            margin-top: 7px;
-        }
-
-        .lesson-note-editor-actions .action-btn {
-            flex: 1;
-        }
-
-        @media (max-width: 420px) {
-            .container { padding: 9px; }
-            .header { padding: 13px; border-radius: 16px; }
-            .badge-type { padding: 8px 14px; font-size: 15px; }
-            .nav-item { font-size: 10.5px; padding: 8px 3px; }
-            .lesson-card { padding: 12px; border-radius: 12px; }
-            .lesson-title { font-size: 14px; }
-        }
-
-        .my-schedule-source {
-            font-size: 10px;
-            color: var(--text-secondary);
-            margin: 10px 0 5px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .35px;
-        }
-
-        .my-schedule-empty {
-            text-align: center;
-            color: var(--text-secondary);
-            padding: 24px 10px;
-            font-size: 13px;
-        }
-
-        .my-schedule-nav {
-            display: grid;
-            grid-template-columns: 36px minmax(0,1fr) 36px auto;
-            gap: 6px;
-            align-items: center;
-            margin-bottom: 9px;
-            position: sticky;
-            top: 0;
-            z-index: 2;
-            padding: 2px 0 7px;
-            background: var(--modal-bg);
-        }
-
-        .my-schedule-nav-btn {
-            width: 36px;
-            height: 36px;
-            border: none;
-            border-radius: 10px;
-            background: var(--border-color);
-            color: var(--text-primary);
-            font-size: 22px;
-            cursor: pointer;
-        }
-
-        .my-schedule-date {
-            min-width: 0;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            gap: 1px;
-            font-size: 12px;
-        }
-
-        .my-schedule-date span {
-            color: var(--text-secondary);
-            font-size: 10px;
-        }
-
-        .my-schedule-today {
-            white-space: nowrap;
-            padding: 8px 9px;
-        }
-
-        .lesson-source-badge {
-            display: inline-flex;
-            margin: 2px 0 5px;
-            padding: 3px 7px;
-            border-radius: 6px;
-            background: var(--border-color);
-            color: var(--text-secondary);
-            font-size: 10px;
-            font-weight: 700;
-        }
-
-        .offline-banner {
-            background: #ef4444;
-            color: #fff;
-            text-align: center;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px;
-            display: none;
-        }
-
-        .admin-btn {
-            background: var(--border-color);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-            padding: 10px 12px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-bottom: 6px;
-            display: block;
-            width: 100%;
-            text-align: left;
-        }
-
-        .admin-btn:active {
-            background: var(--accent);
-            color: var(--accent-text);
-        }
-
-        .admin-btn.danger {
-            border-color: rgba(239,68,68,.4);
-        }
-
-        .admin-btn.danger:active {
-            background: #ef4444;
-            color: #fff;
-        }
-
-        .top-list-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 12px;
-            background: var(--border-color);
-            border-radius: 8px;
-            margin-bottom: 4px;
-            font-size: 12px;
-        }
+:root {
+    /* Рэмп графита: тёмная тема по умолчанию */
+    --bg-color: #0e0f10;
+    --card-bg: #161719;
+    --surface-1: #161719;
+    --surface-2: #1d1f22;
+    --surface-3: #24262a;
+    --modal-bg: #141517;
+
+    --text-primary: #eceef1;
+    --text-secondary: #a4a7ac;
+    --text-muted: #7b7f85;
+
+    --border-color: rgba(236, 238, 241, 0.085);
+    --border-strong: rgba(236, 238, 241, 0.16);
+
+    /* Один акцент. Текст на акценте держит контраст ≥ 4.5:1 */
+    --accent: #2e9a8c;
+    --accent-text: #04120f;
+    --accent-soft: rgba(46, 154, 140, 0.14);
+    --danger: #e5484d;
+    --danger-soft: rgba(229, 72, 77, 0.12);
+    --ok: #4cc38a;
+
+    /* Шкала отступов 4px */
+    --s-1: 4px;
+    --s-2: 8px;
+    --s-3: 12px;
+    --s-4: 16px;
+    --s-5: 20px;
+    --s-6: 24px;
+    --s-8: 32px;
+
+    /* Радиусы: контроль 10, карточка 14, шторка 20 */
+    --r-1: 6px;
+    --r-2: 10px;
+    --r-3: 14px;
+    --r-4: 20px;
+
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --line: 18px;
+}
+
+/* Тёмные варианты отличаются только акцентом: поверхности одни и те же */
+body.theme-purple { --accent: #2e9a8c; --accent-text: #04120f; --accent-soft: rgba(46, 154, 140, 0.14); }
+body.theme-blue   { --accent: #4f7cd6; --accent-text: #06101f; --accent-soft: rgba(79, 124, 214, 0.16); }
+body.theme-green  { --accent: #5c9a6b; --accent-text: #06110a; --accent-soft: rgba(92, 154, 107, 0.16); }
+body.theme-pink   { --accent: #c4738d; --accent-text: #17070c; --accent-soft: rgba(196, 115, 141, 0.16); }
+body.theme-amber  { --accent: #c08a3e; --accent-text: #150d02; --accent-soft: rgba(192, 138, 62, 0.16); }
+body.theme-cyber  { --accent: #8a929b; --accent-text: #0d0f11; --accent-soft: rgba(138, 146, 155, 0.16); }
+
+body.theme-black {
+    --bg-color: #000000;
+    --card-bg: #0b0c0d;
+    --surface-1: #0b0c0d;
+    --surface-2: #121314;
+    --surface-3: #191a1c;
+    --modal-bg: #0a0b0c;
+    --border-color: rgba(236, 238, 241, 0.1);
+    --accent: #2e9a8c;
+    --accent-text: #04120f;
+}
+
+body.theme-light {
+    --bg-color: #f7f7f8;
+    --card-bg: #ffffff;
+    --surface-1: #ffffff;
+    --surface-2: #f0f0f1;
+    --surface-3: #e7e7e9;
+    --modal-bg: #ffffff;
+    --text-primary: #17181a;
+    --text-secondary: #54575c;
+    --text-muted: #7b7f85;
+    --border-color: rgba(23, 24, 26, 0.1);
+    --border-strong: rgba(23, 24, 26, 0.18);
+    --accent: #1f7f74;
+    --accent-text: #ffffff;
+    --accent-soft: rgba(31, 127, 116, 0.1);
+}
+
+body.custom-bg-theme {
+    background-size: cover;
+    background-position: center;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100dvh;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: contain;
+}
+
+/* Иконки: один набор, один размер, один штрих */
+.i {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vertical-align: -3px;
+}
+
+.i-inline {
+    margin-right: 6px;
+}
+
+button,
+input,
+textarea,
+select {
+    font-family: inherit;
+    color: inherit;
+}
+
+button {
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+/* ============ Каркас ============ */
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 12px 16px calc(28px + env(safe-area-inset-bottom));
+}
+
+.header {
+    padding-top: 4px;
+}
+
+.header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2);
+    min-height: 40px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+}
+
+.badge-type {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: var(--r-1);
+    background: var(--surface-2);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: none;
+}
+
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--r-2);
+    background: var(--surface-1);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.icon-btn:active {
+    background: var(--surface-2);
+    color: var(--text-primary);
+}
+
+.creator-note {
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 6px 0 0;
+    min-height: 0;
+}
+
+.creator-note:empty {
+    display: none;
+}
+
+/* Переключатель режима поиска */
+.nav-modes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px;
+    margin-top: var(--s-3);
+    padding: 4px;
+    background: var(--surface-1);
+    border: 1px solid var(--border-color);
+    border-radius: var(--r-2);
+}
+
+.nav-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nav-item.active {
+    background: var(--surface-3);
+    color: var(--text-primary);
+}
+
+.nav-item .i {
+    width: 15px;
+    height: 15px;
+    color: var(--text-muted);
+}
+
+.nav-item.active .i {
+    color: var(--accent);
+}
+
+/* Выбранный объект */
+.name-display-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    margin-top: var(--s-2);
+    padding: 12px 14px;
+    background: var(--surface-1);
+    border: 1px solid var(--border-color);
+    border-radius: var(--r-2);
+}
+
+.name-display-box #name-display {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.name-display-box .change {
+    color: var(--text-muted);
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.favorites-scroll {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 8px 0 0;
+    scrollbar-width: none;
+}
+
+.favorites-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.favorite-chip {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border-radius: var(--r-1);
+    border: 1px solid var(--border-color);
+    background: var(--surface-1);
+    color: var(--text-secondary);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.favorite-chip:active {
+    background: var(--surface-2);
+    color: var(--text-primary);
+}
+
+.offline-banner {
+    display: none;
+    padding: 8px 16px;
+    background: var(--danger-soft);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
+.offline-banner.visible {
+    display: block;
+}
+
+/* ============ Контролы расписания ============ */
+.controls-card {
+    margin-top: var(--s-3);
+    padding: 12px;
+    background: var(--surface-1);
+    border: 1px solid var(--border-color);
+    border-radius: var(--r-3);
+}
+
+.tabs-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px;
+    padding: 4px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--r-2);
+}
+
+.tab-btn {
+    padding: 8px;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.tab-btn.active {
+    background: var(--surface-3);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.date-nav-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin-top: var(--s-3);
+}
+
+.date-nav-row .icon-btn {
+    width: 32px;
+    height: 32px;
+}
+
+.date-label {
+    flex: 1;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.today-btn-small {
+    padding: 4px 8px;
+    border-radius: var(--r-1);
+    border: 1px solid var(--border-color);
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.global-search-input,
+.form-input {
+    width: 100%;
+    margin-top: var(--s-3);
+    padding: 10px 12px;
+    border-radius: var(--r-2);
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+}
+
+.global-search-input::placeholder,
+.form-input::placeholder {
+    color: var(--text-muted);
+}
+
+.global-search-input:focus,
+.form-input:focus {
+    border-color: var(--border-strong);
+}
+
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: var(--s-3);
+}
+
+.quick-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 8px;
+    border-radius: var(--r-2);
+    border: 1px solid var(--border-color);
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.quick-action-btn .i {
+    color: var(--text-muted);
+}
+
+.quick-action-btn:active {
+    background: var(--surface-3);
+    color: var(--text-primary);
+}
+
+.quick-action-btn:disabled {
+    opacity: 0.55;
+}
+
+/* Обновление — единственная кнопка с акцентом */
+.quick-action-refresh {
+    grid-column: 1 / -1;
+    background: transparent;
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+
+.quick-action-refresh .i {
+    color: var(--accent);
+}
+
+/* ============ Служебные состояния ============ */
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 28px 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+.loading::after {
+    content: "";
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    animation: dotPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 1; }
+}
+
+.error-card {
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    border-radius: var(--r-2);
+    background: var(--danger-soft);
+    border: 1px solid rgba(229, 72, 77, 0.28);
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.error-card strong {
+    font-weight: 600;
+}
+
+.error-card .error-detail {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.day-header {
+    margin: 20px 0 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.01em;
+}
+
+/* ============ Карточка пары ============ */
+.lesson-card {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 12px;
+    position: relative;
+    margin-bottom: 8px;
+    padding: 12px;
+    background: var(--surface-1);
+    border: 1px solid var(--border-color);
+    border-radius: var(--r-3);
+}
+
+.lesson-card.type-window {
+    grid-template-columns: 1fr;
+    padding: 10px 12px;
+    background: transparent;
+    border-style: dashed;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-align: center;
+}
+
+.lesson-card.is-now {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+}
+
+/* Левая колонка: время как в расписании на двери аудитории */
+.lesson-time {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+    color: var(--text-secondary);
+}
+
+.lesson-time .t-start {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.lesson-time .t-end {
+    color: var(--text-muted);
+}
+
+.lesson-time .t-pair {
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+}
+
+.lesson-body {
+    min-width: 0;
+}
+
+.lesson-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.lesson-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.lesson-kind {
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.lesson-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.lesson-meta .sep {
+    color: var(--text-muted);
+}
+
+.lesson-meta button {
+    padding: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-decoration: underline;
+    text-decoration-color: var(--border-strong);
+    text-underline-offset: 3px;
+}
+
+.lesson-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.lesson-live .live-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.lesson-live.is-next {
+    color: var(--text-secondary);
+}
+
+.lesson-live.is-next .live-dot {
+    background: var(--text-muted);
+}
+
+.lesson-groups {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.lesson-groups-label {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.lesson-group-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.lesson-group-link {
+    padding: 4px 8px;
+    border-radius: var(--r-1);
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+.lesson-group-link:active {
+    background: var(--surface-3);
+    color: var(--text-primary);
+}
+
+.lesson-source-badge {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.lesson-note {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-left: 2px solid var(--border-strong);
+    border-radius: 0 var(--r-1) var(--r-1) 0;
+    background: var(--surface-2);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.lesson-note-label {
+    color: var(--text-muted);
+    margin-right: 4px;
+}
+
+.lesson-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: var(--r-1);
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.action-btn .i {
+    width: 14px;
+    height: 14px;
+    color: var(--text-muted);
+}
+
+.action-btn:active {
+    background: var(--surface-2);
+    color: var(--text-primary);
+}
+
+.clickable-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: var(--r-1);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.clickable-badge:active {
+    background: var(--surface-2);
+    color: var(--text-primary);
+}
+
+/* Живая линия прогресса пары: единственный «момент» карточки */
+.live-progress {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: var(--accent);
+    opacity: 0.85;
+}
+
+/* Редактор заметки */
+.lesson-note-editor {
+    margin-top: 10px;
+}
+
+.lesson-note-editor textarea {
+    width: 100%;
+    min-height: 64px;
+    padding: 8px 12px;
+    border-radius: var(--r-2);
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-primary);
+    font-size: 13px;
+    resize: vertical;
+    outline: none;
+}
+
+.lesson-note-editor-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+/* ============ Неделя и месяц ============ */
+.week-section {
+    margin-bottom: 16px;
+}
+
+.week-day-shell {
+    margin-bottom: 4px;
+}
+
+.month-calendar {
+    padding: 12px;
+    background: var(--surface-1);
+    border: 1px solid var(--border-color);
+    border-radius: var(--r-3);
+}
+
+.weekdays-grid,
+.days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+}
+
+.weekdays-grid {
+    margin-bottom: 4px;
+    color: var(--text-muted);
+    font-size: 10px;
+    text-align: center;
+    letter-spacing: 0.02em;
+}
+
+.calendar-day {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 44px;
+    border-radius: var(--r-1);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.calendar-day.today {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.calendar-day.selected {
+    background: var(--surface-3);
+    color: var(--text-primary);
+}
+
+.calendar-day.empty {
+    pointer-events: none;
+}
+
+.dots-container {
+    display: flex;
+    gap: 2px;
+    height: 4px;
+}
+
+.dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--text-muted);
+}
+
+.dot.type-lecture { background: var(--text-secondary); }
+.dot.type-practice { background: #b08a5a; }
+.dot.type-lab { background: #7f8fb0; }
+.dot.type-window { display: none; }
+.dot-error { background: var(--danger); }
+
+.month-preview {
+    margin-top: 12px;
+}
+
+/* ============ Мои пары ============ */
+.my-schedule-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.my-schedule-date {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.my-schedule-nav-btn {
+    padding: 6px 10px;
+    border-radius: var(--r-1);
+    border: 1px solid var(--border-color);
+    background: var(--surface-1);
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.my-schedule-nav-btn.active {
+    background: var(--surface-3);
+    color: var(--text-primary);
+}
+
+.my-schedule-today {
+    padding: 6px 10px;
+    border-radius: var(--r-1);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.my-schedule-source {
+    margin: 14px 0 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+}
+
+.my-schedule-empty {
+    padding: 24px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.summary-card {
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    background: var(--surface-1);
+    border: 1px solid var(--border-color);
+    border-radius: var(--r-2);
+}
+
+.summary-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.summary-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ============ Модалки ============ */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.62);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.modal.show {
+    display: block;
+    opacity: 1;
+}
+
+.modal-content {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 88dvh;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    background: var(--modal-bg);
+    border-top: 1px solid var(--border-strong);
+    border-radius: var(--r-4) var(--r-4) 0 0;
+    transform: translateY(100%);
+    transition: transform 0.24s ease;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.modal.show .modal-content {
+    transform: translateY(0);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.modal-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.modal-scroll {
+    overflow-y: auto;
+    max-height: 62dvh;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+.form-group {
+    margin-bottom: 12px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 16px;
+    border-radius: var(--r-2);
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+}
+
+.btn-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 44px;
+    margin-top: 8px;
+    padding: 10px 16px;
+    border-radius: var(--r-2);
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Автодополнение */
+.autocomplete-dropdown {
+    margin-top: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+    border-radius: var(--r-2);
+    border: 1px solid var(--border-color);
+    background: var(--surface-1);
+    display: none;
+}
+
+.autocomplete-dropdown.active {
+    display: block;
+}
+
+.autocomplete-item {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 13px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: 0;
+}
+
+.autocomplete-item:active {
+    background: var(--surface-2);
+}
+
+/* Темы */
+.themes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.theme-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px;
+    border-radius: var(--r-2);
+    border: 1px solid var(--border-color);
+    background: var(--surface-1);
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.theme-option.active,
+.theme-option:active {
+    background: var(--surface-3);
+    color: var(--text-primary);
+}
+
+.subgroup-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.subgroup-select {
+    padding: 8px 10px;
+    border-radius: var(--r-1);
+    border: 1px solid var(--border-color);
+    background: var(--surface-1);
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.settings-subgroup {
+    margin-bottom: 12px;
+}
+
+/* Напоминания */
+.reminder-option-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.reminder-option {
+    padding: 10px 8px;
+    border-radius: var(--r-1);
+    border: 1px solid var(--border-color);
+    background: var(--surface-1);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.reminder-option.selected {
+    border-color: var(--accent);
+    color: var(--text-primary);
+    background: var(--accent-soft);
+}
+
+.reminder-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.reminder-picker-content {
+    padding-bottom: 4px;
+}
+
+.reminder-effective-time {
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+/* Свободные аудитории */
+.free-auds-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+/* Мои заметки */
+.notes-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+/* ============ Админка и диагностика ============ */
+.diagnostic-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.diagnostic-item {
+    padding: 8px 10px;
+    border-radius: var(--r-1);
+    border: 1px solid var(--border-color);
+    background: var(--surface-1);
+}
+
+.diagnostic-label {
+    color: var(--text-muted);
+    font-size: 10px;
+}
+
+.diagnostic-value {
+    margin-top: 2px;
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-radius: var(--r-2);
+    border: 1px solid var(--border-color);
+    background: var(--surface-1);
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-align: left;
+}
+
+.admin-btn .i {
+    color: var(--text-muted);
+}
+
+.admin-btn:active {
+    background: var(--surface-2);
+    color: var(--text-primary);
+}
+
+.admin-btn.danger {
+    color: var(--danger);
+    border-color: rgba(229, 72, 77, 0.3);
+}
+
+.admin-btn.danger .i {
+    color: var(--danger);
+}
+
+.admin-filter-btn {
+    padding: 4px 10px;
+    border-radius: var(--r-1);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.admin-filter-btn.active {
+    background: var(--surface-3);
+    color: var(--text-primary);
+}
+
+.admin-user-card {
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-radius: var(--r-2);
+    border: 1px solid var(--border-color);
+    background: var(--surface-1);
+}
+
+.admin-user-main {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.admin-user-name {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.admin-user-meta {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-user-banned {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+.admin-user-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.top-list-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.top-list-item:last-child {
+    border-bottom: 0;
+}
+
+/* ============ Мелочи ============ */
+.lesson-info {
+    display: block;
+    margin-top: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+.theme-option.active {
+    background: var(--surface-3);
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+}
+
+
+.dot-status {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: var(--text-muted);
+}
+
+.dot-status.ok { background: var(--ok); }
+.dot-status.off { background: var(--danger); }
+
+.mono {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+@media (max-width: 360px) {
+    .lesson-card {
+        grid-template-columns: 46px minmax(0, 1fr);
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .quick-action-btn {
+        font-size: 11px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
     </style>
 </head>
 <body class="theme-purple">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-door" viewBox="0 0 24 24"><path d="M4 21h16M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17"/><path d="M14 12h.01"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.8 6.1 21l1.2-6.5L2.5 9.9 9.1 9z"/></symbol>
+    <symbol id="i-star-filled" viewBox="0 0 24 24"><path d="M12 3l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.8 6.1 21l1.2-6.5L2.5 9.9 9.1 9z" fill="currentColor"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+    <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+    <symbol id="i-coffee" viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><path d="M6 1v3M10 1v3M14 1v3"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+    <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M1 1l22 22M16.7 12.2A10 10 0 0 1 19 13.5M5 13.5A10 10 0 0 1 12 3a10 10 0 0 1 5 1.3M8.5 16.5a6 6 0 0 1 7 0M12 20h.01"/></symbol>
+  </defs>
+</svg>
 
-    <div id="offline-banner" class="offline-banner">⚠️ Нет подключения к интернету. Используются кэшированные данные.</div>
+
+    <div id="offline-banner" class="offline-banner"><svg class="i" aria-hidden="true"><use href="#i-wifi-off"/></svg> Нет подключения. Показаны сохранённые данные.</div>
 
     <div class="container">
         <div class="header">
             <div class="header-top">
                 <div class="brand">
-                    <span class="badge-type" id="type-badge" onclick="secretTap()">⚡ КГЭУ</span>
+                    <span class="badge-type" id="type-badge" onclick="secretTap()">КГЭУ</span>
                 </div>
                 <div style="display:flex; gap:6px;">
-                    <button class="icon-btn" id="star-btn" onclick="toggleFavorite()" title="В избранное">☆</button>
-                    <button class="icon-btn" onclick="openSettingsModal()" title="Настройки">⚙️</button>
+                    <button class="icon-btn" id="star-btn" onclick="toggleFavorite()" title="В избранное"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg></button>
+                    <button class="icon-btn" onclick="openSettingsModal()" title="Настройки"><svg class="i" aria-hidden="true"><use href="#i-gear"/></svg></button>
                 </div>
             </div>
 
@@ -1475,14 +1422,14 @@
             <div class="creator-note" id="creator-note"></div>
 
             <div class="nav-modes" style="margin-bottom:10px;">
-                <div class="nav-item active" id="nav-Group" onclick="switchSearchMode('Group')">👥 Группа</div>
-                <div class="nav-item" id="nav-Teacher" onclick="switchSearchMode('Teacher')">👤 Преподаватель</div>
-                <div class="nav-item" id="nav-Aud" onclick="switchSearchMode('Aud')">🚪 Аудитория</div>
+                <div class="nav-item active" id="nav-Group" onclick="switchSearchMode('Group')"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg> Группа</div>
+                <div class="nav-item" id="nav-Teacher" onclick="switchSearchMode('Teacher')"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg> Преподаватель</div>
+                <div class="nav-item" id="nav-Aud" onclick="switchSearchMode('Aud')"><svg class="i" aria-hidden="true"><use href="#i-door"/></svg> Аудитория</div>
             </div>
 
             <div class="name-display-box" onclick="openSearchModal()">
                 <span id="name-display">ВЫБЕРИТЕ ГРУППУ</span>
-                <span style="font-size: 12px; color: var(--text-secondary);">🔍 Изменить</span>
+                <span class="change"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg> Изменить</span>
             </div>
 
             <div class="favorites-scroll" id="favorites-container" style="display: none;"></div>
@@ -1496,25 +1443,25 @@
             </div>
 
             <div class="date-nav-row">
-                <button class="icon-btn" style="width:30px; height:30px; font-size:12px;" onclick="changeDate(-1)">◀</button>
+                <button class="icon-btn" onclick="changeDate(-1)" aria-label="Предыдущий день"><svg class="i" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
                 <div class="date-label" id="date-label">Загрузка...</div>
                 <button class="today-btn-small" id="today-btn" onclick="jumpToToday()" style="display:none;">Сегодня</button>
-                <button class="icon-btn" style="width:30px; height:30px; font-size:12px;" onclick="changeDate(1)">▶</button>
+                <button class="icon-btn" onclick="changeDate(1)" aria-label="Следующий день"><svg class="i" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
             </div>
 
-            <input type="text" class="global-search-input" id="global-search-input" placeholder="🔍 Быстрый поиск по странице..." oninput="debouncedGlobalFilter(this.value)">
+            <input type="text" class="global-search-input" id="global-search-input" placeholder="Поиск по расписанию" oninput="debouncedGlobalFilter(this.value)">
 
             <div class="quick-actions">
-                <button class="quick-action-btn" onclick="openMyScheduleModal()">📚 Мои пары</button>
-                <button class="quick-action-btn" onclick="openNotesModal()">📝 Мои заметки</button>
-                <button class="quick-action-btn" onclick="openRemindersModal()">🔔 Мои напоминания</button>
-                <button class="quick-action-btn" onclick="openFreeAudsModal()">🚪 Свободные</button>
-                <button class="quick-action-btn quick-action-refresh" onclick="forceRefreshCurrentView()">↻ Обновить</button>
+                <button class="quick-action-btn" onclick="openMyScheduleModal()"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg> Мои пары</button>
+                <button class="quick-action-btn" onclick="openNotesModal()"><svg class="i" aria-hidden="true"><use href="#i-note"/></svg> Мои заметки</button>
+                <button class="quick-action-btn" onclick="openRemindersModal()"><svg class="i" aria-hidden="true"><use href="#i-bell"/></svg> Мои напоминания</button>
+                <button class="quick-action-btn" onclick="openFreeAudsModal()"><svg class="i" aria-hidden="true"><use href="#i-door"/></svg> Свободные</button>
+                <button class="quick-action-btn quick-action-refresh" onclick="forceRefreshCurrentView()"><svg class="i" aria-hidden="true"><use href="#i-refresh"/></svg> Обновить</button>
             </div>
         </div>
 
         <div id="schedule-container">
-            <div class="loading">⌛ Загрузка данных...</div>
+            <div class="loading">Загрузка</div>
         </div>
     </div>
 
@@ -1526,7 +1473,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label" id="search-label">Поиск группы</label>
-                <input type="text" class="form-input" id="search-input" placeholder="Например: ИПК-1-25..." oninput="debouncedFilter(this.value)" autocomplete="off">
+                <input type="text" class="form-input" id="search-input" placeholder="Группа, преподаватель или аудитория" oninput="debouncedFilter(this.value)" autocomplete="off">
                 <div class="autocomplete-dropdown" id="autocomplete-dropdown"></div>
             </div>
             <button class="btn-primary" onclick="applySearchSelection()">Показать расписание</button>
@@ -1543,14 +1490,14 @@
             <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">Цветовая тема:</div>
 
             <div class="themes-grid">
-                <div class="theme-option" onclick="setTheme('theme-purple', true)">🔮 Фиолетовая</div>
-                <div class="theme-option" onclick="setTheme('theme-light', true)">☀️ Светлая</div>
-                <div class="theme-option" onclick="setTheme('theme-blue', true)">📊 Синяя</div>
-                <div class="theme-option" onclick="setTheme('theme-black', true)">🌙 Темная OLED</div>
-                <div class="theme-option" onclick="setTheme('theme-pink', true)">✨ Розовая</div>
-                <div class="theme-option" onclick="setTheme('theme-green', true)">🌿 Зеленая</div>
-                <div class="theme-option" onclick="setTheme('theme-amber', true)">☕ Осенняя</div>
-                <div class="theme-option" onclick="setTheme('theme-cyber', true)">🪨 Графит</div>
+                <div class="theme-option" data-theme="theme-purple" onclick="setTheme('theme-purple', true)">Графит</div>
+                <div class="theme-option" data-theme="theme-light" onclick="setTheme('theme-light', true)">Светлая</div>
+                <div class="theme-option" data-theme="theme-blue" onclick="setTheme('theme-blue', true)">Кобальт</div>
+                <div class="theme-option" data-theme="theme-black" onclick="setTheme('theme-black', true)">OLED</div>
+                <div class="theme-option" data-theme="theme-pink" onclick="setTheme('theme-pink', true)">Роза</div>
+                <div class="theme-option" data-theme="theme-green" onclick="setTheme('theme-green', true)">Мох</div>
+                <div class="theme-option" data-theme="theme-amber" onclick="setTheme('theme-amber', true)">Янтарь</div>
+                <div class="theme-option" data-theme="theme-cyber" onclick="setTheme('theme-cyber', true)">Сталь</div>
             </div>
 
             <div class="form-group settings-subgroup">
@@ -1569,8 +1516,8 @@
                 <label class="form-label">Свой фон (картинка):</label>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <input type="file" id="bg-upload" accept="image/*" style="display: none;">
-                    <label for="bg-upload" class="btn-primary" style="text-align: center; cursor: pointer; margin-top: 0; display: block; flex: 1;">📁 Выбрать изображение</label>
-                    <button class="btn-primary" onclick="clearBg()" style="background:var(--border-color); color:var(--text-primary); margin-top: 0; width: auto; padding: 12px 16px;" title="Сбросить фон">✕</button>
+                    <label for="bg-upload" class="btn-primary" style="text-align: center; cursor: pointer; margin-top: 0; display: block; flex: 1;"><svg class="i" aria-hidden="true"><use href="#i-upload"/></svg> Выбрать изображение</label>
+                    <button class="btn-primary" onclick="clearBg()" style="background:var(--border-color); color:var(--text-primary); margin-top: 0; width: auto; padding: 12px 16px;" title="Сбросить фон"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>
                 </div>
                 <div id="file-chosen-name" style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Файл не выбран</div>
             </div>
@@ -1582,7 +1529,7 @@
     <div class="modal" id="my-schedule-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">📚 Мои пары сегодня</div>
+                <div class="modal-title"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg> Мои пары сегодня</div>
             </div>
             <div id="my-schedule-content" class="modal-scroll"></div>
         </div>
@@ -1592,7 +1539,7 @@
     <div class="modal" id="diagnostic-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">🛠 Диагностика</div>
+                <div class="modal-title"><svg class="i" aria-hidden="true"><use href="#i-activity"/></svg> Диагностика</div>
             </div>
             <div id="diagnostic-content"></div>
         </div>
@@ -1602,11 +1549,11 @@
     <div class="modal" id="notes-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">📝 Мои заметки</div>
+                <div class="modal-title"><svg class="i" aria-hidden="true"><use href="#i-note"/></svg> Мои заметки</div>
             </div>
             <div class="notes-toolbar">
                 <span style="font-size:12px;color:var(--text-secondary);">Заметки сохраняются прямо у соответствующих пар.</span>
-                <button class="action-btn" onclick="clearAllNotes()">🗑 Очистить всё</button>
+                <button class="action-btn" onclick="clearAllNotes()"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg> Очистить всё</button>
             </div>
             <div id="notes-list" class="modal-scroll"></div>
         </div>
@@ -1616,11 +1563,11 @@
     <div class="modal" id="reminders-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">🔔 Мои напоминания</div>
+                <div class="modal-title"><svg class="i" aria-hidden="true"><use href="#i-bell"/></svg> Мои напоминания</div>
             </div>
             <div class="notes-toolbar">
                 <span style="font-size:12px;color:var(--text-secondary);">При создании напоминания можно выбрать время от 0 до 24 часов с шагом 5 минут.</span>
-                <button class="action-btn" onclick="clearAllReminders()">🗑 Очистить всё</button>
+                <button class="action-btn" onclick="clearAllReminders()"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg> Очистить всё</button>
             </div>
             <div id="reminders-list" class="modal-scroll"></div>
         </div>
@@ -1630,7 +1577,7 @@
     <div class="modal" id="reminder-picker-modal">
         <div class="modal-content reminder-picker-content">
             <div class="modal-header">
-                <div class="modal-title">⏰ Когда напомнить?</div>
+                <div class="modal-title"><svg class="i" aria-hidden="true"><use href="#i-bell"/></svg> Когда напомнить</div>
             </div>
             <div id="reminder-picker-lesson" class="summary-card" style="margin-bottom:10px;"></div>
             <div class="reminder-option-grid">
@@ -1653,7 +1600,7 @@
                 <label class="form-label">Или своё время — количество минут до пары (шаг 5 минут)</label>
                 <input type="number" class="form-input" id="reminder-custom-minutes" min="0" max="1440" step="5" inputmode="numeric" oninput="handleCustomReminderInput()" onblur="handleCustomReminderMinutes()" placeholder="Своё время: например 25 минут (кратно 5)">
             </div>
-            <button class="btn-primary" onclick="confirmReminderCreation()">✅ Создать напоминание</button>
+            <button class="btn-primary" onclick="confirmReminderCreation()">Создать напоминание</button>
         </div>
     </div>
 
@@ -1661,7 +1608,7 @@
     <div class="modal" id="free-auds-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">🚪 Свободные аудитории</div>
+                <div class="modal-title"><svg class="i" aria-hidden="true"><use href="#i-door"/></svg> Свободные аудитории</div>
             </div>
 
             <div class="form-group">
@@ -1690,7 +1637,7 @@
     <div class="modal" id="admin-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">🛡 Админ-панель</div>
+                <div class="modal-title"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg> Админ-панель</div>
             </div>
             <div id="admin-content" class="modal-scroll"></div>
         </div>
@@ -1705,6 +1652,17 @@ const WORKER_URL = 'https://kgeu-schedule-bot.garzite.workers.dev';
 
 const ADMIN_IDS = [1116707989];
 
+// Иконки: один набор, один размер, цвет наследуется от текста.
+function icon(name, extra = '') {
+    return `<svg class="i${extra ? ' ' + extra : ''}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+}
+
+// Кнопка избранного: заливка вместо подмены символа.
+function syncStarButton() {
+    const btn = document.getElementById('star-btn');
+    if (btn) btn.innerHTML = icon(isFavorite() ? 'star-filled' : 'star');
+}
+
 // =====================================================
 // Constants
 // =====================================================
@@ -1714,17 +1672,8 @@ const MONTH_NAMES_GENITIVE = ["января", "февраля", "марта", "�
 const DAY_NAMES = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
 
 // Девизы тем
-const THEME_MOTTOS = {
-    'theme-light': '☀️ «Сделано теми, кто считает, что утром нужен план, а не квест»',
-    'theme-blue': '📘 «Создатели напоминают: пары не отменяются от одного взгляда на расписание»',
-    'theme-black': '🌙 «Ночной режим для тех, кто открыл расписание за пять минут до пары»',
-    'theme-pink': '🌸 «Небольшая отсылка от создателей: учёба тоже может быть аккуратной»',
-    'theme-purple': '🔮 «Создатели верят в магию, но расписание всё равно берут из API»',
-    'theme-green': '🌿 «От создателей: меньше хаоса, больше понятных дней»',
-    'theme-amber': '☕ «Тёплая тема от создателей для холодных утренних пар»',
-    'theme-cyber': '🪨 «Создатели вышли из неона и выбрали спокойный графит»',
-    'custom-bg-theme': '🖼 «Фон твой, подпись наша — пока ты не заменишь её»'
-};
+// Девизы тем убраны: подпись ничего не сообщает о продукте.
+const THEME_MOTTOS = {};
 
 // =====================================================
 // State
@@ -2033,7 +1982,7 @@ function minutesToTime(minutes) {
 
 // Таймеры скрытия модалок. Раньше closeModals() ставил display:none через
 // 300 мс всем модалкам без исключений, поэтому «быстрое» открытие следующей
-// модалки (диагностика → админка) через 60 мс тут же гасилось старым таймером.
+// модалки (диагностика  админка) через 60 мс тут же гасилось старым таймером.
 const modalHideTimers = new Map();
 let modalZIndex = 1000;
 
@@ -2151,7 +2100,7 @@ function updateSelectionUI() {
     const nav = document.getElementById(`nav-${currentMode}`);
     if (nav) nav.classList.add('active');
 
-    document.getElementById('star-btn').innerText = isFavorite() ? '★' : '☆';
+    syncStarButton();
 }
 
 function normalizeMode(mode) {
@@ -2285,7 +2234,7 @@ function toggleFavorite() {
     else normalized.push({ type: currentMode, name: currentName, id: currentId });
     favorites = normalized;
     renderFavorites();
-    document.getElementById('star-btn').innerText = isFavorite() ? '★' : '☆';
+    syncStarButton();
     safeSetStorage(getUserScopedStorageKey('favorites'), JSON.stringify(favorites));
     syncCloud();
 }
@@ -2334,6 +2283,7 @@ function openSearchModal() {
 }
 
 function openSettingsModal() {
+    syncThemeOptions();
     openModal('settings-modal');
 }
 
@@ -3572,7 +3522,7 @@ function addWindowsToLessons(lessons) {
         if (i < items.length - 1) {
             const gap = items[i+1].time.start - items[i].time.end;
             if (gap > 30) {
-                result.push({ isWindow:true, title:'☕ Перерыв', time:`${minutesToTime(items[i].time.end)} - ${minutesToTime(items[i+1].time.start)}`, duration:formatRelativeMinutes(gap) });
+                result.push({ isWindow:true, title:'Перерыв', time:`${minutesToTime(items[i].time.end)} - ${minutesToTime(items[i+1].time.start)}`, duration:formatRelativeMinutes(gap) });
             }
         }
     }
@@ -3601,9 +3551,9 @@ function getKnownItemId(type, name) {
 // Schedule rendering
 // =====================================================
 
-function renderErrorState(container, title, details = '') {
+function renderErrorState(container, title, details) {
     if (!container) return;
-    container.innerHTML = `<div class="error-card"><strong>⚠️ ${esc(title)}</strong><br><span style="color:var(--text-secondary);">${esc(details || 'Попробуйте обновить данные.')}</span><button class="btn-primary" style="margin-top:8px;" onclick="forceRefreshCurrentView()">↻ Повторить</button></div>`;
+    container.innerHTML = `<div class="error-card"><strong>${icon('alert')} ${esc(title)}</strong>${details ? `<br><span class="error-detail">${esc(details)}</span>` : ''}</div>`;
 }
 
 function formatRelativeMinutes(minutes) {
@@ -3636,9 +3586,13 @@ function getLessonLiveInfo(l, lessonDateStr, isNextLesson = false) {
     if (!lessonDateStr || formatDate(new Date()) !== lessonDateStr || l?.isWindow) return '';
     const t = parseTimeRange(extractLessonTime(l));
     if (!t) return '';
-    const nowMin = new Date().getHours()*60 + new Date().getMinutes();
-    if (nowMin >= t.start && nowMin < t.end) return `<span class="lesson-live-badge">ИДЁТ ПАРА · до конца ${formatRelativeMinutes(t.end-nowMin)}</span>`;
-    if (isNextLesson && t.start > nowMin) return `<span class="lesson-live-badge lesson-next-badge">через ${formatRelativeMinutes(t.start-nowMin)}</span>`;
+    const now = new Date().getHours() * 60 + new Date().getMinutes();
+    if (now >= t.start && now < t.end) {
+        return `<span class="lesson-live"><span class="live-dot"></span>идёт · ${formatRelativeMinutes(t.end - now)}</span>`;
+    }
+    if (isNextLesson && t.start > now) {
+        return `<span class="lesson-live is-next"><span class="live-dot"></span>через ${formatRelativeMinutes(t.start - now)}</span>`;
+    }
     return '';
 }
 
@@ -3658,50 +3612,73 @@ function renderLessonHtml(l, lessonDateStr = '', isNextLesson = false, sourceLab
     const duration = extractLessonDuration(l);
     const subgroupLabel = getLessonSubgroupLabel(l);
     const typeClass = getLessonTypeClass(l);
-    const hasTime = !!parseTimeRange(timeStr);
     const typeLabel = getLessonTypeLabel(l);
+    const range = parseTimeRange(timeStr);
     const progress = checkIsCurrentLesson(timeStr, lessonDateStr);
-    const currentClass = progress !== null ? 'current-lesson' : '';
-    const liveBadge = getLessonLiveInfo(l, lessonDateStr, isNextLesson);
+    const live = getLessonLiveInfo(l, lessonDateStr, isNextLesson);
 
-    if (l.isWindow) return `<div class="lesson-card type-window" style="text-align:center;padding:12px;border-style:dashed;"><div style="font-size:14px;font-weight:700;color:var(--text-secondary);margin-bottom:4px;">${esc(l.title || '☕ Перерыв')}</div><div style="font-size:13px;color:var(--text-secondary);">🕒 ${esc(timeStr)} · ${esc(l.duration || '')}</div></div>`;
+    if (l.isWindow) {
+        return `<div class="lesson-card type-window">${icon('coffee')} ${esc(l.title || 'Перерыв')} · ${esc(timeStr)}${l.duration ? ' · ' + esc(l.duration) + ' мин' : ''}</div>`;
+    }
 
-    const noteKey = buildLessonNoteKey(lessonDateStr,title,timeStr,room,getLessonSubgroupLabel(l));
+    const noteKey = buildLessonNoteKey(lessonDateStr, title, timeStr, room, getLessonSubgroupLabel(l));
     const note = notesByKey[noteKey];
     const token = noteDomToken(noteKey);
-    const subgroupBadge = subgroupLabel ? `<span class="lesson-subgroup-badge">п/г ${esc(subgroupLabel)}</span>` : '';
-    const kindBadge = `<span class="lesson-kind-badge ${typeClass}">${esc(typeLabel)}</span>`;
-    const groupBlock = groups.length ? `<div class="lesson-groups"><span class="lesson-groups-label">👥 Группы</span><div class="lesson-group-chips">${groups.map(g=>`<span class="lesson-group-link" onclick="jumpToEnc('${enc('Group')}','${enc(g.name)}','${enc(String(g.id || getKnownItemId('Group',g.name)))}')">${esc(g.name)}</span>`).join('')}</div></div>` : '';
-    const teacherBlock = teacher ? `<div style="margin-top:6px;"><div class="clickable-badge" onclick="jumpToEnc('${enc('Teacher')}','${enc(teacher)}','${enc(teacherId)}')">👤 ${esc(teacher)}</div></div>` : '';
-    const roomBlock = room ? `<div class="clickable-badge" onclick="jumpToEnc('${enc('Aud')}','${enc(room)}','${enc(roomId)}')">📍 ${esc(room)}</div>` : `<div style="color:var(--text-secondary);">📍 Ауд. не указана</div>`;
-    const sourceBlock = sourceLabel ? `<div class="lesson-source-badge">${esc(sourceLabel)}</div>` : '';
-    const noteBlock = note ? `<div class="lesson-note" id="lesson-note-display-${token}"><span class="lesson-note-label">📝</span>${esc(note.task_text)} <button class="action-btn" style="margin-left:6px;" onclick="toggleLessonNoteEditor('${enc(noteKey)}','${enc(title)}','${enc(lessonDateStr)}','${enc(timeStr)}','${enc(room)}','${enc(String(getLessonSubgroupLabel(l)))}')">Изменить</button></div>` : '';
+    const noteArgs = `'${enc(noteKey)}','${enc(title)}','${enc(lessonDateStr)}','${enc(timeStr)}','${enc(room)}','${enc(String(getLessonSubgroupLabel(l)))}'`;
 
-        const pairLabel = !hasTime && l?.__kgeuPairNumber ? `<span class="lesson-subgroup-badge">${l.__kgeuPairNumber} пара</span>` : '';
-    const timeBlock = `<div class="lesson-time-main ${hasTime ? '' : 'missing'}">🕒 ${esc(timeStr || 'Время не указано')} ${pairLabel}${duration ? ` · ${duration} мин` : ''}</div>`;
+    const timeCol = `<div class="lesson-time">
+            <span class="t-start">${esc(range ? minutesToTime(range.start) : (timeStr ? String(timeStr).split(/[-–—]/)[0].trim() : '—'))}</span>
+            <span class="t-end">${esc(range ? minutesToTime(range.end) : '')}</span>
+            ${l?.__kgeuPairNumber ? `<span class="t-pair">${l.__kgeuPairNumber} пара</span>` : ''}
+        </div>`;
 
-    const badgesRow = `<div class="lesson-badges">${kindBadge}${subgroupBadge}${liveBadge}</div>`;
+    const meta = [];
+    if (room) {
+        meta.push(`<button type="button" onclick="jumpToEnc('${enc('Aud')}','${enc(room)}','${enc(roomId)}')">${esc(room)}</button>`);
+    } else {
+        meta.push('<span>Аудитория не указана</span>');
+    }
+    if (teacher) {
+        meta.push(`<button type="button" onclick="jumpToEnc('${enc('Teacher')}','${enc(teacher)}','${enc(teacherId)}')">${esc(teacher)}</button>`);
+    }
+    if (subgroupLabel) meta.push(`<span>п/г ${esc(subgroupLabel)}</span>`);
+    if (duration) meta.push(`<span>${esc(String(duration))} мин</span>`);
 
-    return `<div class="lesson-card ${typeClass} ${currentClass}">
-        <div class="lesson-title">📖 ${esc(title)}</div>
-        ${badgesRow}
-        ${timeBlock}
-        ${sourceBlock}${groupBlock}
-        <div class="lesson-info">${roomBlock}</div>
-        ${teacherBlock}${noteBlock}
-        <div class="lesson-actions">
-            <button class="action-btn" onclick="toggleLessonNoteEditor('${enc(noteKey)}','${enc(title)}','${enc(lessonDateStr)}','${enc(timeStr)}','${enc(room)}','${enc(String(getLessonSubgroupLabel(l)))}')">📝 ${note ? 'Заметка' : 'Добавить заметку'}</button>
-            <button class="action-btn" onclick="remindEnc('${enc(title)}','${enc(lessonDateStr)}','${enc(timeStr)}','${enc(room)}')">⏰ Напомнить</button>
+    const metaLine = meta.join('<span class="sep">·</span>') + live;
+
+    const groupsRow = groups.length
+        ? `<div class="lesson-groups"><span class="lesson-groups-label">Группы</span><div class="lesson-group-chips">${groups.map(g => `<button type="button" class="lesson-group-link" onclick="jumpToEnc('${enc('Group')}','${enc(g.name)}','${enc(String(g.id || getKnownItemId('Group', g.name)))}')">${esc(g.name)}</button>`).join('')}</div></div>`
+        : '';
+
+    const noteBlock = note
+        ? `<div class="lesson-note" id="lesson-note-display-${token}">${esc(note.task_text)} <button type="button" class="action-btn" onclick="toggleLessonNoteEditor(${noteArgs})">Изменить</button></div>`
+        : '';
+
+    return `<article class="lesson-card ${typeClass} ${progress !== null ? 'is-now' : ''}">
+        ${timeCol}
+        <div class="lesson-body">
+            <div class="lesson-head">
+                <h3 class="lesson-title">${esc(title)}</h3>
+                <span class="lesson-kind">${esc(typeLabel)}</span>
+            </div>
+            <div class="lesson-meta">${metaLine}</div>
+            ${sourceLabel ? `<div class="lesson-source-badge">${esc(sourceLabel)}</div>` : ''}
+            ${groupsRow}
+            ${noteBlock}
+            <div class="lesson-actions">
+                <button type="button" class="action-btn" onclick="toggleLessonNoteEditor(${noteArgs})">${icon('note')} ${note ? 'Заметка' : 'Добавить заметку'}</button>
+                <button type="button" class="action-btn" onclick="remindEnc('${enc(title)}','${enc(lessonDateStr)}','${enc(timeStr)}','${enc(room)}')">${icon('bell')} Напомнить</button>
+            </div>
+            <div id="lesson-note-editor-${token}"></div>
         </div>
-        <div id="lesson-note-editor-${token}"></div>
-        ${progress !== null ? `<div class="live-progress" style="width:${progress}%;"></div>` : ''}
-    </div>`;
+        ${progress !== null ? `<div class="live-progress" style="width:${Math.max(3, Math.min(100, progress))}%"></div>` : ''}
+    </article>`;
 }
 
 function renderLessons(rawLessons, container, dateStr) {
     const lessons = prepareLessonsForDisplay(rawLessons || [], dateStr);
     if (!lessons.length) {
-        container.innerHTML = '<div class="loading">🎉 На этот день пар нет!</div>';
+        container.innerHTML = '<div class="loading">На этот день пар нет</div>';
         return;
     }
     const withBreaks = addWindowsToLessons(lessons);
@@ -4165,7 +4142,7 @@ async function loadSchedule(requestId=viewRequestId, signal=activeRequestControl
         }
         // На refresh допускаем показ предыдущих данных во время обновления, но поверх них
         // всегда будет установлен свежий ответ или ошибка.
-        container.innerHTML='<div class="loading">⌛ Загрузка данных...</div>';
+        container.innerHTML='<div class="loading">Загрузка</div>';
         try{
             const raw=await fetchScheduleForDate(buildScheduleQuery(currentMode,identifier),dateStr,signal,1);
             const clean=prepareLessonsForDisplay(raw,dateStr);
@@ -4188,7 +4165,7 @@ async function loadSchedule(requestId=viewRequestId, signal=activeRequestControl
             enrichWeekGroupsAndRerender(cached.data,container);
             return;
         }
-        container.innerHTML='<div class="loading">⌛ Загрузка недели...</div>';
+        container.innerHTML='<div class="loading"> Загрузка недели</div>';
         try{
             const weekData=await fetchScheduleRange(currentMode,identifier,formatDate(monday),7,signal);
             const dates=Array.from({length:7},(_,i)=>{const d=new Date(monday);d.setDate(d.getDate()+i);return formatDate(d);});
@@ -4211,20 +4188,20 @@ async function loadSchedule(requestId=viewRequestId, signal=activeRequestControl
 }
 
 function renderWeekSchedule(weekData,container){
-    if(!weekData || Object.keys(weekData).length===0){container.innerHTML='<div class="loading">🎉 На этой неделе пар нет!</div>';return;}
+    if(!weekData || Object.keys(weekData).length===0){container.innerHTML='<div class="loading"> На этой неделе пар нет</div>';return;}
     let html=''; let hasErrors=false;
     const entries=Object.entries(weekData).sort((a,b)=>a[0].localeCompare(b[0]));
     for(const [dateKey,rawLessons] of entries){
         const dt=new Date(dateKey+'T00:00:00');
-        if(rawLessons===null || weekErrors[dateKey]){hasErrors=true;html+=`<div class="day-header">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div><div class="error-card">⚠️ Данные за этот день не удалось загрузить.</div>`;continue;}
+        if(rawLessons===null || weekErrors[dateKey]){hasErrors=true;html+=`<div class="day-header">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div><div class="error-card"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg> Данные за этот день не удалось загрузить.</div>`;continue;}
         const lessons=prepareLessonsForDisplay(rawLessons,dateKey);
         if(!lessons.length)continue;
         html+=`<div class="day-header">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div>`;
         const withBreaks=addWindowsToLessons(lessons); const next=getNextLessonForToday(withBreaks,dateKey);
         html+=withBreaks.map(l=>renderLessonHtml(l,dateKey,l===next)).join('');
     }
-    if(!html && !hasErrors)html='<div class="loading">🎉 На этой неделе пар нет!</div>';
-    if(hasErrors)html='<div class="error-card">⚠️ Часть дней не удалось загрузить. Остальные данные показаны ниже.</div>'+html;
+    if(!html && !hasErrors)html='<div class="loading"> На этой неделе пар нет</div>';
+    if(hasErrors)html='<div class="error-card"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg> Часть дней не загрузилась. Остальные данные показаны ниже.</div>'+html;
     container.innerHTML=html;
 }
 
@@ -4296,7 +4273,7 @@ async function loadMonthView(requestId=viewRequestId,signal=activeRequestControl
 
 function renderMonthGrid(year,month,isLoading=false){
     const container=document.getElementById('schedule-container');
-    container.innerHTML=`<div class="month-calendar"><div class="weekdays-grid"><div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div></div><div class="days-grid" id="calendar-days-container"></div></div><div class="month-preview" id="month-preview-content"><div class="loading">${isLoading?'⌛ Загрузка месяца...':'Нажмите на день'}</div></div>`;
+    container.innerHTML=`<div class="month-calendar"><div class="weekdays-grid"><div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div></div><div class="days-grid" id="calendar-days-container"></div></div><div class="month-preview" id="month-preview-content"><div class="loading">${isLoading?' Загрузка месяца':'Нажмите на день'}</div></div>`;
     const daysGrid=document.getElementById('calendar-days-container');
     let firstDayIndex=new Date(year,month,1).getDay(); firstDayIndex=firstDayIndex===0?6:firstDayIndex-1;
     const totalDays=new Date(year,month+1,0).getDate(); const todayStr=formatDate(new Date()); let html='';
@@ -4321,8 +4298,8 @@ function selectMonthDay(dateStr,element){
         const target=document.getElementById('month-preview-content'); if(!target)return;
         const dt=new Date(dateStr+'T00:00:00'); const lessons=prepareLessonsForDisplay(monthLessonsCache[dateStr]||[],dateStr); const withBreaks=addWindowsToLessons(lessons);
         let html=`<div class="day-header" style="margin-top:0;">${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES_GENITIVE[dt.getMonth()]}</div>`;
-        if(monthErrors[dateStr])html+='<div class="error-card">⚠️ Не удалось получить данные за этот день.</div>';
-        else if(!withBreaks.length)html+='<div style="text-align:center;padding:15px;font-weight:500;">🎉 На этот день пар нет!</div>';
+        if(monthErrors[dateStr])html+='<div class="error-card"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg> Не удалось получить данные за этот день.</div>';
+        else if(!withBreaks.length)html+='<div style="text-align:center;padding:15px;font-weight:500;"> На этот день пар нет</div>';
         else{const next=getNextLessonForToday(withBreaks,dateStr);html+=withBreaks.map(l=>renderLessonHtml(l,dateStr,l===next)).join('');}
         target.innerHTML=html;
     };
@@ -4387,10 +4364,10 @@ function getMyScheduleDayLabel(date) {
 function renderMyScheduleNavigation() {
     const label = getMyScheduleDayLabel(myScheduleDate);
     return `<div class="my-schedule-nav">
-        <button type="button" class="my-schedule-nav-btn" onclick="changeMyScheduleDay(-1)">‹</button>
+        <button type="button" class="my-schedule-nav-btn" onclick="changeMyScheduleDay(-1)" aria-label="Предыдущий день"><svg class="i" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
         <div class="my-schedule-date"><strong>${esc(label)}</strong><span>${myScheduleDate.getDate()} ${MONTH_NAMES_GENITIVE[myScheduleDate.getMonth()]}</span></div>
-        <button type="button" class="my-schedule-nav-btn" onclick="changeMyScheduleDay(1)">›</button>
-        <button type="button" class="action-btn my-schedule-today" onclick="goMyScheduleToday()">↩ Сегодня</button>
+        <button type="button" class="my-schedule-nav-btn" onclick="changeMyScheduleDay(1)" aria-label="Следующий день"><svg class="i" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+        <button type="button" class="action-btn my-schedule-today" onclick="goMyScheduleToday()">Сегодня</button>
     </div>`;
 }
 
@@ -4413,7 +4390,7 @@ async function loadMySchedule() {
     const sources = getFavoriteSources();
     const dateStr = formatDate(myScheduleDate);
 
-    content.innerHTML = renderMyScheduleNavigation() + (sources.length ? '<div class="loading">⌛ Собираю расписание...</div>' : '<div class="my-schedule-empty">Добавьте группы, преподавателей или аудитории в избранное — здесь соберутся их пары.</div>');
+    content.innerHTML = renderMyScheduleNavigation() + (sources.length ? '<div class="loading"> Собираю расписание</div>' : '<div class="my-schedule-empty">Добавьте группы, преподавателей или аудитории в избранное — здесь соберутся их пары.</div>');
     if (!sources.length) return;
 
     try {
@@ -4480,7 +4457,7 @@ async function loadMySchedule() {
         let html = renderMyScheduleNavigation();
         html += `<div class="summary-card"><div class="summary-title">${esc(getMyScheduleDayLabel(myScheduleDate))} · ${combined.length} пар</div><div class="summary-meta"><span>Источников: ${safeSources.length}</span></div></div>`;
 
-        if (errors.length) html += `<div class="error-card">⚠️ Часть источников не загрузилась:<br>${errors.map(e => `• ${esc(e)}`).join('<br>')}</div>`;
+        if (errors.length) html += `<div class="error-card"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg> Часть источников не загрузилась:<br>${errors.map(e => `• ${esc(e)}`).join('<br>')}</div>`;
 
         if (!combined.length) {
             html += '<div class="my-schedule-empty">На этот день пар нет или данные не загрузились.</div>';
@@ -4492,7 +4469,7 @@ async function loadMySchedule() {
                     html += `<div class="my-schedule-source">${esc(time)}</div>`;
                     lastTime = time;
                 }
-                const sourceLabel = `${source.type === 'Group' ? '👥' : source.type === 'Teacher' ? '👤' : '🚪'} ${source.name}`;
+                const sourceLabel = `${source.type === 'Group' ? '<svg class="i" aria-hidden="true"><use href="#i-users"/></svg>' : source.type === 'Teacher' ? '<svg class="i" aria-hidden="true"><use href="#i-user"/></svg>' : '<svg class="i" aria-hidden="true"><use href="#i-door"/></svg>'} ${source.name}`;
                 const next = getNextLessonForToday([lesson], dateStr) === lesson;
                 html += renderLessonHtml(lesson, dateStr, next, sourceLabel);
             });
@@ -4500,7 +4477,7 @@ async function loadMySchedule() {
 
         content.innerHTML = html;
     } catch (e) {
-        if (requestId === myScheduleRequestId) content.innerHTML = renderMyScheduleNavigation() + '<div class="error-card">⚠️ Не удалось собрать «Мои пары».</div>';
+        if (requestId === myScheduleRequestId) content.innerHTML = renderMyScheduleNavigation() + '<div class="error-card"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg> Не удалось собрать «Мои пары».</div>';
     }
 }
 
@@ -4525,12 +4502,20 @@ function debouncedGlobalFilter(value) {
 // Themes / background / mottos
 // =====================================================
 
+function syncThemeOptions() {
+    const active = currentTheme || 'theme-purple';
+    document.querySelectorAll('.theme-option').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('data-theme') === active);
+    });
+}
+
 function setTheme(theme, save = false) {
     currentTheme = theme;
 
     document.body.style.backgroundImage = 'none';
     document.body.className = theme;
 
+    syncThemeOptions();
     updateCreatorNote(THEME_MOTTOS[theme] || '');
 
     if (save) {
@@ -4812,8 +4797,8 @@ function toggleLessonNoteEditor(keyEnc, titleEnc, dateEnc, timeEnc, roomEnc, sub
         <div class="lesson-note-editor">
             <textarea id="lesson-note-input-${token}" placeholder="Напишите заметку к этой паре..."></textarea>
             <div class="lesson-note-editor-actions">
-                <button class="action-btn" onclick="saveLessonNote('${keyEnc}','${titleEnc}','${dateEnc}','${timeEnc}','${roomEnc}','${subgroupEnc}')">💾 Сохранить</button>
-                ${existing ? `<button class="action-btn" onclick="deleteLessonNote('${keyEnc}')">🗑 Удалить</button>` : ''}
+                <button class="action-btn" onclick="saveLessonNote('${keyEnc}','${titleEnc}','${dateEnc}','${timeEnc}','${roomEnc}','${subgroupEnc}')"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg> Сохранить</button>
+                ${existing ? `<button class="action-btn" onclick="deleteLessonNote('${keyEnc}')"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg> Удалить</button>` : ''}
             </div>
         </div>`;
 
@@ -4908,10 +4893,10 @@ async function loadNotes() {
 
         list.innerHTML = notes.map(n => `
             <div class="lesson-card" style="margin-bottom:8px;">
-                <div class="lesson-title">📖 ${esc(n.lesson_title || 'Пара')}</div>
-                <div class="lesson-info" style="display:block;">${n.due_date ? '📅 ' + esc(n.due_date) + (n.lesson_time ? ' · ' + esc(n.lesson_time) : '') : (n.lesson_time ? '🕒 ' + esc(n.lesson_time) : '')}</div>
+                <div class="lesson-title"><svg class="i" aria-hidden="true"><use href="#i-book"/></svg> ${esc(n.lesson_title || 'Пара')}</div>
+                <div class="lesson-info" style="display:block;">${n.due_date ? '<svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg> ' + esc(n.due_date) + (n.lesson_time ? ' · ' + esc(n.lesson_time) : '') : (n.lesson_time ? '<svg class="i" aria-hidden="true"><use href="#i-clock"/></svg> ' + esc(n.lesson_time) : '')}</div>
                 <div class="lesson-note" style="margin-top:7px;">${esc(n.task_text || '')}</div>
-                <div class="lesson-actions"><button class="action-btn" onclick="deleteLessonNote('${enc(n.note_key || '')}')">🗑 Удалить</button></div>
+                <div class="lesson-actions"><button class="action-btn" onclick="deleteLessonNote('${enc(n.note_key || '')}')"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg> Удалить</button></div>
             </div>
         `).join('');
     } catch (e) {
@@ -4961,7 +4946,7 @@ function openReminderPicker(title, dateStr, timeStr, room) {
     document.querySelectorAll('#reminder-picker-modal .reminder-option').forEach(btn => btn.classList.toggle('selected', btn.dataset.minutes === '15'));
 
     const box = document.getElementById('reminder-picker-lesson');
-    if (box) box.innerHTML = `<div class="summary-title">${esc(title)}</div><div class="summary-meta"><span>🕒 ${esc(timeStr)}</span>${room ? `<span>📍 ${esc(room)}</span>` : ''}<span>📅 ${esc(dateStr)}</span></div><div id="reminder-effective-time" class="summary-meta" style="margin-top:6px;font-weight:700;">Напоминание: за 15 мин до пары</div>`;
+    if (box) box.innerHTML = `<div class="summary-title">${esc(title)}</div><div class="summary-meta"><span><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg> ${esc(timeStr)}</span>${room ? `<span><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg> ${esc(room)}</span>` : ''}<span><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg> ${esc(dateStr)}</span></div><div id="reminder-effective-time" class="summary-meta" style="margin-top:6px;font-weight:700;">Напоминание: за 15 мин до пары</div>`;
     openModal('reminder-picker-modal');
 }
 
@@ -5027,7 +5012,7 @@ async function confirmReminderCreation() {
         return;
     }
 
-    const message = `⏰ Напоминание: ${pendingReminder.title}\n🕒 ${pendingReminder.timeStr}${pendingReminder.room ? `\n📍 ${pendingReminder.room}` : ''}`;
+    const message = `Напоминание: ${pendingReminder.title}\n${pendingReminder.timeStr}${pendingReminder.room ? `\n${pendingReminder.room}` : ''}`;
     const reminderKey = [pendingReminder.dateStr, pendingReminder.title, pendingReminder.timeStr, pendingReminder.room, lead].join('|');
 
     try {
@@ -5065,10 +5050,10 @@ async function loadReminders() {
             const lead = Number(r.lead_minutes);
             const leadText = Number.isFinite(lead) ? (lead === 0 ? 'в момент начала' : `за ${formatRelativeMinutes(lead)}`) : 'в выбранное время';
             return `<div class="lesson-card" style="margin-bottom:8px;">
-                <div class="lesson-title">🔔 ${formatDateTime(r.remind_at)}</div>
+                <div class="lesson-title"><svg class="i" aria-hidden="true"><use href="#i-bell"/></svg> ${formatDateTime(r.remind_at)}</div>
                 <div class="lesson-info" style="display:block;white-space:pre-wrap;">${esc(r.message)}</div>
-                <div class="summary-meta"><span>⏱ ${esc(leadText)}</span></div>
-                <div class="lesson-actions"><button class="action-btn" onclick="deleteReminder(${r.id})">🗑 Удалить</button></div>
+                <div class="summary-meta"><span><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg> ${esc(leadText)}</span></div>
+                <div class="lesson-actions"><button class="action-btn" onclick="deleteReminder(${r.id})"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg> Удалить</button></div>
             </div>`;
         }).join('');
     } catch (e) {
@@ -5117,7 +5102,7 @@ async function searchFreeAuds() {
 
     const auds = (listsData.Aud || []).map(normalizeListItem).filter(Boolean);
     if (!auds.length) {
-        box.innerHTML = '<div class="error-card">⚠️ Список аудиторий не загружен. Проверь связь и попробуй снова.</div>';
+        box.innerHTML = '<div class="error-card"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg> Список аудиторий не загрузился. Проверьте связь и повторите.</div>';
         return;
     }
 
@@ -5128,7 +5113,7 @@ async function searchFreeAuds() {
     if (button) {
         button.dataset.label = button.textContent;
         button.disabled = true;
-        button.textContent = '⌛ Проверяю...';
+        button.textContent = 'Проверяю…';
     }
 
     const chunks = [];
@@ -5148,7 +5133,7 @@ async function searchFreeAuds() {
         const body = freeList.length
             ? `<div class="free-auds-wrap">${freeList.map(item => `<div class="favorite-chip" onclick="jumpToEnc('${enc('Aud')}', '${enc(item.name)}', '${enc(item.id)}')">${esc(item.name)}</div>`).join('')}</div>`
             : (checked < auds.length
-                ? '<div class="loading">⌛ Проверяю аудитории...</div>'
+                ? '<div class="loading"> Проверяю аудитории</div>'
                 : '<div class="my-schedule-empty">В это время свободных аудиторий не найдено.</div>');
 
         box.innerHTML = `
@@ -5161,7 +5146,7 @@ async function searchFreeAuds() {
         `;
     };
 
-    box.innerHTML = '<div class="loading">⌛ Ищу свободные аудитории...</div>';
+    box.innerHTML = '<div class="loading"> Ищу свободные аудитории</div>';
 
     try {
         await mapWithConcurrency(chunks, 2, async chunk => {
@@ -5205,7 +5190,7 @@ function renderDiagnostics() {
         <div class="diagnostic-grid">
             <div class="diagnostic-item">
                 <div class="diagnostic-label">Интернет</div>
-                <div class="diagnostic-value">${navigator.onLine ? '🟢 Онлайн' : '🔴 Офлайн'}</div>
+                <div class="diagnostic-value"><span class="dot-status ${navigator.onLine ? 'ok' : 'off'}"></span>${navigator.onLine ? 'Онлайн' : 'Офлайн'}</div>
             </div>
             <div class="diagnostic-item">
                 <div class="diagnostic-label">Режим</div>
@@ -5249,8 +5234,8 @@ function renderDiagnostics() {
         </div>
 
         <div style="display:flex;gap:8px;margin-top:10px;">
-            <button class="btn-primary" style="flex:1;" onclick="forceRefreshCurrentView(); setTimeout(() => { if (isLocalAdmin()) openDiagnosticsModal(); }, 300);">↻ Обновить и проверить</button>
-            <button class="action-btn" style="flex:0 0 auto;" onclick="closeModals(); setTimeout(openAdminModal, 60);">← Админка</button>
+            <button class="btn-primary" style="flex:1;" onclick="forceRefreshCurrentView(); setTimeout(() => { if (isLocalAdmin()) openDiagnosticsModal(); }, 300);"><svg class="i" aria-hidden="true"><use href="#i-refresh"/></svg> Обновить и проверить</button>
+            <button class="action-btn" style="flex:0 0 auto;" onclick="closeModals(); setTimeout(openAdminModal, 60);"><svg class="i" aria-hidden="true"><use href="#i-chevron-left"/></svg> Админка</button>
         </div>
     `;
 }
@@ -5262,7 +5247,7 @@ function renderDiagnostics() {
 async function loadAdminPanel() {
     const content = document.getElementById('admin-content');
 
-    content.innerHTML = '<div class="loading">⌛ Загрузка админ-панели...</div>';
+    content.innerHTML = '<div class="loading"> Загрузка админ-панели</div>';
 
     try {
         const stats = await apiFetch('/api/admin/stats');
@@ -5296,16 +5281,16 @@ async function loadAdminPanel() {
             </div>
 
             <div style="margin-top:12px;">
-                <button class="admin-btn" onclick="adminAction('refreshLists')">🔄 Обновить списки с API вуза</button>
-                <button class="admin-btn" onclick="adminTest()">🧪 Проверить внешний API</button>
-                <button class="admin-btn" onclick="adminAction('clearOldCache')">🧹 Очистить старый кэш</button>
-                <button class="admin-btn danger" onclick="adminAction('clearAllCache')">💣 Очистить весь кэш</button>
-                <button class="admin-btn" onclick="adminAction('clearLogs')">🗑 Очистить логи</button>
-                <button class="admin-btn" onclick="adminBroadcast()">📢 Рассылка пользователям</button>
-                <button class="admin-btn" onclick="focusAdminUsersSection()">👥 Пользователи: бан / разбан</button>
-                <button class="admin-btn" onclick="adminWebhookInfo()">🔗 Проверить вебхук</button>
-                <button class="admin-btn" onclick="adminSetWebhook()">🔧 Переустановить вебхук</button>
-                <button class="admin-btn" onclick="openDiagnosticsModal()">🛠 Открыть диагностику</button>
+                <button class="admin-btn" onclick="adminAction('refreshLists')"><svg class="i" aria-hidden="true"><use href="#i-refresh"/></svg> Обновить списки с API вуза</button>
+                <button class="admin-btn" onclick="adminTest()"><svg class="i" aria-hidden="true"><use href="#i-activity"/></svg> Проверить внешний API</button>
+                <button class="admin-btn" onclick="adminAction('clearOldCache')"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg> Очистить старый кэш</button>
+                <button class="admin-btn danger" onclick="adminAction('clearAllCache')"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg> Очистить весь кэш</button>
+                <button class="admin-btn" onclick="adminAction('clearLogs')"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg> Очистить логи</button>
+                <button class="admin-btn" onclick="adminBroadcast()"><svg class="i" aria-hidden="true"><use href="#i-bell"/></svg> Рассылка пользователям</button>
+                <button class="admin-btn" onclick="focusAdminUsersSection()"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg> Пользователи: бан и разбан</button>
+                <button class="admin-btn" onclick="adminWebhookInfo()"><svg class="i" aria-hidden="true"><use href="#i-linkless"/></svg> Проверить вебхук</button>
+                <button class="admin-btn" onclick="adminSetWebhook()"><svg class="i" aria-hidden="true"><use href="#i-gear"/></svg> Переустановить вебхук</button>
+                <button class="admin-btn" onclick="openDiagnosticsModal()"><svg class="i" aria-hidden="true"><use href="#i-activity"/></svg> Открыть диагностику</button>
             </div>
 
             ${renderTopGroups(stats.topGroups || [])}
@@ -5314,7 +5299,7 @@ async function loadAdminPanel() {
 
         loadAdminUsers(true);
     } catch (e) {
-        content.innerHTML = '<div class="error-card">❌ Нет доступа к админ-панели.</div>';
+        content.innerHTML = '<div class="error-card"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg> Нет доступа к админ-панели.</div>';
     }
 }
 
@@ -5400,8 +5385,8 @@ function renderAdminUserCard(user) {
     const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || `ID ${user.telegram_id}`;
     const username = user.username ? `@${user.username}` : 'без username';
     const banned = Number(user.banned) === 1;
-    const icon = user.selected_type === 'Teacher' ? '👤' : user.selected_type === 'Aud' ? '🚪' : '👥';
-    const selection = user.selected_name ? `${icon} ${user.selected_name}` : 'объект не выбран';
+    const typeIcon = user.selected_type === 'Teacher' ? '<svg class="i" aria-hidden="true"><use href="#i-user"/></svg>' : user.selected_type === 'Aud' ? '<svg class="i" aria-hidden="true"><use href="#i-door"/></svg>' : '<svg class="i" aria-hidden="true"><use href="#i-users"/></svg>';
+    const selection = user.selected_name ? `${typeIcon} ${user.selected_name}` : 'объект не выбран';
 
     return `
         <div class="admin-user-card">
@@ -5411,8 +5396,8 @@ function renderAdminUserCard(user) {
             </div>
             <div class="admin-user-meta">ID: ${esc(String(user.telegram_id))} · ${esc(selection)} · ${esc(formatUserLastSeen(user.updated_at))}</div>
             <div class="admin-user-actions">
-                <button class="action-btn" onclick="toggleAdminUserBan(${Number(user.telegram_id)}, ${banned ? 0 : 1}, this)">${banned ? '✅ Разбанить' : '🚫 Забанить'}</button>
-                <button class="action-btn" onclick="copyAdminUserId(${Number(user.telegram_id)})">📋 ID</button>
+                <button class="action-btn" onclick="toggleAdminUserBan(${Number(user.telegram_id)}, ${banned ? 0 : 1}, this)">${banned ? 'Разбанить' : 'Забанить'}</button>
+                <button class="action-btn" onclick="copyAdminUserId(${Number(user.telegram_id)})"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg> ID</button>
             </div>
         </div>
     `;
@@ -5430,7 +5415,7 @@ async function loadAdminUsers(reset = true) {
     if (reset) {
         adminUsersState.page = 1;
         adminUsersState.loaded = 0;
-        list.innerHTML = '<div class="loading">⌛ Загружаю...</div>';
+        list.innerHTML = '<div class="loading"> Загружаю</div>';
     }
 
     try {
@@ -5457,7 +5442,7 @@ async function loadAdminUsers(reset = true) {
         }
         if (more) more.style.display = adminUsersState.loaded < adminUsersState.total ? 'block' : 'none';
     } catch (e) {
-        list.innerHTML = `<div class="error-card">⚠️ ${esc(describeApiError(e))}</div>`;
+        list.innerHTML = `<div class="error-card"><svg class="i" aria-hidden="true"><use href="#i-alert"/></svg> ${esc(describeApiError(e))}</div>`;
     } finally {
         adminUsersState.busy = false;
     }
@@ -5501,12 +5486,12 @@ async function adminWebhookInfo() {
             res.error ? `Ошибка Telegram: ${res.error}` : null,
             `URL в Telegram: ${info.url || '(не задан — бот не получает сообщения)'}`,
             `Ожидаемый URL: ${res.expectedUrl}`,
-            info.url && info.url !== res.expectedUrl ? '⚠️ URL не совпадает с этим воркером' : null,
+            info.url && info.url !== res.expectedUrl ? '<svg class="i" aria-hidden="true"><use href="#i-alert"/></svg> URL не совпадает с этим воркером' : null,
             `Секрет: ${res.secretConfigured ? 'настроен' : 'НЕ настроен (нужен BOT_TOKEN)'}`,
             `В очереди обновлений: ${info.pending_update_count ?? '—'}`,
-            info.last_error_message ? `⚠️ Последняя ошибка: ${info.last_error_message}` : 'Последней ошибки нет',
+            info.last_error_message ? `<svg class="i" aria-hidden="true"><use href="#i-alert"/></svg> Последняя ошибка: ${info.last_error_message}` : 'Последней ошибки нет',
             info.last_error_date ? `Когда: ${new Date(info.last_error_date * 1000).toLocaleString('ru-RU')}` : null,
-            res.healthy ? '✅ Вебхук в порядке' : '❌ Вебхук работает не так — нажмите «Переустановить вебхук»'
+            res.healthy ? '<svg class="i" aria-hidden="true"><use href="#i-check"/></svg> Вебхук в порядке' : '<svg class="i" aria-hidden="true"><use href="#i-alert"/></svg> Вебхук работает не так — нажмите «Переустановить вебхук»'
         ].filter(Boolean);
 
         alert(lines.join('\n'));
